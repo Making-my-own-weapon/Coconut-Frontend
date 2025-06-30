@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import React from 'react';
+import StudentClassPage from './pages/StudentClassPage';
 import ProblemImportForm from './components/teacher-class/ProblemImportForm';
 import ProblemCreateForm from './components/teacher-class/ProblemCreateForm';
 
