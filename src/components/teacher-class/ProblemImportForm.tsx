@@ -85,6 +85,7 @@ export default function ProblemBrowsePage() {
   const [search, setSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState<'All' | 'My' | 'BOJ'>('All');
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
+  const [solveLimitFilter, setSolveLimitFilter] = useState('');
   const [list, setList] = useState<ProblemItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
@@ -96,8 +97,7 @@ export default function ProblemBrowsePage() {
       (p) =>
         p.title.includes(search) &&
         (sourceFilter === 'All' || p.source === sourceFilter) &&
-        (categoryFilter.length === 0 ||
-          p.category.some((c) => categoryFilter.includes(c))),
+        (categoryFilter.length === 0 || p.category.some((c) => categoryFilter.includes(c))),
     )
     .sort((a, b) => {
       const countA = categoryFilter.length
@@ -123,9 +123,7 @@ export default function ProblemBrowsePage() {
   ];
 
   const toggleSelect = (id: number) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
   const toggleCategory = (cat: string) => {
@@ -152,7 +150,7 @@ export default function ProblemBrowsePage() {
             onClick={handleConfirm}
             className="px-4 py-2 bg-green-600 rounded hover:bg-green-500"
           >
-            확인
+            생성
           </button>
         </div>
       </div>
@@ -168,11 +166,10 @@ export default function ProblemBrowsePage() {
           />
           <Search className="absolute right-3 top-3 text-gray-400" />
         </div>
+
         <select
           value={sourceFilter}
-          onChange={(e) =>
-            setSourceFilter(e.target.value as 'All' | 'My' | 'BOJ')
-          }
+          onChange={(e) => setSourceFilter(e.target.value as 'All' | 'My' | 'BOJ')}
           className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-gray-100"
         >
           {sources.map((s) => (
@@ -181,6 +178,14 @@ export default function ProblemBrowsePage() {
             </option>
           ))}
         </select>
+        <input
+          type="number"
+          min="0"
+          className="w-32 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-gray-100"
+          placeholder="풀이시간(분)"
+          value={solveLimitFilter}
+          onChange={(e) => setSolveLimitFilter(e.target.value)}
+        />
       </div>
       {/* 카테고리 버튼 그리드 */}
       <div className="grid grid-cols-4 gap-2 mb-4">
@@ -203,9 +208,7 @@ export default function ProblemBrowsePage() {
             onClick={() => toggleSelect(p.id)}
             className="relative bg-gray-700 border border-gray-600 rounded p-4 hover:bg-gray-600 cursor-pointer"
           >
-            <h2 className="font-medium text-lg mb-2 text-gray-100">
-              {p.title}
-            </h2>
+            <h2 className="font-medium text-lg mb-2 text-gray-100">{p.title}</h2>
             <div className="flex flex-wrap gap-1 mb-2">
               {p.category.map((cat) => (
                 <span

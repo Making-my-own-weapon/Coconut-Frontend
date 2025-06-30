@@ -10,39 +10,44 @@ interface TestCase {
 export default function ProblemCreateForm() {
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
-  const [memoryLimit, setMemoryLimit] = useState('');
-  const [timeLimitSec, setTimeLimitSec] = useState('');
-  const [timeLimitMin, setTimeLimitMin] = useState('');
-  const [category, setCategory] = useState('');
+  const [timeLimitMin, setTimeLimitMin] = useState(''); // 전체 풀이 제한시간(분)
+  const [timeLimitSec, setTimeLimitSec] = useState(''); // 시간 제한(초)
+  const [memoryLimit, setMemoryLimit] = useState(''); // 메모리 제한
+  const [categories, setCategories] = useState<string[]>([]);
   const [description, setDescription] = useState('');
-  const [testCases, setTestCases] = useState<TestCase[]>([
-    { input: '', output: '' },
-  ]);
+  const [testCases, setTestCases] = useState<TestCase[]>([{ input: '', output: '' }]);
 
-  const addTestCase = () => {
-    setTestCases((prev) => [...prev, { input: '', output: '' }]);
-  };
+  const allCategories = [
+    '그래프',
+    '동적 계획법',
+    '그리디',
+    '자료 구조',
+    '수학',
+    '문자열',
+    '분할 정복·이진 탐색',
+    '백트래킹·완전 탐색',
+  ];
 
-  const updateTestCase = (
-    idx: number,
-    field: keyof TestCase,
-    value: string,
-  ) => {
+  const toggleCategory = (cat: string) =>
+    setCategories((prev) => (prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]));
+
+  const addTestCase = () => setTestCases((prev) => [...prev, { input: '', output: '' }]);
+
+  const updateTestCase = (idx: number, field: keyof TestCase, value: string) =>
     setTestCases((prev) => {
       const copy = [...prev];
       copy[idx] = { ...copy[idx], [field]: value };
       return copy;
     });
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log({
       title,
-      memoryLimit,
-      timeLimitSec,
       timeLimitMin,
-      category,
+      timeLimitSec,
+      memoryLimit,
+      categories,
       description,
       testCases,
     });
@@ -51,8 +56,8 @@ export default function ProblemCreateForm() {
   return (
     <div className="max-w-3xl mx-auto p-6 bg-gray-800 text-gray-100 rounded-lg">
       <form onSubmit={handleSubmit}>
-        {/* Header row */}
-        <div className="flex justify-between items-center mb-4">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold">문제 생성</h2>
           <div className="flex gap-2">
             <button
@@ -62,17 +67,14 @@ export default function ProblemCreateForm() {
             >
               취소
             </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-green-600 rounded hover:bg-green-500"
-            >
+            <button type="submit" className="px-4 py-2 bg-green-600 rounded hover:bg-green-500">
               생성
             </button>
           </div>
         </div>
 
-        {/* Title & Category */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        {/* Title | 풀이 제한시간 */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block mb-1 text-sm">문제 제목</label>
             <input
@@ -84,43 +86,10 @@ export default function ProblemCreateForm() {
             />
           </div>
           <div>
-            <label className="block mb-1 text-sm">카테고리</label>
+            <label className="block mb-1 text-sm">전체 풀이 제한시간 (분)</label>
             <input
-              type="text"
-              className="w-full px-3 py-2 bg-gray-700 rounded"
-              placeholder="예: Array, Hash Table"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Limits */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          <div>
-            <label className="block mb-1 text-sm">메모리 제한</label>
-            <input
-              type="text"
-              className="w-full px-3 py-2 bg-gray-700 rounded"
-              placeholder="예: 10MB"
-              value={memoryLimit}
-              onChange={(e) => setMemoryLimit(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block mb-1 text-sm">시간 제한(초)</label>
-            <input
-              type="text"
-              className="w-full px-3 py-2 bg-gray-700 rounded"
-              placeholder="예: 3초"
-              value={timeLimitSec}
-              onChange={(e) => setTimeLimitSec(e.target.value)}
-            />
-          </div>
-          <div className="col-span-2">
-            <label className="block mb-1 text-sm">시간 제한(분)</label>
-            <input
-              type="text"
+              type="number"
+              min="0"
               className="w-full px-3 py-2 bg-gray-700 rounded"
               placeholder="예: 1분"
               value={timeLimitMin}
@@ -129,7 +98,47 @@ export default function ProblemCreateForm() {
           </div>
         </div>
 
-        {/* Description */}
+        {/* 시간 제한(초) | 메모리 제한 */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div>
+            <label className="block mb-1 text-sm">시간 제한 (초)</label>
+            <input
+              type="number"
+              min="0"
+              className="w-full px-3 py-2 bg-gray-700 rounded"
+              placeholder="예: 3초"
+              value={timeLimitSec}
+              onChange={(e) => setTimeLimitSec(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block mb-1 text-sm">메모리 제한</label>
+            <input
+              type="number"
+              min="0"
+              className="w-full px-3 py-2 bg-gray-700 rounded"
+              placeholder="예: 10MB"
+              value={memoryLimit}
+              onChange={(e) => setMemoryLimit(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Categories 4x2 grid */}
+        <label className="block mb-1 text-sm">문제 분류</label>
+        <div className="grid grid-cols-4 gap-2 mb-6">
+          {allCategories.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => toggleCategory(c)}
+              className={`px-3 py-2 rounded text-sm ${categories.includes(c) ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-100'}`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+        {/* Description full width */}
         <div className="mb-6">
           <label className="block mb-1 text-sm">문제 설명</label>
           <textarea
