@@ -1,7 +1,8 @@
-import { Header } from './components/student-class/Header';
+import React from 'react';
+import StudentClassPage from './pages/StudentClassPage';
 
 function App() {
-  return <Header />;
+  return <StudentClassPage />;
 }
 
 export default App;
