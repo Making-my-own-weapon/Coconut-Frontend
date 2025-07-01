@@ -6,8 +6,7 @@ const JoinPage = () => {
   return (
     <div className="bg-slate-50 min-h-screen">
       <HeaderLogout />
-      <div className="h-[70px] bg-slate-50"></div>
-      <div className="flex flex-col items-center mt-[50px]">
+      <div className="flex flex-col items-center mt-[70px]">
         <div className="w-full max-w-4xl p-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <HostActionContainer />

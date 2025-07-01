@@ -19,11 +19,7 @@ const HeaderLogout: React.FC = () => {
   };
 
   return (
-    <header className="w-full h-[70px] flex-shrink-0 fixed top-0 left-0 z-50">
-      {/* Header background */}
-      <div className="w-full h-[70px] flex-shrink-0 border-b border-gray-200 bg-white/80 shadow-sm backdrop-blur-sm" />
-
-      {/* Content container */}
+    <header className="w-full h-[70px] flex-shrink-0 fixed top-0 left-0 z-50 bg-white/80 border-b shadow-sm backdrop-blur-sm">
       <div className="relative z-10 w-full h-full flex items-center justify-between px-4 md:px-8 lg:px-[122px]">
         {/* Logo */}
         <img
