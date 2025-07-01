@@ -18,7 +18,8 @@
  * ======================================================================
  */
 import React from 'react';
-// TODO: 실제 데이터 연결 시 아래 타입/데이터 부분만 교체하면 됩니다.
+import { useNavigate } from 'react-router-dom';
+
 type IProblem = {
   id: string;
   title: string;
@@ -26,19 +27,10 @@ type IProblem = {
   status: 'pass' | 'fail' | 'none';
 };
 
-/*
- * ======================================================================
- * 개별 문제 항목(ProblemListItem) 컴포넌트
- * - 문제 목록의 각 아이템을 나타냅니다.
- * - 문제의 제목과 상태(pass/fail/none)에 따른 뱃지를 표시합니다.
- * - 클릭 시 `onSelect` 함수를 호출하여 문제 선택 이벤트를 처리합니다.
- * ======================================================================
- */
 const ProblemListItem: React.FC<{
   problem: IProblem;
   onSelect: (id: string) => void;
 }> = ({ problem, onSelect }) => {
-  // 상태별 뱃지 색상 클래스
   const statusClasses = {
     pass: 'bg-green-600 text-green-100',
     fail: 'bg-red-600 text-red-100',
@@ -59,24 +51,38 @@ const ProblemListItem: React.FC<{
   );
 };
 
-/*
- * ======================================================================
- * 문제 목록 뷰(ProblemListView) 메인
- * - `problems` 배열을 받아 `ProblemListItem`으로 렌더링합니다.
- * ======================================================================
- */
-export const ProblemListView: React.FC<{
+export const TeacherProblemListView: React.FC<{
   problems: IProblem[];
   onSelectProblem: (id: string) => void;
-}> = ({ problems, onSelectProblem }) => (
-  <div className="p-4 h-full flex flex-col">
-    <h2 className="text-xl font-semibold text-white mb-4 flex-shrink-0">문제 선택</h2>
-    <div className="flex-grow overflow-y-auto pr-2 space-y-2">
-      {problems.map((problem) => (
-        <ProblemListItem key={problem.id} problem={problem} onSelect={onSelectProblem} />
-      ))}
+  onOpenCreateModal: () => void;
+  onOpenImportModal: () => void;
+}> = ({ problems, onSelectProblem, onOpenCreateModal, onOpenImportModal }) => {
+  return (
+    <div className="p-4 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-4 flex-shrink-0">
+        <h2 className="text-xl font-semibold text-white">문제 선택</h2>
+        <div className="flex gap-2">
+          <button
+            onClick={onOpenCreateModal}
+            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium"
+          >
+            문제 추가
+          </button>
+          <button
+            onClick={onOpenImportModal}
+            className="px-3 py-1 bg-slate-600 text-white rounded hover:bg-slate-700 text-sm font-medium"
+          >
+            문제 가져오기
+          </button>
+        </div>
+      </div>
+      <div className="flex-grow overflow-y-auto pr-2 space-y-2">
+        {problems.map((problem) => (
+          <ProblemListItem key={problem.id} problem={problem} onSelect={onSelectProblem} />
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
-export default ProblemListView;
+export default TeacherProblemListView;
