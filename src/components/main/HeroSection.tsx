@@ -1,3 +1,4 @@
+//src/components/main/HeroSection.tsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 
@@ -23,8 +24,8 @@ const HeroSection: React.FC = () => {
         {/* Description */}
         <div className="flex w-full max-w-[95vw] sm:max-w-[600px] lg:max-w-[755px] justify-center items-center flex-shrink-0 mb-4 sm:mb-6 lg:mb-8">
           <p className="text-gray-600 text-center font-inter text-base sm:text-lg lg:text-xl font-normal leading-tight px-2 sm:px-4">
-            실시간으로 분석하고 피드백하는 혁신적인 코딩 수업 플랫폼으로 더
-            스마트하고 효과적인 프로그래밍 교육을 경험하세요.
+            실시간으로 분석하고 피드백하는 혁신적인 코딩 수업 플랫폼으로 더 스마트하고 효과적인
+            프로그래밍 교육을 경험하세요.
           </p>
         </div>
 

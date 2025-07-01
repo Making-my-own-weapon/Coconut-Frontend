@@ -1,3 +1,4 @@
+//src/components/join/HostForm.tsx
 import React from 'react';
 
 interface HostFormProps {
@@ -15,10 +16,7 @@ const HostForm: React.FC<HostFormProps> = ({
 }) => (
   <div className="space-y-4">
     <div>
-      <label
-        htmlFor="className"
-        className="block text-sm font-medium text-gray-700"
-      >
+      <label htmlFor="className" className="block text-sm font-medium text-gray-700">
         수업 이름
       </label>
       <input
@@ -31,10 +29,7 @@ const HostForm: React.FC<HostFormProps> = ({
       />
     </div>
     <div>
-      <label
-        htmlFor="maxParticipants"
-        className="block text-sm font-medium text-gray-700"
-      >
+      <label htmlFor="maxParticipants" className="block text-sm font-medium text-gray-700">
         최대 참여자수
       </label>
       <input
