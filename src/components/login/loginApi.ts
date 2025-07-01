@@ -1,3 +1,4 @@
+//src/components/login/loginApi.ts
 // 로그인 API 통신 함수 분리
 export async function login(email: string, password: string) {
   const res = await fetch('/api/v1/auth/login', {

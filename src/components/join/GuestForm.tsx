@@ -1,3 +1,4 @@
+//src/components/join/GuestForm.tsx
 import React from 'react';
 
 // 이 폼이 부모로부터 받아야 할 props들을 정의합니다.
@@ -17,10 +18,7 @@ const GuestForm: React.FC<GuestFormProps> = ({
   return (
     <div className="space-y-4">
       <div>
-        <label
-          htmlFor="joinCode"
-          className="block text-sm font-medium text-gray-700"
-        >
+        <label htmlFor="joinCode" className="block text-sm font-medium text-gray-700">
           수업참여코드
         </label>
         <input
@@ -34,10 +32,7 @@ const GuestForm: React.FC<GuestFormProps> = ({
         />
       </div>
       <div>
-        <label
-          htmlFor="userName"
-          className="block text-sm font-medium text-gray-700"
-        >
+        <label htmlFor="userName" className="block text-sm font-medium text-gray-700">
           이름
         </label>
         <input

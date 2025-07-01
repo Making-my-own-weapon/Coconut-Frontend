@@ -1,11 +1,12 @@
+//Coconut-Frontend/src/pages/JoinPage.tsx
 import HostActionContainer from '../components/join/HostActionContainer';
 import GuestActionContainer from '../components/join/GuestActionContainer';
-import HeaderLogout from '../components/common/HeaderLogout';
+import Header from '../components/common/Header';
 
 const JoinPage = () => {
   return (
     <div className="bg-slate-50 min-h-screen">
-      <HeaderLogout />
+      <Header />
       <div className="flex flex-col items-center mt-[70px]">
         <div className="w-full max-w-4xl p-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">

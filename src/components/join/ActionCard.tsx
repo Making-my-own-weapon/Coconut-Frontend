@@ -1,3 +1,4 @@
+//src/components/join/ActionCard.tsx
 import React from 'react';
 
 // 이 카드가 어떤 props를 받을지 명확하게 정의합니다.

@@ -1,3 +1,4 @@
+//src/components/join/GuestActionContainer.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { joinRoomAPI } from './api/roomService';
@@ -46,9 +47,7 @@ const GuestActionContainer = () => {
       description="수업 ID로 실시간 코딩 세션에 참여하고 선생님의 도움을 받아 더 나은 코드를 작성하세요."
       buttonIcon={<PlayIcon />}
       buttonText={isLoading ? '참여 중...' : '수업 참여하기'}
-      buttonColor={
-        isLoading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
-      }
+      buttonColor={isLoading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}
       onSubmit={handleJoinClass}
     >
       {/* 자식 컴포넌트에 상태와 상태 변경 함수를 props로 전달 */}
