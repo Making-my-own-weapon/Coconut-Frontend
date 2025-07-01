@@ -70,16 +70,10 @@ export const ProblemListView: React.FC<{
   onSelectProblem: (id: string) => void;
 }> = ({ problems, onSelectProblem }) => (
   <div className="p-4 h-full flex flex-col">
-    <h2 className="text-xl font-semibold text-white mb-4 flex-shrink-0">
-      문제 선택
-    </h2>
+    <h2 className="text-xl font-semibold text-white mb-4 flex-shrink-0">문제 선택</h2>
     <div className="flex-grow overflow-y-auto pr-2 space-y-2">
       {problems.map((problem) => (
-        <ProblemListItem
-          key={problem.id}
-          problem={problem}
-          onSelect={onSelectProblem}
-        />
+        <ProblemListItem key={problem.id} problem={problem} onSelect={onSelectProblem} />
       ))}
     </div>
   </div>

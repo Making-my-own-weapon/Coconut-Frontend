@@ -15,8 +15,7 @@ interface EditorPanelProps {
 
 export const EditorPanel: React.FC<EditorPanelProps> = ({ code, onCodeChange }) => {
   return (
-    // 전체 패널은 flex-grow를 통해 남은 공간을 모두 차지합니다.
-    <div className="flex-grow bg-[#1e1e1e] flex flex-col">
+    <div className="bg-[#1e1e1e] flex flex-col h-full">
       {/* 에디터 상단에 위치한 정보 바 */}
       <div className="flex justify-between items-center bg-slate-900 px-4 py-2 text-sm text-slate-400 border-b border-slate-700">
         <span className="font-mono">&lt; &gt; solution.py</span>
