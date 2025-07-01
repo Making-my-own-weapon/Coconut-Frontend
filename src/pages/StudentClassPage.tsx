@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from '../components/student-class/Header';
 import ProblemPanel from '../components/student-class/ProblemPanel/ProblemPanel';
 import EditorPanel from '../components/student-class/EditorPanel/EditorPanel';
 import AnalysisPanel from '../components/student-class/AnalysisPanel';
+import { io } from 'socket.io-client';
+import { useParams } from 'react-router-dom';
 
-// 목업 데이터 정의
+/**
+ * 소켓은 한 번 만들고 재사용하기 위해 컴포넌트 밖에 선언합니다.
+ */
+const socket = io('http://localhost:3001');
+
+// 분석 패널을 위한 목업 데이터 정의
 const mockResult = {
   progress: {
     percentage: 75,
@@ -47,15 +54,55 @@ const mockResult = {
 };
 
 export const StudentClassPage: React.FC = () => {
-  // 학생이 에디터에 작성하는 코드를 관리하는 상태
-  const [userCode, setUserCode] = useState<string>('def solution(a, b):\n  return a + b');
+  // --- 상태 관리 (State) ---
+  // 실시간 코드 공유 관련 상태
+  const { editorId } = useParams();
+  const isRemoteUpdate = useRef(false); // 다른 사용자의 편집 내용을 받은 경우 다시 emit하지 않도록 방지
+  const [userCode, setUserCode] = useState<string>('# 여기에 코드를 입력하세요');
+
+  // 분석 패널 관련 상태
   const [isAnalysisPanelOpen, setAnalysisPanelOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any | null>(null);
 
-  // 코드 변경 핸들러
+  // --- 소켓 통신 로직 (Side Effects) ---
+  // 소켓 연결 시 에디터 'join'
+  useEffect(() => {
+    const handleConnect = () => {
+      socket.emit('joinEditor', { editorId: editorId });
+    };
+    socket.on('connect', handleConnect);
+    return () => {
+      socket.off('connect', handleConnect);
+    };
+  }, [editorId]);
+
+  // 다른 사용자의 코드 변경 수신
+  useEffect(() => {
+    socket.on('editorUpdated', (payload) => {
+      if (payload.editorId === editorId) {
+        isRemoteUpdate.current = true;
+        setUserCode(payload.code);
+      }
+    });
+
+    return () => {
+      socket.off('editorUpdated');
+    };
+  }, [editorId]);
+
+  // --- 이벤트 핸들러 ---
+  // 현재 사용자의 코드 변경 감지 및 전송
   const handleCodeChange = (code: string | undefined) => {
-    setUserCode(code || '');
+    setUserCode(code ?? '');
+
+    if (!isRemoteUpdate.current) {
+      socket.emit('editCode', {
+        editorId: editorId,
+        code: code,
+      });
+    }
+    isRemoteUpdate.current = false;
   };
 
   // 제출 및 분석 핸들러
@@ -74,10 +121,12 @@ export const StudentClassPage: React.FC = () => {
     }, 2000);
   };
 
+  // 분석 패널 닫기 핸들러
   const handlePanelClose = () => {
     setAnalysisPanelOpen(false);
   };
 
+  // --- 렌더링 ---
   return (
     <div className="flex flex-col h-screen bg-slate-900 text-white">
       <Header classCode="실시간 코딩 테스트" />
