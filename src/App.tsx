@@ -53,7 +53,7 @@ function App() {
         <Route path="/editor/:editorId" element={<StudentClassPage />} />
         {/*<Route path="/teacher-class" element={<TeacherClassPage />} />*/}
         <Route path="/teacher-class/:roomId/import" element={<ProblemImportForm />} />
-        <Route path="/teacher-class/:roomId/create" element={<ProblemCreateForm />
+        <Route path="/teacher-class/:roomId/create" element={<ProblemCreateForm />} />
         <Route path="/class" element={<StudentClassPage />} />
         {/* 다른 라우트 */}
       </Routes>
