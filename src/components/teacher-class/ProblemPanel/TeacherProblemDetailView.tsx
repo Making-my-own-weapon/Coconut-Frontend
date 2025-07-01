@@ -7,30 +7,17 @@
  * - Python 코드 실행(채점) 기능을 제공하며, 실행 결과를 사용자에게 보여줍니다.
  *
  * 주요 로직 및 하위 컴포넌트:
- * - Tabs: '문제'와 '테스트' 탭 UI 및 상태 전환 로직을 관리합니다.
- * - ProblemDescription: '문제' 탭 선택 시 보이며, 문제의 제목과 설명을 렌더링합니다.
- * - TestCaseViewer: '테스트' 탭 선택 시 보이며, `TestCaseItem`들을 리스트 형태로 보여줍니다.
- * - TestCaseItem:
- *   - 개별 테스트케이스를 나타내는 가장 핵심적인 컴포넌트입니다.
- *   - '실행' 버튼 클릭 시 `handleRunTest` 함수를 호출하여 props로 받은 `pyodide` 인스턴스를 사용해 `userCode`를 실행합니다.
- *   - 코드 실행 전, `pyodide.globals.set`을 이용해 테스트케이스의 입력을 파이썬 환경의 변수로 설정하고,
- *     `sys.stdin`을 리다이렉트하여 `input()` 함수가 해당 변수를 읽도록 설정합니다.
- *   - `pyodide.setStdout`을 통해 표준 출력을 캡처하여 `output` 상태에 저장합니다.
- *   - 실행 결과(`output`)와 기대 결과(`expectedOutput`)를 비교하여 정답/오답 여부를 UI에 표시합니다.
- *
- * 주요 상태(State):
- * - activeTab: 현재 활성화된 탭('problem' 또는 'test')을 저장합니다.
- * - (TestCaseItem 내부) isRunning: 테스트 실행 중인지 여부를 나타내어 버튼을 비활성화하는 데 사용됩니다.
- * - (TestCaseItem 내부) output: 코드 실행 후의 표준 출력 결과.
- * - (TestCaseItem 내부) error: 코드 실행 중 발생한 에러 메시지.
+ * - Tabs: '문제'/'테스트' 탭 UI 및 상태 전환
+ * - ProblemDescription: 문제 설명 표시
+ * - TestCaseViewer/TestCaseItem: 테스트케이스 목록 및 개별 실행/결과 표시
  *
  * 주요 props:
- * - problem: 표시할 문제의 상세 정보 (id, title, description).
- * - testCases: 해당 문제에 대한 테스트케이스 배열.
- * - onBackToList: '목록으로' 버튼 클릭 시 실행될 콜백 함수. 부모의 `selectedProblemId`를 `null`로 설정합니다.
- * - onSubmit: '제출하기' 버튼 클릭 시 실행될 콜백 함수.
- * - userCode: 사용자가 에디터에 작성한 코드. `TestCaseItem`에서 실행됩니다.
- * - pyodide: 코드 실행을 위한 Pyodide 인스턴스.
+ * - problem: 표시할 문제의 상세 정보 (id, title, description)
+ * - testCases: 해당 문제에 대한 테스트케이스 배열
+ * - onBackToList: '목록으로' 버튼 클릭 시 실행될 콜백 함수
+ * - onSubmit: '채점 및 분석' 버튼 클릭 시 실행될 콜백 함수
+ * - userCode: 사용자가 에디터에 작성한 코드
+ * - pyodide: 코드 실행을 위한 Pyodide 인스턴스
  * ======================================================================
  */
 import React, { useState } from 'react';
@@ -38,26 +25,18 @@ import backIcon from '../../../assets/back.svg';
 import playIcon from '../../../assets/play.svg';
 import type { Pyodide } from '../../../types/pyodide';
 
-// ===================== 타입 정의 =====================
-// TODO: 실제 데이터 연동 시 아래 타입만 교체하면 됩니다.
 type IProblemDetail = { id: string; title: string; description: string };
 type ITestCase = { id: number; input: string; expectedOutput: string };
 
-// ===================== props 타입 =====================
-interface ProblemDetailViewProps {
-  problem: IProblemDetail; // 문제 정보
-  testCases: ITestCase[]; // 테스트케이스 배열
-  onBackToList: () => void; // 문제 목록으로 돌아가기
-  onSubmit: () => void; // 제출 버튼 클릭 시 실행 함수
-  userCode: string; // 학생이 작성한 코드
-  pyodide: Pyodide | null; // pyodide 인스턴스 (파이썬 실행 환경)
+interface TeacherProblemDetailViewProps {
+  problem: IProblemDetail;
+  testCases: ITestCase[];
+  onBackToList: () => void;
+  onSubmit: () => void;
+  userCode: string;
+  pyodide: Pyodide | null;
 }
 
-/*
- * ======================================================================
- * Tabs: 문제/테스트 탭 전환 컴포넌트
- * ======================================================================
- */
 const Tabs: React.FC<{
   activeTab: string;
   setActiveTab: (tab: 'problem' | 'test') => void;
@@ -76,11 +55,6 @@ const Tabs: React.FC<{
   );
 };
 
-/*
- * ======================================================================
- * ProblemDescription: 문제 설명 컴포넌트
- * ======================================================================
- */
 const ProblemDescription: React.FC<{ problem: IProblemDetail }> = ({ problem }) => (
   <div className="text-slate-300 space-y-6">
     <h2 className="text-2xl font-bold text-white">{problem.title}</h2>
@@ -88,40 +62,29 @@ const ProblemDescription: React.FC<{ problem: IProblemDetail }> = ({ problem }) 
   </div>
 );
 
-/*
- * ======================================================================
- * TestCaseItem: 개별 테스트케이스 실행/채점 컴포넌트
- * - pyodide로 코드 실행, 결과/에러/정답여부 표시
- * ======================================================================
- */
 const TestCaseItem: React.FC<{
   testCase: ITestCase;
   userCode: string;
   pyodide: Pyodide | null;
 }> = ({ testCase, userCode, pyodide }) => {
-  // 실행 상태 및 결과 관리
   const [isRunning, setIsRunning] = useState(false);
   const [output, setOutput] = useState('');
   const [error, setError] = useState('');
 
-  // ===================== 채점(실행) 로직 =====================
   const handleRunTest = async () => {
     if (!pyodide || !userCode) return;
     setIsRunning(true);
     setOutput('');
     setError('');
     try {
-      // 입력값 세팅 및 표준입력 리다이렉트
       pyodide.globals.set('test_input', testCase.input);
       pyodide.runPython(`import sys; from io import StringIO; sys.stdin = StringIO(test_input)`);
       let capturedOutput = '';
-      // 표준출력 캡처
       pyodide.setStdout({
         batched: (out: string) => {
           capturedOutput += out + '\n';
         },
       });
-      // 코드 실행
       await pyodide.runPythonAsync(userCode);
       setOutput(capturedOutput.trim());
     } catch (e: any) {
@@ -131,7 +94,6 @@ const TestCaseItem: React.FC<{
       setIsRunning(false);
     }
   };
-  // ===================== 정답/오답 판정 =====================
   const isCorrect = output && output.trim() === testCase.expectedOutput.trim();
 
   return (
@@ -151,7 +113,7 @@ const TestCaseItem: React.FC<{
           <strong>입력:</strong> {testCase.input}
         </p>
         <p>
-          <strong>기대 출력:</strong> {testCase.expectedOutput}
+          <strong>예상 출력:</strong> {testCase.expectedOutput}
         </p>
         {output && (
           <p>
@@ -171,11 +133,6 @@ const TestCaseItem: React.FC<{
   );
 };
 
-/*
- * ======================================================================
- * TestCaseViewer: 테스트케이스 목록 컴포넌트
- * ======================================================================
- */
 const TestCaseViewer: React.FC<{
   testCases: ITestCase[];
   userCode: string;
@@ -188,12 +145,7 @@ const TestCaseViewer: React.FC<{
   </div>
 );
 
-/*
- * ======================================================================
- * ProblemDetailView: 메인 컴포넌트 (props로 모든 데이터/핸들러 받음)
- * ======================================================================
- */
-export const ProblemDetailView: React.FC<ProblemDetailViewProps> = ({
+export const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
   problem,
   testCases,
   onBackToList,
@@ -205,18 +157,13 @@ export const ProblemDetailView: React.FC<ProblemDetailViewProps> = ({
 
   return (
     <div className="h-full flex flex-col p-4 bg-slate-800">
-      {/* 헤더: 뒤로가기 버튼과 제목 */}
       <header className="flex items-center mb-4">
         <button onClick={onBackToList} className="p-1 rounded-full hover:bg-slate-700 mr-3">
-          <img src={backIcon} alt="뒤로가기" className="w-6 h-6" />
+          <img src={backIcon} alt="목록으로" className="w-6 h-6" />
         </button>
         <h1 className="text-lg font-bold truncate">{problem.title}</h1>
       </header>
-
-      {/* 탭 */}
       <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
-
-      {/* 탭 컨텐츠 */}
       <main className="flex-grow my-4 overflow-y-auto pr-2">
         {activeTab === 'problem' ? (
           <ProblemDescription problem={problem} />
@@ -224,8 +171,6 @@ export const ProblemDetailView: React.FC<ProblemDetailViewProps> = ({
           <TestCaseViewer testCases={testCases} userCode={userCode} pyodide={pyodide} />
         )}
       </main>
-
-      {/* 푸터: 제출 버튼 */}
       <footer className="mt-auto pt-4 border-t border-slate-700">
         <button
           onClick={onSubmit}
@@ -248,4 +193,4 @@ export const ProblemDetailView: React.FC<ProblemDetailViewProps> = ({
   );
 };
 
-export default ProblemDetailView;
+export default TeacherProblemDetailView;
