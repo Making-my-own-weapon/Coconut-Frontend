@@ -66,16 +66,10 @@ const Tabs: React.FC<{
     `w-1/2 py-2 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${activeTab === tabName ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`;
   return (
     <div className="flex w-full bg-slate-800 p-1 rounded-lg">
-      <button
-        onClick={() => setActiveTab('problem')}
-        className={getTabClass('problem')}
-      >
+      <button onClick={() => setActiveTab('problem')} className={getTabClass('problem')}>
         문제
       </button>
-      <button
-        onClick={() => setActiveTab('test')}
-        className={getTabClass('test')}
-      >
+      <button onClick={() => setActiveTab('test')} className={getTabClass('test')}>
         테스트
       </button>
     </div>
@@ -87,9 +81,7 @@ const Tabs: React.FC<{
  * ProblemDescription: 문제 설명 컴포넌트
  * ======================================================================
  */
-const ProblemDescription: React.FC<{ problem: IProblemDetail }> = ({
-  problem,
-}) => (
+const ProblemDescription: React.FC<{ problem: IProblemDetail }> = ({ problem }) => (
   <div className="text-slate-300 space-y-6">
     <h2 className="text-2xl font-bold text-white">{problem.title}</h2>
     <p className="text-sm">{problem.description}</p>
@@ -121,9 +113,7 @@ const TestCaseItem: React.FC<{
     try {
       // 입력값 세팅 및 표준입력 리다이렉트
       pyodide.globals.set('test_input', testCase.input);
-      pyodide.runPython(
-        `import sys; from io import StringIO; sys.stdin = StringIO(test_input)`,
-      );
+      pyodide.runPython(`import sys; from io import StringIO; sys.stdin = StringIO(test_input)`);
       let capturedOutput = '';
       // 표준출력 캡처
       pyodide.setStdout({
@@ -147,26 +137,12 @@ const TestCaseItem: React.FC<{
   return (
     <div className="bg-slate-700 p-3 rounded-md">
       <div className="flex justify-between items-center mb-2">
-        <h4 className="font-semibold text-white text-sm">
-          Test Case {testCase.id}
-        </h4>
-        <button
-          onClick={handleRunTest}
-          disabled={isRunning}
-          className="disabled:opacity-50"
-        >
+        <h4 className="font-semibold text-white text-sm">Test Case {testCase.id}</h4>
+        <button onClick={handleRunTest} disabled={isRunning} className="disabled:opacity-50">
           {isRunning ? (
-            <img
-              src={playIcon}
-              alt="실행 중"
-              className="w-5 h-5 animate-spin"
-            />
+            <img src={playIcon} alt="실행 중" className="w-5 h-5 animate-spin" />
           ) : (
-            <img
-              src={playIcon}
-              alt="실행"
-              className="w-5 h-5 text-slate-400 hover:text-white"
-            />
+            <img src={playIcon} alt="실행" className="w-5 h-5 text-slate-400 hover:text-white" />
           )}
         </button>
       </div>
@@ -180,11 +156,7 @@ const TestCaseItem: React.FC<{
         {output && (
           <p>
             <strong>실제 출력:</strong> {output}
-            <span
-              className={
-                isCorrect ? 'text-green-400 ml-2' : 'text-red-400 ml-2'
-              }
-            >
+            <span className={isCorrect ? 'text-green-400 ml-2' : 'text-red-400 ml-2'}>
               {isCorrect ? '정답' : '오답'}
             </span>
           </p>
@@ -211,12 +183,7 @@ const TestCaseViewer: React.FC<{
 }> = ({ testCases, userCode, pyodide }) => (
   <div className="space-y-4">
     {testCases.map((tc) => (
-      <TestCaseItem
-        key={tc.id}
-        testCase={tc}
-        userCode={userCode}
-        pyodide={pyodide}
-      />
+      <TestCaseItem key={tc.id} testCase={tc} userCode={userCode} pyodide={pyodide} />
     ))}
   </div>
 );
@@ -234,41 +201,49 @@ export const ProblemDetailView: React.FC<ProblemDetailViewProps> = ({
   userCode,
   pyodide,
 }) => {
-  // 탭 상태 관리 ('problem': 문제 설명, 'test': 테스트케이스)
   const [activeTab, setActiveTab] = useState<'problem' | 'test'>('problem');
+
   return (
-    <div className="p-4 flex flex-col h-full">
-      <header className="flex-shrink-0">
-        <button
-          onClick={onBackToList}
-          className="text-sm text-slate-400 hover:text-white mb-4 flex items-center gap-1"
-        >
-          <img src={backIcon} alt="뒤로가기" className="w-4 h-4 inline-block" />{' '}
-          문제 목록으로
+    <div className="h-full flex flex-col p-4 bg-slate-800">
+      {/* 헤더: 뒤로가기 버튼과 제목 */}
+      <header className="flex items-center mb-4">
+        <button onClick={onBackToList} className="p-1 rounded-full hover:bg-slate-700 mr-3">
+          <img src={backIcon} alt="뒤로가기" className="w-6 h-6" />
         </button>
-        <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
+        <h1 className="text-lg font-bold truncate">{problem.title}</h1>
       </header>
-      <main className="flex-grow mt-6 overflow-y-auto pr-2">
+
+      {/* 탭 */}
+      <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
+
+      {/* 탭 컨텐츠 */}
+      <main className="flex-grow my-4 overflow-y-auto pr-2">
         {activeTab === 'problem' ? (
           <ProblemDescription problem={problem} />
         ) : (
-          <TestCaseViewer
-            testCases={testCases}
-            userCode={userCode}
-            pyodide={pyodide}
-          />
+          <TestCaseViewer testCases={testCases} userCode={userCode} pyodide={pyodide} />
         )}
       </main>
-      {activeTab === 'problem' && (
-        <footer className="flex-shrink-0 mt-6 pt-4 border-t border-slate-700">
-          <button
-            onClick={onSubmit}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md"
+
+      {/* 푸터: 제출 버튼 */}
+      <footer className="mt-auto pt-4 border-t border-slate-700">
+        <button
+          onClick={onSubmit}
+          className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center gap-2"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
           >
-            제출하기
-          </button>
-        </footer>
-      )}
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          채점 및 분석
+        </button>
+      </footer>
     </div>
   );
 };

@@ -76,14 +76,9 @@ interface ProblemPanelProps {
  * - userCode, onSubmit 등 props로 받아 하위로 전달
  * ======================================================================
  */
-export const ProblemPanel: React.FC<ProblemPanelProps> = ({
-  userCode,
-  onSubmit,
-}) => {
+export const ProblemPanel: React.FC<ProblemPanelProps> = ({ userCode, onSubmit }) => {
   // 현재 선택된 문제 id (null이면 목록 화면)
-  const [selectedProblemId, setSelectedProblemId] = useState<string | null>(
-    null,
-  );
+  const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
   // pyodide 인스턴스 (파이썬 실행 환경)
   const [pyodide, setPyodide] = useState<Pyodide | null>(null);
   // pyodide 로딩 상태
@@ -118,7 +113,7 @@ export const ProblemPanel: React.FC<ProblemPanelProps> = ({
   );
 
   return (
-    <aside className="w-[360px] bg-slate-800 border-r border-slate-700">
+    <aside className="w-[360px] h-full bg-slate-800 border-r border-slate-700">
       {/* pyodide 로딩 중이면 로딩 메시지 */}
       {isPyodideLoading ? (
         <div className="flex items-center justify-center h-full text-slate-400">
@@ -136,10 +131,7 @@ export const ProblemPanel: React.FC<ProblemPanelProps> = ({
         />
       ) : (
         // 문제 목록 뷰
-        <ProblemListView
-          problems={mockProblems}
-          onSelectProblem={setSelectedProblemId}
-        />
+        <ProblemListView problems={mockProblems} onSelectProblem={setSelectedProblemId} />
       )}
     </aside>
   );

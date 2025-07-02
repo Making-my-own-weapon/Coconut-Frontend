@@ -1,3 +1,4 @@
+//src/components/join/GuestActionContainer.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { joinRoomAPI } from './api/roomService';
