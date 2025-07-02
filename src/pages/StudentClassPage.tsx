@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Header } from '../components/student-class/Header';
 import ProblemPanel from '../components/student-class/ProblemPanel/ProblemPanel';
 import EditorPanel from '../components/student-class/EditorPanel/EditorPanel';
+import { useParams } from 'react-router-dom';
 
 export const StudentClassPage: React.FC = () => {
   // 학생이 에디터에 작성하는 코드를 관리하는 상태
   const [userCode, setUserCode] = useState<string>('# 여기에 코드를 입력하세요');
+  const { roomId } = useParams();
 
   // 코드 변경 핸들러
   const handleCodeChange = (code: string | undefined) => {

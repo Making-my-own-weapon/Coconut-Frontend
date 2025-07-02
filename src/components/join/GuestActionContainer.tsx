@@ -12,6 +12,7 @@ const GuestActionContainer = () => {
   // '참여자' 기능에 필요한 모든 상태를 여기서 관리합니다.
   const [inviteCode, setInviteCode] = useState('');
   const [userName, setUserName] = useState('');
+  const userId = Math.floor(Math.random() * 10000) + 1;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,10 +23,10 @@ const GuestActionContainer = () => {
     setError(null);
 
     try {
-      const data = await joinRoomAPI(inviteCode);
+      const data = await joinRoomAPI(inviteCode, userId);
       // 성공 시, 서버에서 받은 방 정보(data)와 사용자가 입력한 이름(userName)을 가지고
       // 실제 수업 페이지로 이동합니다.
-      navigate(`/room/${data.roomId}`, {
+      navigate(`/class/${data.roomId}`, {
         state: { roomInfo: data, myName: userName },
       });
     } catch (err) {
@@ -46,9 +47,7 @@ const GuestActionContainer = () => {
       description="수업 ID로 실시간 코딩 세션에 참여하고 선생님의 도움을 받아 더 나은 코드를 작성하세요."
       buttonIcon={<PlayIcon />}
       buttonText={isLoading ? '참여 중...' : '수업 참여하기'}
-      buttonColor={
-        isLoading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
-      }
+      buttonColor={isLoading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}
       onSubmit={handleJoinClass}
     >
       {/* 자식 컴포넌트에 상태와 상태 변경 함수를 props로 전달 */}
