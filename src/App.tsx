@@ -36,7 +36,6 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-
         {/* --- 로그인 전 --- */}
         <Route path="/" element={<MainPage />} />
         <Route path="/login" element={isLoggedIn ? <Navigate to="/join" /> : <LoginPage />} />
