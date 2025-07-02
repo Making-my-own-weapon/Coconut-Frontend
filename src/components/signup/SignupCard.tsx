@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth/authStore';
+import { isAxiosError } from 'axios'; //catch(err: any) 해결을 위함
 
 const SignupCard: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -36,13 +37,13 @@ const SignupCard: React.FC = () => {
     }
     setError('');
     setLoading(true);
-
+    //catch(err: any)해결
     try {
       await signup(formData.name, formData.email, formData.password);
       alert('회원가입에 성공했습니다! 로그인 페이지로 이동합니다.');
       navigate('/login');
-    } catch (err: any) {
-      if (err.response && err.response.status === 409) {
+    } catch (err) {
+      if (isAxiosError(err) && err.response?.status === 409) {
         setError('이미 사용 중인 이메일입니다.');
       } else {
         setError('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
