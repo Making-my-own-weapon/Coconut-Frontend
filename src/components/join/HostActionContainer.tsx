@@ -13,15 +13,25 @@ const HostActionContainer = () => {
   const [maxParticipants, setMaxParticipants] = useState(30);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userName, setUserName] = useState('');
 
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
     try {
-      const data = await createRoomAPI({ title, maxParticipants });
+      const randomUserId = Math.floor(Math.random() * 10000) + 1;
+      const data = await createRoomAPI({
+        title,
+        description: '방 설명',
+        maxParticipants,
+        userId: randomUserId,
+      });
       console.log('createRoomAPI result:', data);
-      navigate(`/room/${data.roomId}`);
+      // navigate(`/class/${data.roomId}`);
+      navigate(`/class/${data.roomId}`, {
+        state: { roomInfo: data, myName: userName },
+      });
     } catch {
       setError('수업 생성에 실패했습니다. 다시 시도해주세요.');
     } finally {

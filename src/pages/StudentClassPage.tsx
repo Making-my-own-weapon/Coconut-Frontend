@@ -59,6 +59,7 @@ export const StudentClassPage: React.FC = () => {
   const { editorId } = useParams();
   const isRemoteUpdate = useRef(false); // 다른 사용자의 편집 내용을 받은 경우 다시 emit하지 않도록 방지
   const [userCode, setUserCode] = useState<string>('# 여기에 코드를 입력하세요');
+  const { roomId } = useParams();
 
   // 분석 패널 관련 상태
   const [isAnalysisPanelOpen, setAnalysisPanelOpen] = useState(false);

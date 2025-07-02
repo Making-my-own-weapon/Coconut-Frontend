@@ -13,6 +13,7 @@ const GuestActionContainer = () => {
   // '참여자' 기능에 필요한 모든 상태를 여기서 관리합니다.
   const [inviteCode, setInviteCode] = useState('');
   const [userName, setUserName] = useState('');
+  const userId = Math.floor(Math.random() * 10000) + 1;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,10 +24,10 @@ const GuestActionContainer = () => {
     setError(null);
 
     try {
-      const data = await joinRoomAPI(inviteCode);
+      const data = await joinRoomAPI(inviteCode, userId);
       // 성공 시, 서버에서 받은 방 정보(data)와 사용자가 입력한 이름(userName)을 가지고
       // 실제 수업 페이지로 이동합니다.
-      navigate(`/room/${data.roomId}`, {
+      navigate(`/class/${data.roomId}`, {
         state: { roomInfo: data, myName: userName },
       });
     } catch (err) {
