@@ -45,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({ classCode = '수업 암호' }) =
           <img src={logo} alt="Coconut Logo" className="h-[170px] w-auto" />
         </div>
         <div className="h-6 w-px bg-slate-600" aria-hidden="true" />
-        <span className="text-sm text-slate-400">{classCode}</span>
+        <span className="text-sm text-slate-400">수업 코드: {classCode}</span>
       </div>
 
       {/* 오른쪽 섹션: 아이콘 및 버튼 */}
@@ -85,66 +85,3 @@ export const Header: React.FC<HeaderProps> = ({ classCode = '수업 암호' }) =
     </header>
   );
 };
-
-{
-  /*
-  +-----------------------------------------------------------------------------------+
-| <header> (전체 컨테이너: flex, justify-between)                                     |
-|                                                                                   |
-| +-----------------------------+     +-------------------------------------------+ |
-| |                             |     |                                           | |
-| |  div (왼쪽 섹션: flex)        |     |  div (오른쪽 섹션: flex)                     | |
-| |                             |     |                                           | |
-| +-----------------------------+     +-------------------------------------------+ |
-|                                                                                   |
-+-----------------------------------------------------------------------------------+  
-*/
-}
-
-{
-  /*
-
-테일윈드 css 설명
-
---------------------------------
-크기 & 간격:
-
-w-full: width: 100%;
-
-h-16: height: 4rem; (Tailwind 설정에 따라 다름)
-
-px-6: padding-left: 1.5rem; padding-right: 1.5rem; (x축 패딩)
-
---------------------------------
-배경 & 글자색:
-
-bg-slate-900: background-color를 미리 정의된 slate 색상표의 900번 색으로 지정합니다.
-
-text-white: color: white;
-
---------------------------------
-레이아웃 (Flexbox):
-
-flex: display: flex;
-
-items-center: align-items: center; (세로축 중앙 정렬)
-
-justify-between: justify-content: space-between; (가로축 양끝 정렬)
-
---------------------------------
-테두리:
-
-border-b: border-bottom-width: 1px; (아래쪽 테두리)
-
-border-slate-700: border-color를 slate 700번 색으로 지정합니다.
-
---------------------------------
-상태 변화 (Hover, Focus 등):
-
-hover:bg-blue-700: 마우스를 올렸을 때(hover), 배경색을 bg-blue-700으로 변경합니다.
-
-focus:ring-2: 키보드 탭 등으로 포커스되었을 때(focus), 링(테두리 같은 효과)을 표시합니다.
-
-
-*/
-}

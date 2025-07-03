@@ -1,194 +1,92 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
+import { useStudentStore } from '../store/studentStore';
+import { useSubmissionStore } from '../store/submissionStore';
 import { Header } from '../components/student-class/Header';
 import ProblemPanel from '../components/student-class/ProblemPanel/ProblemPanel';
 import EditorPanel from '../components/student-class/EditorPanel/EditorPanel';
 import AnalysisPanel from '../components/student-class/AnalysisPanel';
 import { io } from 'socket.io-client';
-import { useParams } from 'react-router-dom';
 
-/**
- * 소켓은 한 번 만들고 재사용하기 위해 컴포넌트 밖에 선언합니다.
- */
 const socket = io('http://localhost:3001');
 
-// 분석 결과 타입을 정의합니다.
-type AnalysisResultType = {
-  progress: {
-    percentage: number;
-    tests: string;
-    time: string;
-  };
-  aiSuggestions: {
-    type: 'performance' | 'optimization' | 'best-practice';
-    title: string;
-    line?: number;
-  }[];
-  execution: {
-    problemTitle: string;
-    time: string;
-    memory: string;
-    status: 'success' | 'fail';
-  };
-  complexity: {
-    time: string;
-    space: string;
-    cyclomatic: number;
-    loc: number;
-  };
-  quality: {
-    efficiency: number;
-    readability: number;
-  };
-  performanceImprovements: string[];
-};
+const StudentClassPage: React.FC = () => {
+  const { roomId } = useParams<{ roomId: string }>();
 
-// 분석 패널을 위한 목업 데이터 정의
-const mockResult: AnalysisResultType = {
-  progress: {
-    percentage: 75,
-    tests: '3/4',
-    time: '0.8s',
-  },
-  aiSuggestions: [
-    {
-      type: 'performance',
-      title: '중첩 루프로 인한 성능 이슈 - Set 또는 HashMap 사용 권장',
-      line: 4,
-    },
-    {
-      type: 'optimization',
-      title: 'ES6 filter/includes 메서드 활용으로 코드 간소화 가능',
-    },
-    { type: 'best-practice', title: '변수명과 로직 구조가 명확합니다' },
-  ],
-  execution: {
-    problemTitle: '2257 Hello World',
-    time: '125ms',
-    memory: '13.4MB',
-    status: 'success',
-  },
-  complexity: {
-    time: 'O(n²)',
-    space: 'O(n)',
-    cyclomatic: 3,
-    loc: 12,
-  },
-  quality: {
-    efficiency: 65,
-    readability: 80,
-  },
-  performanceImprovements: [
-    'Set 자료구조 활용으로 O(n) 달성',
-    'ES6 메서드로 코드 간소화',
-    '엣지 케이스 처리 추가',
-  ],
-};
+  // 2. 각 스토어에서 필요한 상태와 액션을 가져옵니다.
+  const { currentRoom, problems, isLoading: isRoomLoading, fetchRoomDetails } = useStudentStore();
+  const { isSubmitting, analysisResult, submitCode, closeAnalysis } = useSubmissionStore();
 
-// 로딩 중 `result` prop의 타입 오류를 방지하기 위한 빈 결과 데이터
-const emptyResult: AnalysisResultType = {
-  progress: { percentage: 0, tests: '', time: '' },
-  aiSuggestions: [],
-  execution: { problemTitle: '', time: '', memory: '', status: 'fail' },
-  complexity: { time: '', space: '', cyclomatic: 0, loc: 0 },
-  quality: { efficiency: 0, readability: 0 },
-  performanceImprovements: [],
-};
-
-export const StudentClassPage: React.FC = () => {
-  // --- 상태 관리 (State) ---
-  // 실시간 코드 공유 관련 상태
-  const { editorId } = useParams();
-  const isRemoteUpdate = useRef(false); // 다른 사용자의 편집 내용을 받은 경우 다시 emit하지 않도록 방지
   const [userCode, setUserCode] = useState<string>('# 여기에 코드를 입력하세요');
+  const isRemoteUpdate = useRef(false);
 
-  // 분석 패널 관련 상태
-  const [isAnalysisPanelOpen, setAnalysisPanelOpen] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResultType | null>(null);
-
-  // --- 소켓 통신 로직 (Side Effects) ---
-  // 소켓 연결 시 에디터 'join'
   useEffect(() => {
-    const handleConnect = () => {
-      socket.emit('joinEditor', { editorId: editorId });
-    };
+    if (roomId) fetchRoomDetails(roomId);
+  }, [roomId, fetchRoomDetails]);
+
+  useEffect(() => {
+    const handleConnect = () => socket.emit('joinEditor', { editorId: roomId });
     socket.on('connect', handleConnect);
-    return () => {
-      socket.off('connect', handleConnect);
-    };
-  }, [editorId]);
 
-  // 다른 사용자의 코드 변경 수신
-  useEffect(() => {
     socket.on('editorUpdated', (payload) => {
-      if (payload.editorId === editorId) {
+      if (payload.editorId === roomId) {
         isRemoteUpdate.current = true;
         setUserCode(payload.code);
       }
     });
 
     return () => {
+      socket.off('connect', handleConnect);
       socket.off('editorUpdated');
     };
-  }, [editorId]);
+  }, [roomId]);
 
-  // --- 이벤트 핸들러 ---
-  // 현재 사용자의 코드 변경 감지 및 전송
   const handleCodeChange = (code: string | undefined) => {
-    setUserCode(code ?? '');
-
+    const newCode = code || '';
+    setUserCode(newCode);
     if (!isRemoteUpdate.current) {
-      socket.emit('editCode', {
-        editorId: editorId,
-        code: code,
-      });
+      socket.emit('editCode', { editorId: roomId, code: newCode });
     }
     isRemoteUpdate.current = false;
   };
 
-  // 제출 및 분석 핸들러
+  // 3. 제출 핸들러가 submissionStore의 액션을 호출하도록 수정합니다.
   const handleSubmit = () => {
-    console.log('분석 시작. 제출된 코드:', userCode);
-    setAnalysisPanelOpen(true);
-    setIsAnalyzing(true);
-    setAnalysisResult(null);
+    // 현재 선택된 문제 ID를 가져오는 로직이 필요합니다.
+    // 여기서는 첫 번째 문제를 제출하는 것으로 가정합니다.
+    const currentProblemId = problems[0]?.problemId;
+    if (!roomId || !currentProblemId) return;
 
-    // 실제로는 여기서 서버로 코드를 보내고 결과를 받아야 합니다.
-    // 지금은 2초 뒤에 목업 데이터를 표시하는 것으로 대체합니다.
-    setTimeout(() => {
-      setAnalysisResult(mockResult);
-      setIsAnalyzing(false);
-      console.log('분석 완료');
-    }, 2000);
+    submitCode(roomId, currentProblemId, userCode);
   };
 
-  // 분석 패널 닫기 핸들러
-  const handlePanelClose = () => {
-    setAnalysisPanelOpen(false);
-  };
+  if (isRoomLoading) {
+    return (
+      <div className="h-screen bg-slate-900 text-white flex items-center justify-center">
+        Loading class...
+      </div>
+    );
+  }
 
-  // --- 렌더링 ---
+  console.log('페이지 렌더링, currentRoom 상태:', currentRoom);
+
+  // 메인 렌더링
   return (
     <div className="flex flex-col h-screen bg-slate-900 text-white">
-      <Header classCode="실시간 코딩 테스트" />
+      <Header classCode={currentRoom?.inviteCode || '...'} />
       <main className="flex flex-grow overflow-hidden">
-        {/* 문제 패널 (너비 고정) */}
-        <div className="flex-shrink-0">
-          <ProblemPanel userCode={userCode} onSubmit={handleSubmit} />
-        </div>
-
-        {/* Monaco Editor 영역 (가변 너비) */}
+        <ProblemPanel problems={problems} userCode={userCode} onSubmit={handleSubmit} />
         <div className="flex-grow flex-shrink min-w-0">
           <EditorPanel code={userCode} onCodeChange={handleCodeChange} />
         </div>
 
         {/* 분석 패널 (너비 고정, 조건부 렌더링) */}
-        {isAnalysisPanelOpen && (
+        {(isSubmitting || analysisResult) && (
           <div className="flex-shrink-0">
             <AnalysisPanel
-              isLoading={isAnalyzing}
-              result={analysisResult || emptyResult}
-              onClose={handlePanelClose}
+              isLoading={isSubmitting}
+              result={analysisResult}
+              onClose={closeAnalysis}
             />
           </div>
         )}

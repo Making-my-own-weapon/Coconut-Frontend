@@ -13,7 +13,7 @@ interface TeacherHeaderProps {
 }
 
 const TeacherHeader: React.FC<TeacherHeaderProps> = ({
-  classCode = '수업 암호',
+  classCode,
   mode,
   onModeChange,
   isClassStarted,
@@ -35,7 +35,7 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
           <img src={logo} alt="Coconut Logo" className="h-[170px] w-auto" />
         </div>
         <div className="h-6 w-px bg-slate-600" aria-hidden="true" />
-        <span className="text-sm text-slate-400">{classCode}</span>
+        <span className="text-sm text-slate-400">수업 코드: {classCode}</span>
       </div>
       {/* 오른쪽: 아이콘 + 버튼 */}
       <div className="flex items-center gap-6">
