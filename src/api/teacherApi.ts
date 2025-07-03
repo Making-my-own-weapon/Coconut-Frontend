@@ -13,3 +13,11 @@ export const createRoomAPI = (data: CreateRoomData) => {
   // API 명세서에 따라 POST /api/v1/rooms 로 요청
   return apiClient.post('/rooms/create', data);
 };
+
+export const getRoomDetailsAPI = (roomId: string) => {
+  return apiClient.get(`/rooms/${roomId}`);
+};
+
+export const updateRoomStatusAPI = (roomId: string, status: 'STARTED' | 'ENDED') => {
+  return apiClient.patch(`/rooms/${roomId}`, { status });
+};

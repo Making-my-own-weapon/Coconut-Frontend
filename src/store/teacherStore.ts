@@ -1,45 +1,117 @@
 import { create } from 'zustand';
 import * as teacherApi from '../api/teacherApi';
 
-// 생성된 방의 정보 타입
-interface CreatedRoomInfo {
-  roomId: number;
-  inviteCode: string;
+// --- 타입 정의 ---
+
+export interface Student {
+  id: number;
+  userName: string;
+  progress: number;
+  timeComplexity: string;
+  spaceComplexity: string;
+  testsPassed: number;
+  totalTests: number;
+  isOnline: boolean;
 }
 
-// 스토어의 상태 및 액션 타입
+export interface Problem {
+  problemId: number;
+  title: string;
+  description: string;
+  status: 'pass' | 'fail' | 'none';
+  testCases: { id: number; input: string; expectedOutput: string }[];
+}
+
+interface RoomInfo {
+  roomId: number;
+  inviteCode: string;
+  status: 'WAITING' | 'STARTED' | 'ENDED';
+  participants: Student[];
+  problems: Problem[];
+}
+
 interface TeacherState {
   isLoading: boolean;
   error: string | null;
-  createdRoomInfo: CreatedRoomInfo | null;
+  createdRoomInfo: RoomInfo | null;
+  currentRoom: RoomInfo | null;
+  students: Student[];
+  problems: Problem[];
+  classStatus: 'WAITING' | 'STARTED' | 'ENDED';
   createRoom: (title: string, maxParticipants: number) => Promise<void>;
+  fetchRoomDetails: (roomId: string) => Promise<void>;
+  updateRoomStatus: (roomId: string) => Promise<void>;
   clearCreatedRoom: () => void;
 }
 
-export const useTeacherStore = create<TeacherState>((set) => ({
+// --- 스토어 생성 ---
+
+export const useTeacherStore = create<TeacherState>((set, get) => ({
+  // --- 초기 상태 ---
   isLoading: false,
   error: null,
   createdRoomInfo: null,
+  currentRoom: null,
+  students: [],
+  problems: [],
+  classStatus: 'WAITING',
 
+  // --- 액션 ---
   createRoom: async (title, maxParticipants) => {
     set({ isLoading: true, error: null, createdRoomInfo: null });
-
     try {
       const response = await teacherApi.createRoomAPI({
         title,
         maxParticipants,
         description: '새로운 수업입니다.',
       });
-      set({ createdRoomInfo: response.data });
+      set({
+        createdRoomInfo: response.data,
+        currentRoom: response.data,
+        students: response.data.participants || [],
+        problems: response.data.problems || [],
+        classStatus: response.data.status,
+      });
     } catch (err) {
-      set({ error: '수업 생성에 실패했습니다. 다시 시도해주세요.' });
+      set({ error: '수업 생성에 실패했습니다.' });
       throw err;
     } finally {
       set({ isLoading: false });
     }
   },
 
-  // 페이지 이동 후, 스토어의 방 정보를 초기화하는 액션
+  fetchRoomDetails: async (roomId: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await teacherApi.getRoomDetailsAPI(roomId);
+      set({
+        currentRoom: response.data,
+        students: response.data.participants || [],
+        problems: response.data.problems || [],
+        classStatus: response.data.status,
+      });
+    } catch {
+      set({ error: '방 정보를 불러오는 데 실패했습니다.' });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  updateRoomStatus: async (roomId: string) => {
+    const currentStatus = get().classStatus;
+    const newStatus = currentStatus === 'STARTED' ? 'ENDED' : 'STARTED';
+
+    set({ isLoading: true, error: null });
+    try {
+      await teacherApi.updateRoomStatusAPI(roomId, newStatus);
+      set({ classStatus: newStatus });
+    } catch {
+      set({ error: '수업 상태 변경에 실패했습니다.' });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
   clearCreatedRoom: () => {
     set({ createdRoomInfo: null });
   },

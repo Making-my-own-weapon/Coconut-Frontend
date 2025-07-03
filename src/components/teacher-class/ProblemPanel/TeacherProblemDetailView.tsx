@@ -1,69 +1,27 @@
-/*
- * ======================================================================
- * 문제 상세 뷰(ProblemDetailView) 컴포넌트
- * ----------------------------------------------------------------------
- * - `ProblemPanel`의 자식 컴포넌트로, 선택된 문제의 상세 정보를 표시합니다.
- * - '문제' 탭과 '테스트' 탭을 가지며, 사용자는 탭을 전환하며 문제 설명과 테스트케이스를 확인할 수 있습니다.
- * - Python 코드 실행(채점) 기능을 제공하며, 실행 결과를 사용자에게 보여줍니다.
- *
- * 주요 로직 및 하위 컴포넌트:
- * - Tabs: '문제'/'테스트' 탭 UI 및 상태 전환
- * - ProblemDescription: 문제 설명 표시
- * - TestCaseViewer/TestCaseItem: 테스트케이스 목록 및 개별 실행/결과 표시
- *
- * 주요 props:
- * - problem: 표시할 문제의 상세 정보 (id, title, description)
- * - testCases: 해당 문제에 대한 테스트케이스 배열
- * - onBackToList: '목록으로' 버튼 클릭 시 실행될 콜백 함수
- * - onSubmit: '채점 및 분석' 버튼 클릭 시 실행될 콜백 함수
- * - userCode: 사용자가 에디터에 작성한 코드
- * - pyodide: 코드 실행을 위한 Pyodide 인스턴스
- * ======================================================================
- */
 import React, { useState } from 'react';
 import backIcon from '../../../assets/back.svg';
 import playIcon from '../../../assets/play.svg';
 import type { Pyodide } from '../../../types/pyodide';
-
-type IProblemDetail = { id: string; title: string; description: string };
-type ITestCase = { id: number; input: string; expectedOutput: string };
+import type { Problem } from '../../../store/teacherStore';
 
 interface TeacherProblemDetailViewProps {
-  problem: IProblemDetail;
-  testCases: ITestCase[];
+  problem: Problem;
   onBackToList: () => void;
   onSubmit: () => void;
   userCode: string;
   pyodide: Pyodide | null;
 }
 
-const Tabs: React.FC<{
-  activeTab: string;
-  setActiveTab: (tab: 'problem' | 'test') => void;
-}> = ({ activeTab, setActiveTab }) => {
-  const getTabClass = (tabName: 'problem' | 'test') =>
-    `w-1/2 py-2 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${activeTab === tabName ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`;
-  return (
-    <div className="flex w-full bg-slate-800 p-1 rounded-lg">
-      <button onClick={() => setActiveTab('problem')} className={getTabClass('problem')}>
-        문제
-      </button>
-      <button onClick={() => setActiveTab('test')} className={getTabClass('test')}>
-        테스트
-      </button>
-    </div>
-  );
-};
-
-const ProblemDescription: React.FC<{ problem: IProblemDetail }> = ({ problem }) => (
+const ProblemDescription: React.FC<{ problem: Problem }> = ({ problem }) => (
   <div className="text-slate-300 space-y-6">
+    {/* 3. problem.id 대신 problem.problemId를 사용 (필요 시) */}
     <h2 className="text-2xl font-bold text-white">{problem.title}</h2>
     <p className="text-sm">{problem.description}</p>
   </div>
 );
 
 const TestCaseItem: React.FC<{
-  testCase: ITestCase;
+  testCase: Problem['testCases'][0];
   userCode: string;
   pyodide: Pyodide | null;
 }> = ({ testCase, userCode, pyodide }) => {
@@ -87,11 +45,14 @@ const TestCaseItem: React.FC<{
       });
       await pyodide.runPythonAsync(userCode);
       setOutput(capturedOutput.trim());
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      pyodide.setStdout({});
-      setIsRunning(false);
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        // e가 Error 객체임이 확인되었으므로 안전하게 .message에 접근
+        setError(e.message);
+      } else {
+        // 다른 종류의 에러일 경우를 대비해 문자열로 변환
+        setError(String(e));
+      }
     }
   };
   const isCorrect = output && output.trim() === testCase.expectedOutput.trim();
@@ -134,7 +95,7 @@ const TestCaseItem: React.FC<{
 };
 
 const TestCaseViewer: React.FC<{
-  testCases: ITestCase[];
+  testCases: Problem['testCases'];
   userCode: string;
   pyodide: Pyodide | null;
 }> = ({ testCases, userCode, pyodide }) => (
@@ -145,9 +106,29 @@ const TestCaseViewer: React.FC<{
   </div>
 );
 
+const Tabs: React.FC<{
+  activeTab: string;
+  setActiveTab: (tab: 'problem' | 'test') => void;
+}> = ({ activeTab, setActiveTab }) => {
+  const getTabClass = (tabName: 'problem' | 'test') =>
+    `w-1/2 py-2 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${
+      activeTab === tabName ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-slate-700'
+    }`;
+
+  return (
+    <div className="flex w-full bg-slate-800 p-1 rounded-lg">
+      <button onClick={() => setActiveTab('problem')} className={getTabClass('problem')}>
+        문제
+      </button>
+      <button onClick={() => setActiveTab('test')} className={getTabClass('test')}>
+        테스트
+      </button>
+    </div>
+  );
+};
+
 export const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
   problem,
-  testCases,
   onBackToList,
   onSubmit,
   userCode,
@@ -168,7 +149,12 @@ export const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> =
         {activeTab === 'problem' ? (
           <ProblemDescription problem={problem} />
         ) : (
-          <TestCaseViewer testCases={testCases} userCode={userCode} pyodide={pyodide} />
+          <TestCaseViewer
+            // 4. problem 객체에서 testCases를 직접 전달합니다.
+            testCases={problem.testCases}
+            userCode={userCode}
+            pyodide={pyodide}
+          />
         )}
       </main>
       <footer className="mt-auto pt-4 border-t border-slate-700">
