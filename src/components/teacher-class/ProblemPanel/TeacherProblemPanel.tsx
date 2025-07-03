@@ -1,43 +1,12 @@
-//src/components/teacher-class/ProblemPanel/TeacherProblemPanel.tsx
 import React, { useState, useMemo, useEffect } from 'react';
+import { useTeacherStore } from '../../../store/teacherStore';
 import TeacherProblemListView from './TeacherProblemListView';
 import TeacherProblemDetailView from './TeacherProblemDetailView';
-import type { Pyodide } from '../../../types/pyodide';
-// import ProblemPanel from '../../student-class/ProblemPanel/ProblemPanel'; //7.3 14:42 안채호 주석 처리: 선언은 되었지만 값이 읽히지 않음.
 import ProblemCreateForm from '../ProblemCreateForm';
 import ProblemImportForm from '../ProblemImportForm';
+import type { Pyodide } from '../../../types/pyodide';
 
-interface IProblem {
-  id: string;
-  title: string;
-  description: string;
-  status: 'pass' | 'fail' | 'none';
-}
-interface ITestCase {
-  id: number;
-  input: string;
-  expectedOutput: string;
-}
-
-const mockProblems: IProblem[] = [
-  {
-    id: '1',
-    title: 'A+B 문제',
-    description: '두 수를 입력받아 더하는 문제',
-    status: 'none',
-  },
-  {
-    id: '2',
-    title: '최대공약수',
-    description: '두 수의 최대공약수를 구하는 문제',
-    status: 'none',
-  },
-];
-const mockTestCases: Record<string, ITestCase[]> = {
-  '1': [{ id: 1, input: '1 2', expectedOutput: '3' }],
-  '2': [{ id: 1, input: '12 18', expectedOutput: '6' }],
-};
-
+// 이 컴포넌트가 부모로부터 받는 props 타입
 interface TeacherProblemPanelProps {
   userCode: string;
   onSubmit: () => void;
@@ -55,7 +24,7 @@ const Modal: React.FC<{ children: React.ReactNode; onClose: () => void }> = ({
         className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-xl font-bold z-10"
         aria-label="닫기"
       >
-        ×
+        &times;
       </button>
       {children}
     </div>
@@ -63,13 +32,17 @@ const Modal: React.FC<{ children: React.ReactNode; onClose: () => void }> = ({
 );
 
 const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({ userCode, onSubmit }) => {
-  const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
-  const [pyodide, setPyodide] = useState<Pyodide | null>(null);
+  // 1. 스토어에서 실제 문제 목록을 가져옵니다.
+  const { problems } = useTeacherStore();
+
+  // 2. 이 패널 내부에서만 사용하는 UI 상태는 useState로 관리합니다.
+  const [selectedProblemId, setSelectedProblemId] = useState<number | null>(null);
   const [isPyodideLoading, setIsPyodideLoading] = useState(true);
-  // 모달 상태
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [isImportModalOpen, setImportModalOpen] = useState(false);
 
+  // (Pyodide 로딩 로직은 그대로 유지)
+  const [pyodide, setPyodide] = useState<Pyodide | null>(null);
   useEffect(() => {
     const initPyodide = async () => {
       try {
@@ -86,13 +59,10 @@ const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({ userCode, onS
     initPyodide();
   }, []);
 
+  // 3. 선택된 문제 객체를 스토어의 데이터로 찾습니다.
   const selectedProblem = useMemo(
-    () => mockProblems.find((p) => p.id === selectedProblemId) || null,
-    [selectedProblemId],
-  );
-  const selectedTestCases = useMemo(
-    () => (selectedProblemId ? mockTestCases[selectedProblemId] : []) || [],
-    [selectedProblemId],
+    () => problems.find((p) => p.problemId === selectedProblemId) || null,
+    [selectedProblemId, problems],
   );
 
   return (
@@ -105,7 +75,6 @@ const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({ userCode, onS
         ) : selectedProblem ? (
           <TeacherProblemDetailView
             problem={selectedProblem}
-            testCases={selectedTestCases}
             onBackToList={() => setSelectedProblemId(null)}
             onSubmit={onSubmit}
             userCode={userCode}
@@ -113,13 +82,15 @@ const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({ userCode, onS
           />
         ) : (
           <TeacherProblemListView
-            problems={mockProblems}
+            problems={problems}
             onSelectProblem={setSelectedProblemId}
             onOpenCreateModal={() => setCreateModalOpen(true)}
             onOpenImportModal={() => setImportModalOpen(true)}
           />
         )}
       </aside>
+
+      {/* 모달 렌더링 부분 */}
       {isCreateModalOpen && (
         <Modal onClose={() => setCreateModalOpen(false)}>
           <ProblemCreateForm onClose={() => setCreateModalOpen(false)} />
