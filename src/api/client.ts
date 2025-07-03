@@ -1,5 +1,6 @@
+//src/api/client.ts
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
-import { useAuthStore } from '../store/auth/authStore';
+import { useAuthStore } from '../store/authStore';
 
 // 1. 재시도 로직을 위해 Axios 요청 설정에 커스텀 속성을 추가합니다.
 interface CustomRequestConfig extends InternalAxiosRequestConfig {
@@ -60,7 +61,7 @@ apiClient.interceptors.response.use(
         useAuthStore.getState().setAccessToken(accessToken);
 
         if (originalRequest.headers) {
-          originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
+          originalRequest.headers['Authorization'] = `Bearer ${accessToken}`; //요청이 실패했다가 재발급 성공했을 때, 실패했던 바로 그  요청의 헤더를 갱신하기 위함.
         }
 
         processQueue(null, accessToken);

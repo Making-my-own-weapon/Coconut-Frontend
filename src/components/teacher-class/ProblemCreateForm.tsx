@@ -1,31 +1,30 @@
+//src/comoponents/teacher-class/ProblemCreateForm.tsx
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { createProblem, assignProblemsToRoom } from './api/ProblemApi';
-import type { CreateProblemDto } from './api/ProblemApi';
+import { useParams } from 'react-router-dom';
+import { useProblemStore } from '../../store/problemStore';
+import type { CreateProblemDto } from '../../api/problemApi';
 
-interface TestCase {
-  input: string;
-  output: string;
+interface ProblemCreateFormProps {
+  onClose?: () => void;
 }
 
-export default function ProblemCreateForm() {
-  const navigate = useNavigate();
+export default function ProblemCreateForm({ onClose }: ProblemCreateFormProps) {
   const { roomId } = useParams<{ roomId: string }>();
 
-  // --- form state ---
+  // 1. 스토어에서 필요한 액션과 상태를 가져옵니다.
+  const { createAndAssignProblem, isLoading, error } = useProblemStore();
+
+  // 2. 폼 입력을 위한 상태는 컴포넌트 내부에 그대로 둡니다.
   const [title, setTitle] = useState('');
   const [timeLimitMin, setTimeLimitMin] = useState('');
   const [timeLimitSec, setTimeLimitSec] = useState('');
   const [memoryLimit, setMemoryLimit] = useState('');
   const [categories, setCategories] = useState<string[]>([]);
   const [description, setDescription] = useState('');
-  const [testCases, setTestCases] = useState<TestCase[]>([{ input: '', output: '' }]);
+  const [testCases, setTestCases] = useState([{ input: '', output: '' }]);
 
-  // modal + 방 할당용 ID 상태
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [createdId, setCreatedId] = useState<number | null>(null); //방금 새로만든 pid
-
+  // (헬퍼 함수들은 기존과 동일)
   const allCategories = [
     '그래프',
     '동적 계획법',
@@ -36,57 +35,39 @@ export default function ProblemCreateForm() {
     '분할 정복·이진 탐색',
     '백트래킹·완전 탐색',
   ];
-
   const toggleCategory = (cat: string) =>
     setCategories((prev) => (prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]));
-
   const addTestCase = () => setTestCases((prev) => [...prev, { input: '', output: '' }]);
+  const updateTestCase = (idx: number, field: 'input' | 'output', value: string) => {
+    const copy = [...testCases];
+    copy[idx] = { ...copy[idx], [field]: value };
+    setTestCases(copy);
+  };
 
-  const updateTestCase = (idx: number, field: keyof TestCase, value: string) =>
-    setTestCases((prev) => {
-      const copy = [...prev];
-      copy[idx] = { ...copy[idx], [field]: value };
-      return copy;
-    });
-
-  // 1) 제출 시: DB 저장 → ID 확보 → 모달 오픈
+  // 3. handleSubmit 로직을 스토어 액션 호출로 단순화합니다.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const dto: CreateProblemDto = {
-        title,
-        timeLimit: Number(timeLimitMin) * 60 + Number(timeLimitSec),
-        memoryLimit: Number(memoryLimit),
-        categories,
-        description,
-        testCases,
-      };
-      const { id } = await createProblem(dto);
-      setCreatedId(id);
-      setIsModalOpen(true);
-    } catch (err) {
-      console.error(err);
-      alert('문제 저장 중 오류가 발생했습니다.');
+    if (!roomId) {
+      alert('잘못된 접근입니다. 유효한 수업 방 안에서만 문제를 생성할 수 있습니다.');
+      return;
     }
-  };
-  // 2) 모달 “예”: 방에 할당 → 뒤로 이동
-  const handleSave = async () => {
-    if (roomId && createdId != null) {
-      try {
-        await assignProblemsToRoom(Number(roomId), [createdId]);
-      } catch (err) {
-        console.error(err);
-        alert('방 할당 중 오류가 발생했습니다.');
-        return;
-      }
-    }
-    navigate(-1);
-  };
 
-  // 3) 모달 “아니요”: 방에 문제 핟당 없이 모달 닫고 뒤로
-  const handleCancel = () => {
-    setIsModalOpen(false);
-    navigate(-1);
+    const dto: CreateProblemDto = {
+      title,
+      timeLimit: Number(timeLimitMin) * 60 + Number(timeLimitSec),
+      memoryLimit: Number(memoryLimit),
+      categories,
+      description,
+      testCases,
+    };
+
+    try {
+      await createAndAssignProblem(dto, Number(roomId));
+      alert('문제가 성공적으로 생성 및 할당되었습니다.');
+      onClose?.(); // 성공 시 부모로부터 받은 onClose 함수를 호출하여 모달을 닫습니다.
+    } catch {
+      // 에러 표시는 스토어의 error 상태를 통해 자동으로 처리됩니다.
+    }
   };
 
   return (
@@ -99,16 +80,22 @@ export default function ProblemCreateForm() {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={onClose}
                 className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600"
               >
                 취소
               </button>
-              <button type="submit" className="px-4 py-2 bg-green-600 rounded hover:bg-green-500">
-                확인
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="px-4 py-2 bg-green-600 rounded hover:bg-green-500 disabled:bg-gray-500"
+              >
+                {isLoading ? '생성 중...' : '확인'}
               </button>
             </div>
           </div>
+
+          {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
           {/* Title | 풀이 제한시간 */}
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -220,31 +207,6 @@ export default function ProblemCreateForm() {
           </div>
         </form>
       </div>
-
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-gray-800 rounded-lg p-6 w-80">
-            <h3 className="text-gray-100 text-lg font-semibold mb-4">
-              DB에 내가 만든 문제가 추가되었습니다.
-            </h3>
-            <h3 className="text-gray-100 text-lg font-semibold mb-4">현재 방에도 저장할까요?</h3>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={handleSave}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500"
-              >
-                예
-              </button>
-              <button
-                onClick={handleCancel}
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-200"
-              >
-                아니요
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

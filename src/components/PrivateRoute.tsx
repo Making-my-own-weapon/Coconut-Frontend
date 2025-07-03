@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuthStore } from '../store/auth/authStore';
+import { useAuthStore } from '../store/authStore';
 
 const PrivateRoute = ({ children }: React.PropsWithChildren) => {
   // Zustand 스토어에서 로그인 상태를 가져옵니다.

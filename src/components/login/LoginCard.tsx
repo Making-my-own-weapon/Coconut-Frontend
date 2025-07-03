@@ -1,7 +1,7 @@
 //src/components/login/LoginCard.tsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../store/auth/authStore'; // 1. Zustand 스토어를 가져옵니다.
+import { useAuthStore } from '../../store/authStore'; // 1. Zustand 스토어를 가져옵니다.
 
 // LoginCard 컴포넌트 이름은 기존 파일에 맞춰주세요.
 const LoginCard: React.FC = () => {

@@ -1,6 +1,7 @@
+//src/store/auth/authStore.ts
 import { create } from 'zustand';
-import { apiClient } from '../../api/client';
-import * as authApi from './authApi';
+import { apiClient } from '../api/client';
+import * as authApi from '../api/authApi';
 
 // 스토어의 상태(state)와 액션(action)의 타입을 정의합니다.
 interface AuthState {
@@ -25,7 +26,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { accessToken } = response.data;
     set({ accessToken, isLoggedIn: true });
     if (apiClient.defaults.headers.common) {
-      apiClient.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`; //axios클라이언트의 기본 헤더를 설정 1
     }
     await get().fetchUser();
   },
@@ -49,7 +50,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { accessToken } = response.data;
       set({ accessToken, isLoggedIn: true });
       if (apiClient.defaults.headers.common) {
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+        apiClient.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`; //axios클라이언트의 기본 헤더를 설정 2
       }
       await get().fetchUser();
     } catch {

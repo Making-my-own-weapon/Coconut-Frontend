@@ -1,42 +1,23 @@
-//src/components/join/HostActionContainer.tsx
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { createRoomAPI } from './api/roomService';
+import { useTeacherStore } from '../../store/teacherStore';
 import ActionCard from './ActionCard';
 import HostForm from './HostForm';
 import RocketIcon from '../../assets/icons/RocketIcon';
 import GraduationCapIcon from '../../assets/icons/GraduationCapIcon';
 
 const HostActionContainer = () => {
-  const navigate = useNavigate();
+  // 1. 스토어에서 액션과 상태를 가져옵니다.
+  const { createRoom, isLoading, error } = useTeacherStore();
+
+  // 2. UI 입력을 위한 상태는 컴포넌트에 둡니다.
   const [title, setTitle] = useState('');
   const [maxParticipants, setMaxParticipants] = useState(30);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [userName, setUserName] = useState('');
 
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-    try {
-      const randomUserId = Math.floor(Math.random() * 10000) + 1;
-      const data = await createRoomAPI({
-        title,
-        description: '방 설명',
-        maxParticipants,
-        userId: randomUserId,
-      });
-      console.log('createRoomAPI result:', data);
-      // navigate(`/class/${data.roomId}`);
-      navigate(`/class/${data.roomId}`, {
-        state: { roomInfo: data, myName: userName },
-      });
-    } catch {
-      setError('수업 생성에 실패했습니다. 다시 시도해주세요.');
-    } finally {
-      setIsLoading(false);
-    }
+    // 3. 스토어의 액션을 호출합니다.
+    // Form에서 입력받은 maxParticipants 값이 그대로 전달됩니다.
+    await createRoom(title, maxParticipants);
   };
 
   return (

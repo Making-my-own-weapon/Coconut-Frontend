@@ -11,8 +11,39 @@ import { useParams } from 'react-router-dom';
  */
 const socket = io('http://localhost:3001');
 
+// 분석 결과 타입을 정의합니다.
+type AnalysisResultType = {
+  progress: {
+    percentage: number;
+    tests: string;
+    time: string;
+  };
+  aiSuggestions: {
+    type: 'performance' | 'optimization' | 'best-practice';
+    title: string;
+    line?: number;
+  }[];
+  execution: {
+    problemTitle: string;
+    time: string;
+    memory: string;
+    status: 'success' | 'fail';
+  };
+  complexity: {
+    time: string;
+    space: string;
+    cyclomatic: number;
+    loc: number;
+  };
+  quality: {
+    efficiency: number;
+    readability: number;
+  };
+  performanceImprovements: string[];
+};
+
 // 분석 패널을 위한 목업 데이터 정의
-const mockResult = {
+const mockResult: AnalysisResultType = {
   progress: {
     percentage: 75,
     tests: '3/4',
@@ -20,21 +51,21 @@ const mockResult = {
   },
   aiSuggestions: [
     {
-      type: 'performance' as const,
+      type: 'performance',
       title: '중첩 루프로 인한 성능 이슈 - Set 또는 HashMap 사용 권장',
       line: 4,
     },
     {
-      type: 'optimization' as const,
+      type: 'optimization',
       title: 'ES6 filter/includes 메서드 활용으로 코드 간소화 가능',
     },
-    { type: 'best-practice' as const, title: '변수명과 로직 구조가 명확합니다' },
+    { type: 'best-practice', title: '변수명과 로직 구조가 명확합니다' },
   ],
   execution: {
     problemTitle: '2257 Hello World',
     time: '125ms',
     memory: '13.4MB',
-    status: 'success' as const,
+    status: 'success',
   },
   complexity: {
     time: 'O(n²)',
@@ -53,18 +84,27 @@ const mockResult = {
   ],
 };
 
+// 로딩 중 `result` prop의 타입 오류를 방지하기 위한 빈 결과 데이터
+const emptyResult: AnalysisResultType = {
+  progress: { percentage: 0, tests: '', time: '' },
+  aiSuggestions: [],
+  execution: { problemTitle: '', time: '', memory: '', status: 'fail' },
+  complexity: { time: '', space: '', cyclomatic: 0, loc: 0 },
+  quality: { efficiency: 0, readability: 0 },
+  performanceImprovements: [],
+};
+
 export const StudentClassPage: React.FC = () => {
   // --- 상태 관리 (State) ---
   // 실시간 코드 공유 관련 상태
   const { editorId } = useParams();
   const isRemoteUpdate = useRef(false); // 다른 사용자의 편집 내용을 받은 경우 다시 emit하지 않도록 방지
   const [userCode, setUserCode] = useState<string>('# 여기에 코드를 입력하세요');
-  const { roomId } = useParams();
 
   // 분석 패널 관련 상태
   const [isAnalysisPanelOpen, setAnalysisPanelOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<any | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResultType | null>(null);
 
   // --- 소켓 통신 로직 (Side Effects) ---
   // 소켓 연결 시 에디터 'join'
@@ -147,7 +187,7 @@ export const StudentClassPage: React.FC = () => {
           <div className="flex-shrink-0">
             <AnalysisPanel
               isLoading={isAnalyzing}
-              result={analysisResult}
+              result={analysisResult || emptyResult}
               onClose={handlePanelClose}
             />
           </div>
