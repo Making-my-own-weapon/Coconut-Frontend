@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../store/auth/authStore';
+import { useAuthStore } from '../../store/authStore';
 import { isAxiosError } from 'axios'; //catch(err: any) 해결을 위함
 
 const SignupCard: React.FC = () => {

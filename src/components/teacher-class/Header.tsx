@@ -1,3 +1,4 @@
+//src/components/teacher-class/Header.tsx
 import React from 'react';
 import logo from '../../assets/coconutlogo.png';
 import microphoneIcon from '../../assets/microphone.svg';

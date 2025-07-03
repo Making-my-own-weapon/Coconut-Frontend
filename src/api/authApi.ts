@@ -1,4 +1,5 @@
-import { apiClient } from '../../api/client';
+//src/stroe/auth/authApi.ts
+import { apiClient } from './client';
 
 // 1. API 함수가 받을 데이터의 타입을 명확하게 정의합니다.
 interface LoginData {

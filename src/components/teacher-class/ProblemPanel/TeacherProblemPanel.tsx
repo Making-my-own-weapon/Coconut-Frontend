@@ -1,8 +1,9 @@
+//src/components/teacher-class/ProblemPanel/TeacherProblemPanel.tsx
 import React, { useState, useMemo, useEffect } from 'react';
 import TeacherProblemListView from './TeacherProblemListView';
 import TeacherProblemDetailView from './TeacherProblemDetailView';
 import type { Pyodide } from '../../../types/pyodide';
-import ProblemPanel from '../../student-class/ProblemPanel/ProblemPanel';
+// import ProblemPanel from '../../student-class/ProblemPanel/ProblemPanel'; //7.3 14:42 안채호 주석 처리: 선언은 되었지만 값이 읽히지 않음.
 import ProblemCreateForm from '../ProblemCreateForm';
 import ProblemImportForm from '../ProblemImportForm';
 

@@ -1,18 +1,18 @@
+//Coconut-Frontend/src/pages/TeacherClassPage.tsx
 import React, { useState } from 'react';
 import TeacherHeader from '../components/teacher-class/Header';
 import TeacherProblemPanel from '../components/teacher-class/ProblemPanel/TeacherProblemPanel';
 import TeacherEditorPanel from '../components/teacher-class/EditorPanel/EditorPanel';
 import TeacherAnalysisPanel from '../components/teacher-class/AnalysisPanel';
 import StudentGridView from '../components/teacher-class/grid/StudentGridView';
-// import TeacherAnalysisPanel from '../components/teacher-class/AnalysisPanel';
 
 const TeacherClassPage: React.FC = () => {
   const [userCode, setUserCode] = useState<string>('# 여기에 코드를 입력하세요');
   const [mode, setMode] = useState<'grid' | 'editor'>('grid');
   const [isClassStarted, setIsClassStarted] = useState(false);
-  const [analysisOpen, setAnalysisOpen] = useState(true);
-  const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState(null);
+  const [analysisOpen] = useState(true); //7.3 14:23 안채호 setAnalysisOpen 삭제: 선언은 되었지만 값이 읽히지 않음.
+  const [analysisLoading] = useState(false); //7.3 14:23 안채호 setAnalysisLoading 삭제: 선언은 되었지만 값이 읽히지 않음.
+  const [analysisResult] = useState(null); //7.3 14:23 안채호 setAnalysisResult 삭제: 선언은 되었지만 값이 읽히지 않음.
 
   // 코드 변경 핸들러
   const handleCodeChange = (code: string | undefined) => {
