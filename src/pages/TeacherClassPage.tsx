@@ -25,6 +25,8 @@ const TeacherClassPage: React.FC = () => {
     }
   }, [roomId, fetchRoomDetails]);
 
+  console.log('현재 스토어의 currentRoom 상태:', currentRoom);
+
   // 3. 핸들러가 스토어의 액션을 호출하도록 수정합니다.
   const handleToggleClass = () => {
     if (roomId) {

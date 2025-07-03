@@ -22,7 +22,7 @@ export interface Problem {
   testCases: { id: number; input: string; expectedOutput: string }[];
 }
 
-interface RoomInfo {
+export interface RoomInfo {
   roomId: number;
   inviteCode: string;
   status: 'WAITING' | 'STARTED' | 'ENDED';
