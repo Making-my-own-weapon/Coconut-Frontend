@@ -160,7 +160,10 @@ export const TeacherAnalysisPanel: React.FC<TeacherAnalysisPanelProps> = ({
   );
 
   return (
-    <aside className="w-[380px] h-full bg-slate-900 border-l border-slate-700 flex flex-col transition-all duration-300">
+    <aside
+      className="fixed right-0 z-50 w-[380px] bg-slate-900 border-l border-slate-700 flex flex-col transition-all duration-300"
+      style={{ top: '64px', height: 'calc(100vh - 64px)' }}
+    >
       <div className="flex justify-between items-center p-4 border-b border-slate-700">
         <h2 className="text-xl font-bold text-white">분석 리포트(선생님)</h2>
         <button onClick={onClose} className="text-slate-400 hover:text-white text-2xl font-bold">

@@ -9,6 +9,7 @@ import StudentGridView from '../components/teacher-class/grid/StudentGridView';
 
 const TeacherClassPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
+  const [isAnalysisPanelOpen, setAnalysisPanelOpen] = useState(false);
 
   // 1. 스토어에서 classStatus와 updateRoomStatus 액션을 추가로 가져옵니다.
   const { currentRoom, classStatus, isLoading, students, fetchRoomDetails, updateRoomStatus } =
@@ -64,7 +65,25 @@ const TeacherClassPage: React.FC = () => {
               <div className="flex-grow">
                 <TeacherEditorPanel code={userCode} onCodeChange={handleCodeChange} />
               </div>
-              <TeacherAnalysisPanel isLoading={false} result={null} onClose={() => {}} />
+              {/* 분석 패널 열기 버튼: 패널이 닫혔을 때만 보임 */}
+              {!isAnalysisPanelOpen && (
+                <button
+                  onClick={() => setAnalysisPanelOpen(true)}
+                  className="fixed top-1/2 right-0 z-50 transform -translate-y-1/2 bg-slate-600 text-white px-2 py-3 rounded-l-lg shadow-lg hover:bg-slate-500 transition-all"
+                  style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                  aria-label="분석 패널 열기"
+                >
+                  <span className="text-2xl">{'<'}</span>
+                </button>
+              )}
+              {/* 분석 패널: 열렸을 때만 보임 */}
+              {isAnalysisPanelOpen && (
+                <TeacherAnalysisPanel
+                  isLoading={false}
+                  result={null}
+                  onClose={() => setAnalysisPanelOpen(false)}
+                />
+              )}
             </>
           )}
         </div>
