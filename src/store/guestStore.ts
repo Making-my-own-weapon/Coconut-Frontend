@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import * as guestApi from '../api/guestApi';
+import { isAxiosError } from 'axios';
 
 // 참여 성공 시 받게 될 방 정보 타입
 interface JoinedRoomInfo {
@@ -13,7 +14,7 @@ interface GuestState {
   isLoading: boolean;
   error: string | null;
   joinedRoomInfo: JoinedRoomInfo | null;
-  joinRoom: (inviteCode: string) => Promise<void>;
+  joinRoom: (inviteCode: string, userName: string) => Promise<void>;
   clearJoinedRoom: () => void;
 }
 
@@ -22,13 +23,20 @@ export const useGuestStore = create<GuestState>((set) => ({
   error: null,
   joinedRoomInfo: null,
 
-  joinRoom: async (inviteCode: string) => {
+  joinRoom: async (inviteCode: string, userName: string) => {
     set({ isLoading: true, error: null, joinedRoomInfo: null });
     try {
-      const response = await guestApi.joinRoomAPI(inviteCode);
+      const response = await guestApi.joinRoomAPI(inviteCode, userName);
       set({ joinedRoomInfo: response.data });
     } catch (err) {
-      set({ error: '수업 참여에 실패했습니다. 초대코드를 확인해주세요.' });
+      // isAxiosError로 axios 에러인지 확인
+      if (isAxiosError(err) && err.response) {
+        // 백엔드가 보낸 실제 에러 메시지를 상태에 저장
+        set({ error: err.response.data.message });
+      } else {
+        // 그 외의 에러일 경우 일반 메시지 사용
+        set({ error: '수업 참여 중 알 수 없는 에러가 발생했습니다.' });
+      }
       throw err;
     } finally {
       set({ isLoading: false });

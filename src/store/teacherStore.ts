@@ -4,8 +4,8 @@ import * as teacherApi from '../api/teacherApi';
 // --- 타입 정의 ---
 
 export interface Student {
-  id: number;
-  userName: string;
+  userId: number;
+  name: string;
   progress: number;
   timeComplexity: string;
   spaceComplexity: string;
@@ -103,17 +103,13 @@ export const useTeacherStore = create<TeacherState>((set, get) => ({
   },
 
   updateRoomStatus: async (roomId: string) => {
-    const currentStatus = get().classStatus;
-    const newStatus = currentStatus === 'STARTED' ? 'ENDED' : 'STARTED';
-
-    set({ isLoading: true, error: null });
+    const newStatus = get().classStatus === 'STARTED' ? 'ENDED' : 'STARTED';
     try {
       await teacherApi.updateRoomStatusAPI(roomId, newStatus);
-      set({ classStatus: newStatus });
-    } catch {
+      await get().fetchRoomDetails(roomId);
+    } catch (err) {
+      console.error('Failed to update room status', err);
       set({ error: '수업 상태 변경에 실패했습니다.' });
-    } finally {
-      set({ isLoading: false });
     }
   },
 

@@ -1,10 +1,10 @@
-import React from 'react';
 import StudentGridView from './StudentGridView';
 import { useRoom } from '../../../hooks/useRoom';
+import { type Student } from '../../../store/teacherStore';
 
 function StudentDashboard() {
   const { students, loading } = useRoom();
-  const onlineCount = students.filter((student: any) => student?.isOnline).length;
+  const onlineCount = students.filter((student: Student) => student?.isOnline).length;
 
   return (
     <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-700">
@@ -23,7 +23,7 @@ function StudentDashboard() {
           </div>
         )}
       </div>
-      <StudentGridView />
+      <StudentGridView students={students} />
     </div>
   );
 }

@@ -17,7 +17,7 @@ const StudentGridView: React.FC<StudentGridViewProps> = ({ students }) => {
       style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}
     >
       {students.length > 0 ? (
-        students.map((student) => <GridCard key={student.id} student={student} />)
+        students.map((student) => <GridCard key={student.userId} student={student} />)
       ) : (
         <div className="col-span-full flex items-center justify-center text-slate-500">
           <p>아직 참여한 학생이 없습니다.</p>
