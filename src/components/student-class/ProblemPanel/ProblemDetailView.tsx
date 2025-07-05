@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+// src/components/student-class/ProblemDetailView.tsx
+import React, { useState, useMemo } from 'react';
 import backIcon from '../../../assets/back.svg';
 import playIconUrl from '../../../assets/play.svg';
 import SvgIcon from '../../../components/common/SvgIcon';
 import type { Pyodide } from '../../../types/pyodide';
-import { type Problem } from '../../../store/teacherStore';
+import type { Problem } from '../../../store/teacherStore';
 
-// --- Props 타입 ---
-interface ProblemDetailViewProps {
+// --- Props 타입 변경
+interface StudentProblemDetailViewProps {
   problem: Problem;
   onBackToList: () => void;
   onSubmit: () => void;
@@ -14,22 +15,26 @@ interface ProblemDetailViewProps {
   pyodide: Pyodide | null;
 }
 
-// --- 서브 컴포넌트들 ---
+// --- 서브 컴포넌트들 그대로 사용 ---
 
 const Tabs: React.FC<{
-  activeTab: string;
+  activeTab: 'problem' | 'test';
   setActiveTab: (tab: 'problem' | 'test') => void;
 }> = ({ activeTab, setActiveTab }) => {
-  const getTabClass = (tabName: 'problem' | 'test') =>
-    `w-1/2 py-2 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${
-      activeTab === tabName ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-slate-700'
-    }`;
+  const base =
+    'w-1/2 py-2 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors';
   return (
     <div className="flex w-full bg-slate-800 p-1 rounded-lg">
-      <button onClick={() => setActiveTab('problem')} className={getTabClass('problem')}>
+      <button
+        onClick={() => setActiveTab('problem')}
+        className={`${base} ${activeTab === 'problem' ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
+      >
         문제
       </button>
-      <button onClick={() => setActiveTab('test')} className={getTabClass('test')}>
+      <button
+        onClick={() => setActiveTab('test')}
+        className={`${base} ${activeTab === 'test' ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
+      >
         테스트
       </button>
     </div>
@@ -44,7 +49,7 @@ const ProblemDescription: React.FC<{ problem: Problem }> = ({ problem }) => (
 );
 
 const TestCaseItem: React.FC<{
-  testCase: Problem['testCases'][0];
+  testCase: { id: number; input: string; expectedOutput: string };
   userCode: string;
   pyodide: Pyodide | null;
 }> = ({ testCase, userCode, pyodide }) => {
@@ -60,27 +65,19 @@ const TestCaseItem: React.FC<{
     try {
       pyodide.globals.set('test_input', testCase.input);
       pyodide.runPython(`import sys; from io import StringIO; sys.stdin = StringIO(test_input)`);
-      let capturedOutput = '';
-      pyodide.setStdout({
-        batched: (out: string) => {
-          capturedOutput += out + '\n';
-        },
-      });
+      let captured = '';
+      pyodide.setStdout({ batched: (o: string) => (captured += o + '\n') });
       await pyodide.runPythonAsync(userCode);
-      setOutput(capturedOutput.trim());
+      setOutput(captured.trim());
     } catch (e: unknown) {
-      if (e instanceof Error) {
-        setError(e.message);
-      } else {
-        setError(String(e));
-      }
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       pyodide.setStdout({});
       setIsRunning(false);
     }
   };
 
-  const isCorrect = output && output.trim() === testCase.expectedOutput.trim();
+  const isCorrect = output.trim() === testCase.expectedOutput.trim();
 
   return (
     <div className="bg-slate-700 p-3 rounded-md">
@@ -104,7 +101,7 @@ const TestCaseItem: React.FC<{
         {output && (
           <p>
             <strong>실제 출력:</strong> {output}
-            <span className={isCorrect ? 'text-green-400 ml-2' : 'text-red-400 ml-2'}>
+            <span className={`${isCorrect ? 'text-green-400' : 'text-red-400'} ml-2`}>
               {isCorrect ? '정답' : '오답'}
             </span>
           </p>
@@ -120,19 +117,19 @@ const TestCaseItem: React.FC<{
 };
 
 const TestCaseViewer: React.FC<{
-  testCases: Problem['testCases'];
+  testCases: { id: number; input: string; expectedOutput: string }[];
   userCode: string;
   pyodide: Pyodide | null;
 }> = ({ testCases, userCode, pyodide }) => (
   <div className="space-y-4">
-    {testCases.map((tc: Problem['testCases'][0]) => (
+    {testCases.map((tc) => (
       <TestCaseItem key={tc.id} testCase={tc} userCode={userCode} pyodide={pyodide} />
     ))}
   </div>
 );
 
 // --- 메인 컴포넌트 ---
-export const ProblemDetailView: React.FC<ProblemDetailViewProps> = ({
+const StudentProblemDetailView: React.FC<StudentProblemDetailViewProps> = ({
   problem,
   onBackToList,
   onSubmit,
@@ -140,6 +137,17 @@ export const ProblemDetailView: React.FC<ProblemDetailViewProps> = ({
   pyodide,
 }) => {
   const [activeTab, setActiveTab] = useState<'problem' | 'test'>('problem');
+
+  // 받아온 문제의 testcases를 id/input/expectedOutput 형태로 변환합니다.
+  const formatted = useMemo(
+    () =>
+      problem.testCases?.map((tc, idx) => ({
+        id: idx + 1,
+        input: tc.input,
+        expectedOutput: tc.output,
+      })) || [],
+    [problem.testCases],
+  );
 
   return (
     <div className="h-full flex flex-col p-4 bg-slate-800">
@@ -156,14 +164,14 @@ export const ProblemDetailView: React.FC<ProblemDetailViewProps> = ({
         {activeTab === 'problem' ? (
           <ProblemDescription problem={problem} />
         ) : (
-          <TestCaseViewer testCases={problem.testCases} userCode={userCode} pyodide={pyodide} />
+          <TestCaseViewer testCases={formatted} userCode={userCode} pyodide={pyodide} />
         )}
       </main>
 
       <footer className="mt-auto pt-4 border-t border-slate-700">
         <button
           onClick={onSubmit}
-          className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center gap-2"
+          className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -175,11 +183,11 @@ export const ProblemDetailView: React.FC<ProblemDetailViewProps> = ({
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
-          채점 및 분석
+          제출하기
         </button>
       </footer>
     </div>
   );
 };
 
-export default ProblemDetailView;
+export default StudentProblemDetailView;

@@ -52,7 +52,7 @@ export default function ProblemImportForm({ onClose }: ProblemImportFormProps) {
       .filter((p) => p.title.toLowerCase().includes(search.toLowerCase()))
       .filter((p) => sourceFilter === 'All' || p.source === sourceFilter)
       .filter(
-        (p) => categoryFilter.length === 0 || p.category.some((c) => categoryFilter.includes(c)),
+        (p) => categoryFilter.length === 0 || p.categories.some((c) => categoryFilter.includes(c)),
       );
   }, [summaries, search, sourceFilter, categoryFilter]);
 
@@ -75,13 +75,15 @@ export default function ProblemImportForm({ onClose }: ProblemImportFormProps) {
     if (!roomId) return;
     try {
       await assignSelectedProblems(Number(roomId));
-      alert('선택한 문제가 할당되었습니다.');
-      onClose?.();
+      // 성공: 에러가 없을 때만 alert
+      if (!error) {
+        alert('선택한 문제가 할당되었습니다.');
+        onClose?.();
+      }
     } catch {
-      // 에러 표시는 스토어의 error 상태가 자동으로 처리합니다.
+      // 실패: 에러 메시지는 이미 스토어에 set됨
     }
   };
-
   return (
     <div className="max-w-3xl mx-auto p-6 bg-gray-800 text-gray-100 rounded-lg">
       {/* --- 헤더 --- */}
@@ -156,14 +158,14 @@ export default function ProblemImportForm({ onClose }: ProblemImportFormProps) {
           // 4. 컴포넌트의 'list' 대신 'paginatedList'를 사용
           paginatedList.map((p) => (
             <div
-              key={p.id}
+              key={p.problemId}
               // 5. 'toggleSelect' 대신 스토어의 'toggleProblemSelection' 호출
-              onClick={() => toggleProblemSelection(p.id)}
+              onClick={() => toggleProblemSelection(p.problemId)}
               className="relative bg-gray-700 border border-gray-600 rounded p-4 hover:bg-gray-600 cursor-pointer"
             >
               <h2 className="font-medium text-lg text-gray-100 mb-2">{p.title}</h2>
               <div className="flex flex-wrap gap-1">
-                {p.category.map((cat) => (
+                {p.categories.map((cat) => (
                   <span
                     key={cat}
                     className="inline-block px-2 py-0.5 bg-blue-600 text-white text-xs rounded"
@@ -178,7 +180,7 @@ export default function ProblemImportForm({ onClose }: ProblemImportFormProps) {
                 {p.source === 'My' ? '내 문제' : '백준'}
               </span>
               {/* 6. 'selectedIds.includes' 대신 스토어의 Set 객체 'selectedIds.has' 사용 */}
-              {selectedIds.has(p.id) && (
+              {selectedIds.has(p.problemId) && (
                 <Check className="absolute bottom-2 right-2 text-green-500 bg-gray-800 rounded-full p-1" />
               )}
             </div>

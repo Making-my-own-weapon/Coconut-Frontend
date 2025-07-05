@@ -19,7 +19,12 @@ export interface Problem {
   title: string;
   description: string;
   status: 'pass' | 'fail' | 'none';
-  testCases: { id: number; input: string; expectedOutput: string }[];
+  testCases: {
+    id: number;
+    input: string;
+    expectedOutput: string;
+    output: string;
+  }[];
 }
 
 export interface RoomInfo {

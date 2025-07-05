@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import backIcon from '../../../assets/back.svg';
 import playIcon from '../../../assets/play.svg';
 import type { Pyodide } from '../../../types/pyodide';
@@ -14,14 +14,13 @@ interface TeacherProblemDetailViewProps {
 
 const ProblemDescription: React.FC<{ problem: Problem }> = ({ problem }) => (
   <div className="text-slate-300 space-y-6">
-    {/* 3. problem.id 대신 problem.problemId를 사용 (필요 시) */}
     <h2 className="text-2xl font-bold text-white">{problem.title}</h2>
     <p className="text-sm">{problem.description}</p>
   </div>
 );
 
 const TestCaseItem: React.FC<{
-  testCase: Problem['testCases'][0];
+  testCase: { id: number; input: string; expectedOutput: string };
   userCode: string;
   pyodide: Pyodide | null;
 }> = ({ testCase, userCode, pyodide }) => {
@@ -46,16 +45,13 @@ const TestCaseItem: React.FC<{
       await pyodide.runPythonAsync(userCode);
       setOutput(capturedOutput.trim());
     } catch (e: unknown) {
-      if (e instanceof Error) {
-        // e가 Error 객체임이 확인되었으므로 안전하게 .message에 접근
-        setError(e.message);
-      } else {
-        // 다른 종류의 에러일 경우를 대비해 문자열로 변환
-        setError(String(e));
-      }
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setIsRunning(false);
     }
   };
-  const isCorrect = output && output.trim() === testCase.expectedOutput.trim();
+
+  const isCorrect = output.trim() === testCase.expectedOutput.trim();
 
   return (
     <div className="bg-slate-700 p-3 rounded-md">
@@ -79,7 +75,7 @@ const TestCaseItem: React.FC<{
         {output && (
           <p>
             <strong>실제 출력:</strong> {output}
-            <span className={isCorrect ? 'text-green-400 ml-2' : 'text-red-400 ml-2'}>
+            <span className={`${isCorrect ? 'text-green-400' : 'text-red-400'} ml-2`}>
               {isCorrect ? '정답' : '오답'}
             </span>
           </p>
@@ -95,7 +91,7 @@ const TestCaseItem: React.FC<{
 };
 
 const TestCaseViewer: React.FC<{
-  testCases: Problem['testCases'];
+  testCases: { id: number; input: string; expectedOutput: string }[];
   userCode: string;
   pyodide: Pyodide | null;
 }> = ({ testCases, userCode, pyodide }) => (
@@ -107,27 +103,30 @@ const TestCaseViewer: React.FC<{
 );
 
 const Tabs: React.FC<{
-  activeTab: string;
+  activeTab: 'problem' | 'test';
   setActiveTab: (tab: 'problem' | 'test') => void;
 }> = ({ activeTab, setActiveTab }) => {
-  const getTabClass = (tabName: 'problem' | 'test') =>
-    `w-1/2 py-2 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${
-      activeTab === tabName ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-slate-700'
-    }`;
-
+  const base =
+    'w-1/2 py-2 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-colors';
   return (
     <div className="flex w-full bg-slate-800 p-1 rounded-lg">
-      <button onClick={() => setActiveTab('problem')} className={getTabClass('problem')}>
+      <button
+        onClick={() => setActiveTab('problem')}
+        className={`${base} ${activeTab === 'problem' ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
+      >
         문제
       </button>
-      <button onClick={() => setActiveTab('test')} className={getTabClass('test')}>
+      <button
+        onClick={() => setActiveTab('test')}
+        className={`${base} ${activeTab === 'test' ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
+      >
         테스트
       </button>
     </div>
   );
 };
 
-export const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
+const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
   problem,
   onBackToList,
   onSubmit,
@@ -135,6 +134,17 @@ export const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> =
   pyodide,
 }) => {
   const [activeTab, setActiveTab] = useState<'problem' | 'test'>('problem');
+
+  // 백엔드의 problem.testcases -> {id, input, expectedOutput} 배열로 변환
+  const formattedTestCases = useMemo(
+    () =>
+      problem.testCases?.map((tc, idx) => ({
+        id: idx + 1,
+        input: tc.input,
+        expectedOutput: tc.output,
+      })) || [],
+    [problem.testCases],
+  );
 
   return (
     <div className="h-full flex flex-col p-4 bg-slate-800">
@@ -149,18 +159,13 @@ export const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> =
         {activeTab === 'problem' ? (
           <ProblemDescription problem={problem} />
         ) : (
-          <TestCaseViewer
-            // 4. problem 객체에서 testCases를 직접 전달합니다.
-            testCases={problem.testCases}
-            userCode={userCode}
-            pyodide={pyodide}
-          />
+          <TestCaseViewer testCases={formattedTestCases} userCode={userCode} pyodide={pyodide} />
         )}
       </main>
       <footer className="mt-auto pt-4 border-t border-slate-700">
         <button
           onClick={onSubmit}
-          className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center gap-2"
+          className="w-full bg-blue-600 text-white font-bold py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

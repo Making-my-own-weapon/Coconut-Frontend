@@ -33,7 +33,8 @@ const Modal: React.FC<{ children: React.ReactNode; onClose: () => void }> = ({
 
 const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({ userCode, onSubmit }) => {
   // 1. 스토어에서 실제 문제 목록을 가져옵니다.
-  const { problems } = useTeacherStore();
+  const { problems, fetchRoomDetails, currentRoom } = useTeacherStore();
+  const roomId = currentRoom?.roomId;
 
   // 2. 이 패널 내부에서만 사용하는 UI 상태는 useState로 관리합니다.
   const [selectedProblemId, setSelectedProblemId] = useState<number | null>(null);
@@ -65,6 +66,15 @@ const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({ userCode, onS
     [selectedProblemId, problems],
   );
 
+  const closeCreate = () => {
+    setCreateModalOpen(false);
+    if (roomId) fetchRoomDetails(String(roomId));
+  };
+  const closeImport = () => {
+    setImportModalOpen(false);
+    if (roomId) fetchRoomDetails(String(roomId));
+  };
+
   return (
     <>
       <aside className="w-[360px] h-full bg-slate-800 border-r border-slate-700">
@@ -92,13 +102,13 @@ const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({ userCode, onS
 
       {/* 모달 렌더링 부분 */}
       {isCreateModalOpen && (
-        <Modal onClose={() => setCreateModalOpen(false)}>
-          <ProblemCreateForm onClose={() => setCreateModalOpen(false)} />
+        <Modal onClose={closeCreate}>
+          <ProblemCreateForm onClose={closeCreate} />
         </Modal>
       )}
       {isImportModalOpen && (
-        <Modal onClose={() => setImportModalOpen(false)}>
-          <ProblemImportForm onClose={() => setImportModalOpen(false)} />
+        <Modal onClose={closeImport}>
+          <ProblemImportForm onClose={closeImport} />
         </Modal>
       )}
     </>

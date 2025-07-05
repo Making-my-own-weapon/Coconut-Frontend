@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import * as problemApi from '../api/problemApi';
 import type { CreateProblemDto } from '../api/problemApi';
+import { useTeacherStore } from './teacherStore';
 
 export interface ProblemSummary {
-  id: number;
+  problemId: number;
   title: string;
   source: 'My' | 'BOJ';
-  category: string[];
+  categories: string[];
 }
 
 // 스토어의 상태와 액션 타입을 정의합니다.
@@ -59,11 +60,13 @@ export const useProblemStore = create<ProblemState>((set, get) => ({
     const problemIds = Array.from(get().selectedIds); // Set을 배열로 변환
     if (problemIds.length === 0) {
       set({ error: '문제를 선택해주세요.', isLoading: false });
-      return;
+      throw new Error('문제를 선택해주세요.');
     }
     try {
       await problemApi.assignProblemsToRoomAPI(roomId, problemIds);
       set({ selectedIds: new Set() }); // 성공 시 선택 해제
+      // 할당이 끝나면 방 정보를 다시 불러옵니다.
+      await useTeacherStore.getState().fetchRoomDetails(String(roomId));
     } catch (err) {
       set({ error: '문제 할당에 실패했습니다.' });
       throw err;
@@ -78,7 +81,7 @@ export const useProblemStore = create<ProblemState>((set, get) => ({
     try {
       // 1. 문제를 먼저 생성하고, 새로 생긴 문제의 ID를 받습니다.
       const createResponse = await problemApi.createProblemAPI(dto);
-      const newProblemId = createResponse.data.id;
+      const newProblemId = createResponse.data.problemId;
 
       // 2. 그 ID를 이용해 현재 방에 문제를 할당합니다.
       await problemApi.assignProblemsToRoomAPI(roomId, [newProblemId]);
