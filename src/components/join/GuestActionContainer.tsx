@@ -16,7 +16,7 @@ const GuestActionContainer = () => {
   const handleJoinClass = async (e: React.FormEvent) => {
     e.preventDefault();
     // 3. 스토어의 액션을 호출합니다.
-    await joinRoom(inviteCode);
+    await joinRoom(inviteCode, userName);
   };
 
   return (

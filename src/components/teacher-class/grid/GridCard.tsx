@@ -1,12 +1,12 @@
 import React from 'react';
 // '../types/student' 대신 '../contexts/RoomContext' 에서 타입을 가져옵니다.
-import type { Student } from '../../../contexts/RoomContext';
+import type { Student } from '../../../store/teacherStore';
 
 const GridCard: React.FC<{ student: Student; className?: string }> = ({
   student,
   className = '',
 }) => {
-  const { userName, progress, timeComplexity, spaceComplexity, testsPassed, totalTests, isOnline } =
+  const { name, progress, timeComplexity, spaceComplexity, testsPassed, totalTests, isOnline } =
     student;
   const progressBarWidth = `${progress}%`;
   const allTestsPassed = testsPassed === totalTests;
@@ -42,7 +42,7 @@ const GridCard: React.FC<{ student: Student; className?: string }> = ({
               />
             </svg>
           </div>
-          <span className="text-white font-semibold text-base">{userName}</span>
+          <span className="text-white font-semibold text-base">{name}</span>
         </div>
         {isOnline && (
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/20 text-green-400">

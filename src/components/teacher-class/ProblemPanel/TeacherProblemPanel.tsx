@@ -5,9 +5,11 @@ import TeacherProblemDetailView from './TeacherProblemDetailView';
 import ProblemCreateForm from '../ProblemCreateForm';
 import ProblemImportForm from '../ProblemImportForm';
 import type { Pyodide } from '../../../types/pyodide';
+import { type Problem } from '../../../store/teacherStore';
 
 // 이 컴포넌트가 부모로부터 받는 props 타입
 interface TeacherProblemPanelProps {
+  problems: Problem[];
   userCode: string;
   onSubmit: () => void;
 }
@@ -31,18 +33,19 @@ const Modal: React.FC<{ children: React.ReactNode; onClose: () => void }> = ({
   </div>
 );
 
-const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({ userCode, onSubmit }) => {
-  // 1. 스토어에서 실제 문제 목록을 가져옵니다.
-  const { problems, fetchRoomDetails, currentRoom } = useTeacherStore();
+export const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({
+  problems,
+  userCode,
+  onSubmit,
+}) => {
+  const { fetchRoomDetails, currentRoom } = useTeacherStore();
   const roomId = currentRoom?.roomId;
 
-  // 2. 이 패널 내부에서만 사용하는 UI 상태는 useState로 관리합니다.
   const [selectedProblemId, setSelectedProblemId] = useState<number | null>(null);
   const [isPyodideLoading, setIsPyodideLoading] = useState(true);
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [isImportModalOpen, setImportModalOpen] = useState(false);
 
-  // (Pyodide 로딩 로직은 그대로 유지)
   const [pyodide, setPyodide] = useState<Pyodide | null>(null);
   useEffect(() => {
     const initPyodide = async () => {
@@ -60,7 +63,6 @@ const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({ userCode, onS
     initPyodide();
   }, []);
 
-  // 3. 선택된 문제 객체를 스토어의 데이터로 찾습니다.
   const selectedProblem = useMemo(
     () => problems.find((p) => p.problemId === selectedProblemId) || null,
     [selectedProblemId, problems],
