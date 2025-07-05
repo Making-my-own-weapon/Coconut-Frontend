@@ -69,24 +69,6 @@ function App() {
             </PrivateRoute>
           }
         />
-
-        {/* 👇 3. 문제 관리 페이지에도 PrivateRoute 적용 */}
-        <Route
-          path="/teacher-class/:roomId/import"
-          element={
-            <PrivateRoute>
-              <ProblemImportForm />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/teacher-class/:roomId/create"
-          element={
-            <PrivateRoute>
-              <ProblemCreateForm />
-            </PrivateRoute>
-          }
-        />
       </Routes>
     </BrowserRouter>
   );
