@@ -80,17 +80,14 @@ export const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({
   return (
     <>
       <aside className="w-[360px] h-full bg-slate-800 border-r border-slate-700">
-        {isPyodideLoading ? (
-          <div className="flex items-center justify-center h-full text-slate-400">
-            <span>테스트 환경 로딩 중...</span>
-          </div>
-        ) : selectedProblem ? (
+        {selectedProblem ? (
           <TeacherProblemDetailView
             problem={selectedProblem}
             onBackToList={() => setSelectedProblemId(null)}
             onSubmit={onSubmit}
             userCode={userCode}
             pyodide={pyodide}
+            isPyodideLoading={isPyodideLoading}
           />
         ) : (
           <TeacherProblemListView
