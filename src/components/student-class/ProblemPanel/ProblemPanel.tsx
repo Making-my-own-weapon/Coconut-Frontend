@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import ProblemListView from './ProblemListView';
 import ProblemDetailView from './ProblemDetailView';
 import type { Pyodide } from '../../../types/pyodide';
@@ -16,23 +16,29 @@ interface ProblemPanelProps {
 export const ProblemPanel: React.FC<ProblemPanelProps> = ({ problems, userCode, onSubmit }) => {
   const [selectedProblemId, setSelectedProblemId] = useState<number | null>(null);
   const [pyodide, setPyodide] = useState<Pyodide | null>(null);
-  const [isPyodideLoading, setIsPyodideLoading] = useState(true);
+  const [isPyodideLoading, setIsPyodideLoading] = useState(false);
 
-  useEffect(() => {
-    const initPyodide = async () => {
-      try {
-        const pyodideInstance = await window.loadPyodide({
-          indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/',
-        });
-        setPyodide(pyodideInstance);
-      } catch (error) {
-        console.error('Pyodide 로드 실패:', error);
-      } finally {
-        setIsPyodideLoading(false);
-      }
-    };
-    initPyodide();
-  }, []);
+  // Pyodide 로딩을 지연 로딩으로 변경 - 문제 상세보기에 들어갔을 때만 로딩
+  const initPyodide = async () => {
+    if (pyodide || isPyodideLoading) return; // 이미 로딩 중이거나 완료된 경우 리턴
+    setIsPyodideLoading(true);
+    try {
+      const pyodideInstance = await window.loadPyodide({
+        indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/',
+      });
+      setPyodide(pyodideInstance);
+    } catch (error) {
+      console.error('Pyodide 로드 실패:', error);
+    } finally {
+      setIsPyodideLoading(false);
+    }
+  };
+
+  // 문제 선택 시 Pyodide 로딩 시작
+  const handleSelectProblem = (problemId: number) => {
+    setSelectedProblemId(problemId);
+    initPyodide(); // 문제 상세보기 진입 시 Pyodide 로딩 시작
+  };
 
   // 3. 선택된 문제 객체를 mockProblems 대신 props로 받은 problems에서 찾습니다.
   const selectedProblem = useMemo(
@@ -42,21 +48,17 @@ export const ProblemPanel: React.FC<ProblemPanelProps> = ({ problems, userCode, 
 
   return (
     <aside className="w-[360px] h-full bg-slate-800 border-r border-slate-700">
-      {isPyodideLoading ? (
-        <div className="flex items-center justify-center h-full text-slate-400">
-          <span>테스트 환경 로딩 중...</span>
-        </div>
-      ) : selectedProblem ? (
+      {selectedProblem ? (
         <ProblemDetailView
           problem={selectedProblem}
           onBackToList={() => setSelectedProblemId(null)}
           onSubmit={onSubmit}
           userCode={userCode}
           pyodide={pyodide}
+          isPyodideLoading={isPyodideLoading}
         />
       ) : (
-        // 4. 문제 목록 뷰에 mockProblems 대신 props로 받은 problems를 전달합니다.
-        <ProblemListView problems={problems} onSelectProblem={setSelectedProblemId} />
+        <ProblemListView problems={problems} onSelectProblem={handleSelectProblem} />
       )}
     </aside>
   );
