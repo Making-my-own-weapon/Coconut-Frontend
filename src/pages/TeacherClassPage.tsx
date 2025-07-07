@@ -16,9 +16,11 @@ const TeacherClassPage: React.FC = () => {
     currentRoom,
     classStatus,
     students,
+    selectedStudentId,
     isLoading: isRoomLoading,
     fetchRoomDetails,
     updateRoomStatus,
+    setSelectedStudentId,
   } = useTeacherStore();
   const { submitCode } = useSubmissionStore();
   const [userCode, setUserCode] = useState<string>('# 여기에 코드를 입력하세요');

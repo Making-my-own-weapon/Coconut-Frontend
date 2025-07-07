@@ -35,11 +35,19 @@ const HostForm: React.FC<HostFormProps> = ({
       <input
         id="maxParticipants"
         type="number"
+        min="1"
+        max="4"
         value={maxParticipants}
-        onChange={(e) => setMaxParticipants(Number(e.target.value))}
+        onChange={(e) => {
+          const value = Number(e.target.value);
+          if (value >= 1 && value <= 4) {
+            setMaxParticipants(value);
+          }
+        }}
         className="mt-1 w-full border rounded-md p-2 h-10"
         required
       />
+      <p className="text-xs text-gray-500 mt-1">1명 ~ 4명 사이로 입력해주세요</p>
     </div>
   </div>
 );
