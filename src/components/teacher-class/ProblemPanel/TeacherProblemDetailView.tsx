@@ -37,12 +37,14 @@ const TestCaseItem: React.FC<{
   const [isRunning, setIsRunning] = useState(false);
   const [output, setOutput] = useState('');
   const [error, setError] = useState('');
+  const [hasRun, setHasRun] = useState(false);
 
   const handleRunTest = async () => {
     if (!pyodide || !userCode) return;
     setIsRunning(true);
     setOutput('');
     setError('');
+    setHasRun(true);
 
     try {
       // Pyodide 상태 초기화
@@ -126,12 +128,14 @@ const TestCaseItem: React.FC<{
         <p>
           <strong>예상 출력:</strong> {testCase.expectedOutput}
         </p>
-        {output && (
+        {hasRun && (
           <p>
-            <strong>실제 출력:</strong> {output}
-            <span className={`${isCorrect ? 'text-green-400' : 'text-red-400'} ml-2`}>
-              {isCorrect ? '정답' : '오답'}
-            </span>
+            <strong>실제 출력:</strong> {output || '(출력 없음)'}
+            {output !== '' && (
+              <span className={`${isCorrect ? 'text-green-400' : 'text-red-400'} ml-2`}>
+                {isCorrect ? '정답' : '오답'}
+              </span>
+            )}
           </p>
         )}
         {error && (
