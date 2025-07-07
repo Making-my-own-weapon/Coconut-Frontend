@@ -7,7 +7,8 @@ const GridCard: React.FC<{
   className?: string;
   selectedStudentId?: number | null;
   onStudentSelect?: (studentId: number) => void;
-}> = ({ student, className = '', selectedStudentId, onStudentSelect }) => {
+  isConnecting?: boolean;
+}> = ({ student, className = '', selectedStudentId, onStudentSelect, isConnecting = false }) => {
   const { name, progress, timeComplexity, spaceComplexity, testsPassed, totalTests, isOnline } =
     student;
   const progressBarWidth = `${progress}%`;
@@ -56,6 +57,12 @@ const GridCard: React.FC<{
             </svg>
           </div>
           <span className="text-white font-semibold text-base">{name}</span>
+          {isConnecting && isSelected && (
+            <span className="ml-2 inline-flex items-center text-yellow-400">
+              <div className="animate-spin rounded-full h-3 w-3 border-b border-yellow-400 mr-1"></div>
+              연결 중...
+            </span>
+          )}
         </div>
         {isOnline && (
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/20 text-green-400">

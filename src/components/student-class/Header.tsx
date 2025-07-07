@@ -8,13 +8,17 @@ import settingsIcon from '../../assets/settings.svg';
 /* 부모의 전달은 <Header classCode={myClassCode} /> 와 같이 사용할 수 있음 */
 interface HeaderProps {
   classCode?: string;
+  isConnecting?: boolean;
 }
 
 // 함수형 컴포넌트 정의 (header 컴포넌트) FC : React Function Component
 // export const Header: export 키워드를 사용해 이 Header 컴포넌트를 다른 파일에서 import하여 재사용할 수 있도록 정의
 // React.FC<HeaderProps> 타입 정의: 이 컴포넌트는 HeaderProps 타입의 props를 받을 수 있음
 // 기본값 설정: classCode 프로퍼티가 전달되지 않으면 '수업 암호'로 설정됨
-export const Header: React.FC<HeaderProps> = ({ classCode = '수업 암호' }) => {
+export const Header: React.FC<HeaderProps> = ({
+  classCode = '수업 암호',
+  isConnecting = false,
+}) => {
   // 이벤트 처리 헨들러
 
   // 버튼 클릭 이벤트를 처리하는 예시 핸들러입니다.
@@ -45,7 +49,15 @@ export const Header: React.FC<HeaderProps> = ({ classCode = '수업 암호' }) =
           <img src={logo} alt="Coconut Logo" className="h-[170px] w-auto" />
         </div>
         <div className="h-6 w-px bg-slate-600" aria-hidden="true" />
-        <span className="text-sm text-slate-400">수업 코드: {classCode}</span>
+        <span className="text-sm text-slate-400">
+          수업 코드: {classCode}
+          {isConnecting && (
+            <span className="ml-2 inline-flex items-center text-yellow-400">
+              <div className="animate-spin rounded-full h-3 w-3 border-b border-yellow-400 mr-1"></div>
+              연결 중...
+            </span>
+          )}
+        </span>
       </div>
 
       {/* 오른쪽 섹션: 아이콘 및 버튼 */}
