@@ -45,12 +45,14 @@ interface TeacherState {
   classStatus: 'WAITING' | 'STARTED' | 'ENDED';
   selectedStudentId: number | null;
   studentCodes: Record<number, string>;
+  teacherCode: string; // 추가: 선생님 고유 코드
   createRoom: (title: string, maxParticipants: number) => Promise<void>;
   fetchRoomDetails: (roomId: string) => Promise<void>;
   updateRoomStatus: (roomId: string) => Promise<void>;
   clearCreatedRoom: () => void;
   setSelectedStudentId: (studentId: number | null) => void;
   updateStudentCode: (studentId: number, code: string) => void;
+  setTeacherCode: (code: string) => void; // 추가: 선생님 코드 업데이트 함수
 }
 
 // --- 스토어 생성 ---
@@ -66,6 +68,7 @@ export const useTeacherStore = create<TeacherState>((set, get) => ({
   classStatus: 'WAITING',
   selectedStudentId: null,
   studentCodes: {},
+  teacherCode: '', // 추가: 선생님 고유 코드 초기값
 
   // --- 액션 ---
   createRoom: async (title, maxParticipants) => {
@@ -134,5 +137,9 @@ export const useTeacherStore = create<TeacherState>((set, get) => ({
         [studentId]: code,
       },
     }));
+  },
+
+  setTeacherCode: (code: string) => {
+    set({ teacherCode: code });
   },
 }));
