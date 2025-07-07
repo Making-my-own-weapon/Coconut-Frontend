@@ -11,7 +11,7 @@ const HostActionContainer = () => {
 
   // 2. UI 입력을 위한 상태는 컴포넌트에 둡니다.
   const [title, setTitle] = useState('');
-  const [maxParticipants, setMaxParticipants] = useState(30);
+  const [maxParticipants, setMaxParticipants] = useState(4);
 
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();

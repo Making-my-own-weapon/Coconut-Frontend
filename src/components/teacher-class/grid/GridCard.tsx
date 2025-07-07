@@ -2,18 +2,31 @@ import React from 'react';
 // '../types/student' 대신 '../contexts/RoomContext' 에서 타입을 가져옵니다.
 import type { Student } from '../../../store/teacherStore';
 
-const GridCard: React.FC<{ student: Student; className?: string }> = ({
-  student,
-  className = '',
-}) => {
+const GridCard: React.FC<{
+  student: Student;
+  className?: string;
+  selectedStudentId?: number | null;
+  onStudentSelect?: (studentId: number) => void;
+}> = ({ student, className = '', selectedStudentId, onStudentSelect }) => {
   const { name, progress, timeComplexity, spaceComplexity, testsPassed, totalTests, isOnline } =
     student;
   const progressBarWidth = `${progress}%`;
   const allTestsPassed = testsPassed === totalTests;
+  const isSelected = selectedStudentId === student.userId;
+
+  const handleCardClick = (studentId: number) => {
+    console.log('학생 선택:', studentId);
+    if (onStudentSelect) {
+      onStudentSelect(studentId);
+    }
+  };
 
   return (
     <div
-      className={`w-full max-w-[312px] h-[230px] rounded-lg border border-slate-600 bg-slate-800 shadow-sm ${className}`}
+      className={`w-full max-w-[312px] h-[230px] rounded-lg border border-slate-600 bg-slate-800 shadow-sm cursor-pointer transition-all hover:border-blue-500 ${
+        isSelected ? 'border-blue-500 bg-slate-700' : ''
+      } ${className}`}
+      onClick={() => handleCardClick(student.userId)}
     >
       {/* 헤더 */}
       <div className="flex items-center justify-between p-4 border-b border-slate-700">

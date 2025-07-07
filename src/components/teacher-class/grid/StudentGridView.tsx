@@ -1,6 +1,7 @@
 import React from 'react';
+import type { Student } from '../../../store/teacherStore';
+import { useTeacherStore } from '../../../store/teacherStore';
 import GridCard from './GridCard';
-import { type Student } from '../../../store/teacherStore';
 
 // 1. 컴포넌트가 'students' 배열을 prop으로 받도록 정의합니다.
 interface StudentGridViewProps {
@@ -10,6 +11,11 @@ interface StudentGridViewProps {
 const StudentGridView: React.FC<StudentGridViewProps> = ({ students }) => {
   // 2. useRoom 훅과 loading 상태 관리를 제거합니다.
   //    로딩 상태는 부모인 TeacherClassPage에서 이미 처리하고 있습니다.
+  const { selectedStudentId, setSelectedStudentId } = useTeacherStore();
+
+  const handleStudentSelect = (studentId: number) => {
+    setSelectedStudentId(studentId);
+  };
 
   return (
     <div
@@ -17,7 +23,14 @@ const StudentGridView: React.FC<StudentGridViewProps> = ({ students }) => {
       style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}
     >
       {students.length > 0 ? (
-        students.map((student) => <GridCard key={student.userId} student={student} />)
+        students.map((student) => (
+          <GridCard
+            key={student.userId}
+            student={student}
+            selectedStudentId={selectedStudentId}
+            onStudentSelect={handleStudentSelect}
+          />
+        ))
       ) : (
         <div className="col-span-full flex items-center justify-center text-slate-500">
           <p>아직 참여한 학생이 없습니다.</p>

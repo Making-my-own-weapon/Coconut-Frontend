@@ -43,10 +43,14 @@ interface TeacherState {
   students: Student[];
   problems: Problem[];
   classStatus: 'WAITING' | 'STARTED' | 'ENDED';
+  selectedStudentId: number | null;
+  studentCodes: Record<number, string>;
   createRoom: (title: string, maxParticipants: number) => Promise<void>;
   fetchRoomDetails: (roomId: string) => Promise<void>;
   updateRoomStatus: (roomId: string) => Promise<void>;
   clearCreatedRoom: () => void;
+  setSelectedStudentId: (studentId: number | null) => void;
+  updateStudentCode: (studentId: number, code: string) => void;
 }
 
 // --- 스토어 생성 ---
@@ -60,6 +64,8 @@ export const useTeacherStore = create<TeacherState>((set, get) => ({
   students: [],
   problems: [],
   classStatus: 'WAITING',
+  selectedStudentId: null,
+  studentCodes: {},
 
   // --- 액션 ---
   createRoom: async (title, maxParticipants) => {
@@ -115,5 +121,18 @@ export const useTeacherStore = create<TeacherState>((set, get) => ({
 
   clearCreatedRoom: () => {
     set({ createdRoomInfo: null });
+  },
+
+  setSelectedStudentId: (studentId: number | null) => {
+    set({ selectedStudentId: studentId });
+  },
+
+  updateStudentCode: (studentId: number, code: string) => {
+    set((state) => ({
+      studentCodes: {
+        ...state.studentCodes,
+        [studentId]: code,
+      },
+    }));
   },
 }));
