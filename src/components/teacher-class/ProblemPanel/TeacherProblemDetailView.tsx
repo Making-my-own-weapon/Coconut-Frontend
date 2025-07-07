@@ -43,20 +43,64 @@ const TestCaseItem: React.FC<{
     setIsRunning(true);
     setOutput('');
     setError('');
+
     try {
-      pyodide.globals.set('test_input', testCase.input);
-      pyodide.runPython(`import sys; from io import StringIO; sys.stdin = StringIO(test_input)`);
-      let capturedOutput = '';
-      pyodide.setStdout({
-        batched: (out: string) => {
-          capturedOutput += out + '\n';
-        },
+      // Pyodide 상태 초기화
+      pyodide.setStdout({});
+      pyodide.runPython('import sys; sys.stdout.flush()');
+
+      // 타임아웃 추가 (5초)
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('실행 시간 초과 (5초)')), 5000);
       });
-      await pyodide.runPythonAsync(userCode);
-      setOutput(capturedOutput.trim());
+
+      const executePromise = (async () => {
+        pyodide.globals.set('test_input', testCase.input);
+        pyodide.runPython(`import sys; from io import StringIO; sys.stdin = StringIO(test_input)`);
+        let capturedOutput = '';
+        pyodide.setStdout({
+          batched: (out: string) => {
+            capturedOutput += out + '\n';
+          },
+        });
+        await pyodide.runPythonAsync(userCode);
+        return capturedOutput.trim();
+      })();
+
+      const result = await Promise.race([executePromise, timeoutPromise]);
+      setOutput(result as string);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e));
+      // 에러 메시지 간소화
+      let errorMessage = '';
+      if (e instanceof Error) {
+        if (e.message === '실행 시간 초과 (5초)') {
+          errorMessage = e.message;
+        } else {
+          // Python traceback에서 마지막 에러 메시지만 추출
+          const lines = e.message.split('\n');
+          const lastErrorLine = lines.find(
+            (line) =>
+              line.includes('Error:') ||
+              line.includes('Exception:') ||
+              line.trim().startsWith('NameError:') ||
+              line.trim().startsWith('SyntaxError:') ||
+              line.trim().startsWith('ValueError:') ||
+              line.trim().startsWith('TypeError:'),
+          );
+          errorMessage = lastErrorLine ? lastErrorLine.trim() : e.message;
+        }
+      } else {
+        errorMessage = String(e);
+      }
+      setError(errorMessage);
     } finally {
+      // Pyodide 상태 정리
+      try {
+        pyodide.setStdout({});
+        pyodide.runPython('import sys; sys.stdout.flush(); sys.stdin = sys.__stdin__');
+      } catch {
+        // 정리 중 에러는 무시
+      }
       setIsRunning(false);
     }
   };
