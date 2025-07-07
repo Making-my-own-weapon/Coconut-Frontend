@@ -12,12 +12,22 @@ interface TeacherProblemDetailViewProps {
   pyodide: Pyodide | null;
 }
 
-const ProblemDescription: React.FC<{ problem: Problem }> = ({ problem }) => (
-  <div className="text-slate-300 space-y-6">
-    <h2 className="text-2xl font-bold text-white">{problem.title}</h2>
-    <p className="text-sm">{problem.description}</p>
-  </div>
-);
+const ProblemDescription: React.FC<{ problem: Problem }> = ({ problem }) => {
+  // 마크다운 볼드 문법(**텍스트**)을 HTML로 변환
+  const formatDescription = (text: string) => {
+    return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  };
+
+  return (
+    <div className="text-slate-300 space-y-6">
+      <h2 className="text-2xl font-bold text-white">{problem.title}</h2>
+      <div
+        className="text-sm whitespace-pre-wrap leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: formatDescription(problem.description) }}
+      />
+    </div>
+  );
+};
 
 const TestCaseItem: React.FC<{
   testCase: { id: number; input: string; expectedOutput: string };
@@ -135,16 +145,48 @@ const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'problem' | 'test'>('problem');
 
-  // 백엔드의 problem.testcases -> {id, input, expectedOutput} 배열로 변환
-  const formattedTestCases = useMemo(
-    () =>
-      problem.testCases?.map((tc, idx) => ({
+  // 백엔드의 problem.exampleTc -> {id, input, expectedOutput} 배열로 변환
+  const problemWithExampleTc = problem as Problem & {
+    exampleTc?: { input: string; output: string }[];
+    testCases?: { input: string; output?: string; expectedOutput?: string }[];
+  };
+  const exampleTc = problemWithExampleTc.exampleTc;
+  const testCases = problemWithExampleTc.testCases;
+  const formattedTestCases = useMemo(() => {
+    try {
+      const exampleTcData = exampleTc;
+
+      if (!exampleTcData || !Array.isArray(exampleTcData)) {
+        // fallback: 기존 testCases 사용
+        return (
+          testCases?.map(
+            (tc: { input: string; output?: string; expectedOutput?: string }, idx: number) => ({
+              id: idx + 1,
+              input: tc.input,
+              expectedOutput: tc.output || tc.expectedOutput || '',
+            }),
+          ) || []
+        );
+      }
+
+      return exampleTcData.map((tc: { input: string; output: string }, idx: number) => ({
         id: idx + 1,
         input: tc.input,
         expectedOutput: tc.output,
-      })) || [],
-    [problem.testCases],
-  );
+      }));
+    } catch {
+      // fallback: 기존 testCases 사용
+      return (
+        testCases?.map(
+          (tc: { input: string; output?: string; expectedOutput?: string }, idx: number) => ({
+            id: idx + 1,
+            input: tc.input,
+            expectedOutput: tc.output || tc.expectedOutput || '',
+          }),
+        ) || []
+      );
+    }
+  }, [exampleTc, testCases]);
 
   return (
     <div className="h-full flex flex-col p-4 bg-slate-800">
