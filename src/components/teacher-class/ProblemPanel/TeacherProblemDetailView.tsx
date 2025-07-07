@@ -10,6 +10,7 @@ interface TeacherProblemDetailViewProps {
   onSubmit: () => void;
   userCode: string;
   pyodide: Pyodide | null;
+  isPyodideLoading: boolean;
 }
 
 const ProblemDescription: React.FC<{ problem: Problem }> = ({ problem }) => {
@@ -33,7 +34,8 @@ const TestCaseItem: React.FC<{
   testCase: { id: number; input: string; expectedOutput: string };
   userCode: string;
   pyodide: Pyodide | null;
-}> = ({ testCase, userCode, pyodide }) => {
+  isPyodideLoading: boolean;
+}> = ({ testCase, userCode, pyodide, isPyodideLoading }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [output, setOutput] = useState('');
   const [error, setError] = useState('');
@@ -113,13 +115,22 @@ const TestCaseItem: React.FC<{
     <div className="bg-slate-700 p-3 rounded-md">
       <div className="flex justify-between items-center mb-2">
         <h4 className="font-semibold text-white text-sm">Test Case {testCase.id}</h4>
-        <button onClick={handleRunTest} disabled={isRunning} className="disabled:opacity-50">
-          {isRunning ? (
-            <img src={playIcon} alt="실행 중" className="w-5 h-5 animate-spin" />
-          ) : (
-            <img src={playIcon} alt="실행" className="w-5 h-5 text-slate-400 hover:text-white" />
+        <div className="flex items-center gap-2">
+          {isPyodideLoading && (
+            <span className="text-xs text-slate-400">테스트 환경 로딩 중...</span>
           )}
-        </button>
+          <button
+            onClick={handleRunTest}
+            disabled={isRunning || isPyodideLoading || !pyodide}
+            className="disabled:opacity-50"
+          >
+            {isRunning ? (
+              <img src={playIcon} alt="실행 중" className="w-5 h-5 animate-spin" />
+            ) : (
+              <img src={playIcon} alt="실행" className="w-5 h-5 text-slate-400 hover:text-white" />
+            )}
+          </button>
+        </div>
       </div>
       <div className="text-xs font-mono text-slate-400 space-y-1">
         <p>
@@ -152,10 +163,17 @@ const TestCaseViewer: React.FC<{
   testCases: { id: number; input: string; expectedOutput: string }[];
   userCode: string;
   pyodide: Pyodide | null;
-}> = ({ testCases, userCode, pyodide }) => (
+  isPyodideLoading: boolean;
+}> = ({ testCases, userCode, pyodide, isPyodideLoading }) => (
   <div className="space-y-4">
     {testCases.map((tc) => (
-      <TestCaseItem key={tc.id} testCase={tc} userCode={userCode} pyodide={pyodide} />
+      <TestCaseItem
+        key={tc.id}
+        testCase={tc}
+        userCode={userCode}
+        pyodide={pyodide}
+        isPyodideLoading={isPyodideLoading}
+      />
     ))}
   </div>
 );
@@ -190,6 +208,7 @@ const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
   onSubmit,
   userCode,
   pyodide,
+  isPyodideLoading,
 }) => {
   const [activeTab, setActiveTab] = useState<'problem' | 'test'>('problem');
 
@@ -249,7 +268,12 @@ const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
         {activeTab === 'problem' ? (
           <ProblemDescription problem={problem} />
         ) : (
-          <TestCaseViewer testCases={formattedTestCases} userCode={userCode} pyodide={pyodide} />
+          <TestCaseViewer
+            testCases={formattedTestCases}
+            userCode={userCode}
+            pyodide={pyodide}
+            isPyodideLoading={isPyodideLoading}
+          />
         )}
       </main>
       <footer className="mt-auto pt-4 border-t border-slate-700">
