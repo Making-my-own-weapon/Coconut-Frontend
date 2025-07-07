@@ -41,12 +41,22 @@ const Tabs: React.FC<{
   );
 };
 
-const ProblemDescription: React.FC<{ problem: Problem }> = ({ problem }) => (
-  <div className="text-slate-300 space-y-6">
-    <h2 className="text-2xl font-bold text-white">{problem.title}</h2>
-    <p className="text-sm">{problem.description}</p>
-  </div>
-);
+const ProblemDescription: React.FC<{ problem: Problem }> = ({ problem }) => {
+  // 마크다운 볼드 문법(**텍스트**)을 HTML로 변환
+  const formatDescription = (text: string) => {
+    return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  };
+
+  return (
+    <div className="text-slate-300 space-y-6">
+      <h2 className="text-2xl font-bold text-white">{problem.title}</h2>
+      <div
+        className="text-sm whitespace-pre-wrap leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: formatDescription(problem.description) }}
+      />
+    </div>
+  );
+};
 
 const TestCaseItem: React.FC<{
   testCase: { id: number; input: string; expectedOutput: string };
@@ -138,16 +148,39 @@ const StudentProblemDetailView: React.FC<StudentProblemDetailViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'problem' | 'test'>('problem');
 
-  // 받아온 문제의 testcases를 id/input/expectedOutput 형태로 변환합니다.
-  const formatted = useMemo(
-    () =>
-      problem.testCases?.map((tc, idx) => ({
+  // 받아온 문제의 exampleTc를 id/input/expectedOutput 형태로 변환합니다.
+  const formatted = useMemo(() => {
+    try {
+      const problemWithExampleTc = problem as Problem & { exampleTc?: any };
+      const exampleTcData = problemWithExampleTc.exampleTc;
+
+      if (!exampleTcData || !Array.isArray(exampleTcData)) {
+        // fallback: 기존 testCases 사용
+        return (
+          (problem as any).testCases?.map((tc: any, idx: number) => ({
+            id: idx + 1,
+            input: tc.input,
+            expectedOutput: tc.output || tc.expectedOutput,
+          })) || []
+        );
+      }
+
+      return exampleTcData.map((tc: { input: string; output: string }, idx: number) => ({
         id: idx + 1,
         input: tc.input,
         expectedOutput: tc.output,
-      })) || [],
-    [problem.testCases],
-  );
+      }));
+    } catch (error) {
+      // fallback: 기존 testCases 사용
+      return (
+        (problem as any).testCases?.map((tc: any, idx: number) => ({
+          id: idx + 1,
+          input: tc.input,
+          expectedOutput: tc.output || tc.expectedOutput,
+        })) || []
+      );
+    }
+  }, [(problem as any).exampleTc, (problem as any).testCases]);
 
   return (
     <div className="h-full flex flex-col p-4 bg-slate-800">
