@@ -13,6 +13,7 @@ interface StudentProblemDetailViewProps {
   onSubmit: () => void;
   userCode: string;
   pyodide: Pyodide | null;
+  isPyodideLoading: boolean;
 }
 
 // --- 서브 컴포넌트들 그대로 사용 ---
@@ -62,7 +63,8 @@ const TestCaseItem: React.FC<{
   testCase: { id: number; input: string; expectedOutput: string };
   userCode: string;
   pyodide: Pyodide | null;
-}> = ({ testCase, userCode, pyodide }) => {
+  isPyodideLoading: boolean;
+}> = ({ testCase, userCode, pyodide, isPyodideLoading }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [output, setOutput] = useState('');
   const [error, setError] = useState('');
@@ -138,13 +140,22 @@ const TestCaseItem: React.FC<{
     <div className="bg-slate-700 p-3 rounded-md">
       <div className="flex justify-between items-center mb-2">
         <h4 className="font-semibold text-white text-sm">Test Case {testCase.id}</h4>
-        <button onClick={handleRunTest} disabled={isRunning} className="disabled:opacity-50">
-          {isRunning ? (
-            <SvgIcon src={playIconUrl} className="w-5 h-5 animate-spin" />
-          ) : (
-            <SvgIcon src={playIconUrl} className="w-5 h-5 text-slate-400 hover:text-white" />
+        <div className="flex items-center gap-2">
+          {isPyodideLoading && (
+            <span className="text-xs text-slate-400">테스트 환경 로딩 중...</span>
           )}
-        </button>
+          <button
+            onClick={handleRunTest}
+            disabled={isRunning || isPyodideLoading || !pyodide}
+            className="disabled:opacity-50"
+          >
+            {isRunning ? (
+              <SvgIcon src={playIconUrl} className="w-5 h-5 animate-spin" />
+            ) : (
+              <SvgIcon src={playIconUrl} className="w-5 h-5 text-slate-400 hover:text-white" />
+            )}
+          </button>
+        </div>
       </div>
       <div className="text-xs font-mono text-slate-400 space-y-1">
         <p>
@@ -177,10 +188,17 @@ const TestCaseViewer: React.FC<{
   testCases: { id: number; input: string; expectedOutput: string }[];
   userCode: string;
   pyodide: Pyodide | null;
-}> = ({ testCases, userCode, pyodide }) => (
+  isPyodideLoading: boolean;
+}> = ({ testCases, userCode, pyodide, isPyodideLoading }) => (
   <div className="space-y-4">
     {testCases.map((tc) => (
-      <TestCaseItem key={tc.id} testCase={tc} userCode={userCode} pyodide={pyodide} />
+      <TestCaseItem
+        key={tc.id}
+        testCase={tc}
+        userCode={userCode}
+        pyodide={pyodide}
+        isPyodideLoading={isPyodideLoading}
+      />
     ))}
   </div>
 );
@@ -192,42 +210,50 @@ const StudentProblemDetailView: React.FC<StudentProblemDetailViewProps> = ({
   onSubmit,
   userCode,
   pyodide,
+  isPyodideLoading,
 }) => {
   const [activeTab, setActiveTab] = useState<'problem' | 'test'>('problem');
 
   // 받아온 문제의 exampleTc를 id/input/expectedOutput 형태로 변환합니다.
   const formatted = useMemo(() => {
     try {
-      const problemWithExampleTc = problem as Problem & { exampleTc?: any };
+      const problemWithExampleTc = problem as Problem & {
+        exampleTc?: { input: string; output: string }[];
+        testCases?: { input: string; output?: string; expectedOutput?: string }[];
+      };
       const exampleTcData = problemWithExampleTc.exampleTc;
 
       if (!exampleTcData || !Array.isArray(exampleTcData)) {
         // fallback: 기존 testCases 사용
         return (
-          (problem as any).testCases?.map((tc: any, idx: number) => ({
+          problemWithExampleTc.testCases?.map((tc, idx) => ({
             id: idx + 1,
             input: tc.input,
-            expectedOutput: tc.output || tc.expectedOutput,
+            expectedOutput: tc.output || tc.expectedOutput || '',
           })) || []
         );
       }
 
-      return exampleTcData.map((tc: { input: string; output: string }, idx: number) => ({
+      return exampleTcData.map((tc, idx) => ({
         id: idx + 1,
         input: tc.input,
         expectedOutput: tc.output,
       }));
-    } catch (error) {
+    } catch {
       // fallback: 기존 testCases 사용
       return (
-        (problem as any).testCases?.map((tc: any, idx: number) => ({
+        (
+          problem as Problem & {
+            testCases?: { input: string; output?: string; expectedOutput?: string }[];
+          }
+        ).testCases?.map((tc, idx) => ({
           id: idx + 1,
           input: tc.input,
-          expectedOutput: tc.output || tc.expectedOutput,
+          expectedOutput: tc.output || tc.expectedOutput || '',
         })) || []
       );
     }
-  }, [(problem as any).exampleTc, (problem as any).testCases]);
+  }, [problem]);
 
   return (
     <div className="h-full flex flex-col p-4 bg-slate-800">
@@ -244,7 +270,12 @@ const StudentProblemDetailView: React.FC<StudentProblemDetailViewProps> = ({
         {activeTab === 'problem' ? (
           <ProblemDescription problem={problem} />
         ) : (
-          <TestCaseViewer testCases={formatted} userCode={userCode} pyodide={pyodide} />
+          <TestCaseViewer
+            testCases={formatted}
+            userCode={userCode}
+            pyodide={pyodide}
+            isPyodideLoading={isPyodideLoading}
+          />
         )}
       </main>
 
