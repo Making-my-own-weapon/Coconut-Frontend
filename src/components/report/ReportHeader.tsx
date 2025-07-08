@@ -9,7 +9,7 @@ const ReportHeader: React.FC = () => {
       <div className="w-[115px] h-[22px] flex-shrink-0 absolute left-48 top-[25px]">
         <div className="w-[115px] h-[22px] flex-shrink-0 rounded-full border border-slate-600 absolute left-0 top-0"></div>
         <div className="w-[98px] h-4 flex-shrink-0 absolute left-[9px] top-[3px]">
-          <div className="text-slate-300 font-inter text-xs font-semibold leading-4 absolute left-0 top-0 w-[26px] h-4">
+          <div className="text-slate-300 font-inter text-xs font-semibold leading-4 absolute left-0 top-0 w-[30px] h-4">
             수업:
           </div>
           <div className="text-slate-300 font-inter text-xs font-semibold leading-4 absolute left-[26px] top-0 w-[72px] h-4">

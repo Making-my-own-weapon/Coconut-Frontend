@@ -33,7 +33,7 @@ const ReportPage: React.FC = () => {
 
         {/* --- 제목 및 탭 --- */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center my-8">
-          <div>
+          <div className="mt-8">
             <h1 className="text-4xl lg:text-5xl font-extrabold">리포트</h1>
             <p className="text-slate-400 mt-1">실시간 학습 현황 및 성과 분석</p>
           </div>
@@ -58,10 +58,11 @@ const ReportPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <MetricCard
                 title="평균 정답률"
-                value="73%"
+                value="50%"
                 bgGradient="bg-gradient-to-r from-blue-700 to-blue-500"
                 icon={<CheckCircle className="w-8 h-8 text-blue-400" />}
                 shadowColor="shadow-[0px_8px_30px_0px_rgba(59,130,246,0.20)]"
+                className="w-[250px] h-24"
               />
               <MetricCard
                 title="평균 풀이 시간"
@@ -69,6 +70,7 @@ const ReportPage: React.FC = () => {
                 bgGradient="bg-gradient-to-r from-emerald-700 to-emerald-500"
                 icon={<Clock className="w-8 h-8 text-emerald-400" />}
                 shadowColor="shadow-[0px_8px_30px_0px_rgba(16,185,129,0.20)]"
+                className="w-[250px] h-24"
               />
               <MetricCard
                 title="가장 어려운 문제"
@@ -77,6 +79,7 @@ const ReportPage: React.FC = () => {
                 bgGradient="bg-gradient-to-r from-orange-600 to-amber-500"
                 icon={<Frown className="w-8 h-8 text-amber-400" />}
                 shadowColor="shadow-[0px_8px_30px_0px_rgba(245,158,11,0.20)]"
+                className="w-[250px] h-24"
               />
               <MetricCard
                 title="가장 쉬운 문제"
@@ -85,11 +88,16 @@ const ReportPage: React.FC = () => {
                 bgGradient="bg-gradient-to-r from-purple-700 to-purple-500"
                 icon={<Smile className="w-8 h-8 text-purple-400" />}
                 shadowColor="shadow-[0px_8px_30px_0px_rgba(139,92,246,0.20)]"
+                className="w-[250px] h-24"
               />
             </div>
 
             {/* InfoBox 세로 정렬 */}
-            <InfoBox title="방 정보" icon={<BarChart3 className="w-6 h-6 text-blue-500" />}>
+            <InfoBox
+              title="방 정보"
+              icon={<BarChart3 className="w-6 h-6 text-blue-500" />}
+              className="w-[515px]"
+            >
               <div className="flex items-center justify-around">
                 <div className="text-center">
                   <div className="text-2xl font-bold">17</div>
@@ -101,7 +109,11 @@ const ReportPage: React.FC = () => {
                 </div>
               </div>
             </InfoBox>
-            <InfoBox title="수업 시간" icon={<Clock className="w-6 h-6 text-amber-500" />}>
+            <InfoBox
+              title="수업 시간"
+              icon={<Clock className="w-6 h-6 text-amber-500" />}
+              className="w-[515px]"
+            >
               <div className="flex items-center justify-center gap-1">
                 <span className="text-2xl font-bold">03:45:17</span>
               </div>
@@ -113,6 +125,7 @@ const ReportPage: React.FC = () => {
                   <path stroke="#10B981" d="..." />
                 </svg>
               }
+              className="w-[515px]"
             >
               <span className="text-2xl font-bold">36 회</span>
             </InfoBox>
@@ -134,7 +147,11 @@ const ReportPage: React.FC = () => {
           <button className="flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 rounded-md text-white font-medium">
             <Save className="w-5 h-5" /> 리포트 저장
           </button>
-          <button onClick={handleLeaveRoom} disabled={isLoading} className="...">
+          <button
+            onClick={handleLeaveRoom}
+            disabled={isLoading}
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-800 rounded-md text-white font-medium hover:from-red-700 hover:to-red-900 disabled:opacity-50"
+          >
             <LogOut className="w-5 h-5" /> 방 나가기
           </button>
         </div>

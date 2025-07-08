@@ -46,17 +46,13 @@ const mockProblemData: ProblemResult[] = [
 
 const ProblemAnalysisPanel: React.FC = () => {
   return (
-    <div className="w-[599px] h-[721px] flex-shrink-0 relative">
-      <div className="w-[599px] h-[721px] flex-shrink-0 rounded-2xl border border-slate-600 bg-slate-800 shadow-[0px_8px_30px_0px_rgba(0,0,0,0.30)] backdrop-blur-[2px] absolute left-0 top-0"></div>
-
+    <div className="w-full h-full rounded-2xl border border-slate-600 bg-slate-800 p-6 flex flex-col">
       {/* Title */}
-      <div className="text-white font-inter text-xl font-bold leading-[30px] absolute left-[30px] top-[25px]">
-        문제별 정답률
-      </div>
+      <div className="text-white font-inter text-xl font-bold mb-5">문제별 정답률</div>
 
       {/* Problem results */}
-      <div className="absolute left-[25px] top-[79px] space-y-5">
-        {mockProblemData.map((problem, index) => (
+      <div className="space-y-4 overflow-y-auto">
+        {mockProblemData.map((problem) => (
           <div key={problem.id} className="w-[549px] h-[120px] flex-shrink-0 relative">
             <div className="w-[550px] h-[120px] flex-shrink-0 rounded-xl bg-[#221F34] absolute left-0 top-0"></div>
 
