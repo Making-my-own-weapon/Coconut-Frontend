@@ -10,6 +10,7 @@ interface HeaderProps {
   classCode?: string;
   isConnecting?: boolean;
   title?: string; // 수업 제목 추가
+  onLeave?: () => void; // 추가
 }
 
 // 함수형 컴포넌트 정의 (header 컴포넌트) FC : React Function Component
@@ -20,6 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
   classCode = '수업 암호',
   isConnecting = false,
   title,
+  onLeave, // 추가
 }) => {
   // 이벤트 처리 헨들러
 
@@ -28,9 +30,7 @@ export const Header: React.FC<HeaderProps> = ({
     alert('세션 연결하기 버튼 클릭!');
   };
 
-  const handleManage = () => {
-    alert('수업 관리 버튼 클릭!');
-  };
+  // 기존 handleManage 삭제 또는 미사용
 
   // 마이크 버튼 클릭 핸들러 (나중에 로직 추가)
   const handleMicrophone = () => {
@@ -91,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({
             선생님 호출하기
           </button>
           <button
-            onClick={handleManage}
+            onClick={onLeave} // 여기!
             className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900"
           >
             수업 나가기
