@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useTeacherStore, type Student } from '../store/teacherStore';
 import { useSubmissionStore } from '../store/submissionStore';
 import socket from '../lib/socket';
@@ -12,6 +12,7 @@ import { useAuthStore } from '../store/authStore';
 
 const TeacherClassPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
+  const navigate = useNavigate();
   const [isAnalysisPanelOpen, setAnalysisPanelOpen] = useState(false);
   const [collaborationId, setCollaborationId] = useState<string | null>(null);
   const [isConnectingToStudent, setIsConnectingToStudent] = useState(false);
@@ -44,9 +45,9 @@ const TeacherClassPage: React.FC = () => {
   const { user } = useAuthStore();
 
   // 즉시 반영되는 수업 상태 (UI용)
-  const [localClassStarted, setLocalClassStarted] = useState(classStatus === 'STARTED');
+  const [localClassStarted, setLocalClassStarted] = useState(classStatus === 'IN_PROGRESS');
   useEffect(() => {
-    setLocalClassStarted(classStatus === 'STARTED');
+    setLocalClassStarted(classStatus === 'IN_PROGRESS');
   }, [classStatus]);
 
   // 선생님 userId, 이름 추출 (participants 중 role이 teacher인 사람)
@@ -139,15 +140,20 @@ const TeacherClassPage: React.FC = () => {
 
   console.log('현재 스토어의 currentRoom 상태:', currentRoom);
 
-  useEffect(() => {
-    console.log('currentRoom.participants:', currentRoom?.participants);
-  }, [currentRoom]);
 
-  // 3. 핸들러가 스토어의 액션을 호출하도록 수정합니다.
-  const handleToggleClass = () => {
-    setLocalClassStarted((prev) => !prev); // 즉시 UI 반영
+  const handleToggleClass = async () => {
+    setLocalClassStarted((prev) => !prev);
     if (roomId) {
-      updateRoomStatus(roomId);
+      if (classStatus === 'IN_PROGRESS') {
+        try {
+          await updateRoomStatus(roomId);
+          navigate(`/room/${roomId}/report`);
+        } catch {
+          alert('수업 종료에 실패했습니다.');
+        }
+      } else {
+        updateRoomStatus(roomId);
+      }
     }
   };
 

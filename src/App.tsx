@@ -11,6 +11,7 @@ import JoinPage from './pages/JoinPage';
 import TeacherClassPage from './pages/TeacherClassPage';
 import StudentClassPage from './pages/StudentClassPage';
 import MyPage from './pages/MyPage';
+import ReportPage from './pages/ReportPage';
 // --- 컴포넌트 import ---
 import PrivateRoute from './components/PrivateRoute';
 
@@ -86,6 +87,16 @@ function App() {
           element={
             <PrivateRoute>
               <MyPage />
+            </PrivateRoute>
+          }
+        />
+
+        {/* 👇 4. 리포트 페이지 라우트 추가 및 PrivateRoute 적용 */}
+        <Route
+          path="/room/:roomId/report"
+          element={
+            <PrivateRoute>
+              <ReportPage />
             </PrivateRoute>
           }
         />

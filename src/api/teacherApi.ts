@@ -18,6 +18,11 @@ export const getRoomDetailsAPI = (roomId: string) => {
   return apiClient.get(`/rooms/${roomId}`);
 };
 
-export const updateRoomStatusAPI = (roomId: string, status: 'STARTED' | 'ENDED') => {
+export const updateRoomStatusAPI = (roomId: string, status: 'IN_PROGRESS' | 'FINISHED') => {
   return apiClient.patch(`/rooms/${roomId}`, { status });
+};
+
+// 방 폭파
+export const deleteRoomAPI = (roomId: string) => {
+  return apiClient.delete(`/rooms/${roomId}`);
 };

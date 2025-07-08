@@ -30,7 +30,8 @@ export interface Problem {
 export interface RoomInfo {
   roomId: number;
   inviteCode: string;
-  status: 'WAITING' | 'STARTED' | 'ENDED';
+  title: string;
+  status: 'WAITING' | 'IN_PROGRESS' | 'FINISHED';
   participants: Student[];
   problems: Problem[];
 }
@@ -42,11 +43,11 @@ interface TeacherState {
   currentRoom: RoomInfo | null;
   students: Student[];
   problems: Problem[];
-  classStatus: 'WAITING' | 'STARTED' | 'ENDED';
+  classStatus: 'WAITING' | 'IN_PROGRESS' | 'FINISHED';
   selectedStudentId: number | null;
   selectedProblemId: number | null;
   studentCodes: Record<number, string>;
-  teacherCode: string; // 추가: 선생님 고유 코드
+  teacherCode: string;
   createRoom: (title: string, maxParticipants: number) => Promise<void>;
   fetchRoomDetails: (roomId: string) => Promise<void>;
   updateRoomStatus: (roomId: string) => Promise<void>;
@@ -54,7 +55,8 @@ interface TeacherState {
   setSelectedStudentId: (studentId: number | null) => void;
   selectProblem: (problemId: number | null) => void;
   updateStudentCode: (studentId: number, code: string) => void;
-  setTeacherCode: (code: string) => void; // 추가: 선생님 코드 업데이트 함수
+  setTeacherCode: (code: string) => void;
+  deleteRoom: (roomId: string) => Promise<void>;
 }
 
 // --- 스토어 생성 ---
@@ -117,7 +119,7 @@ export const useTeacherStore = create<TeacherState>((set, get) => ({
   },
 
   updateRoomStatus: async (roomId: string) => {
-    const newStatus = get().classStatus === 'STARTED' ? 'ENDED' : 'STARTED';
+    const newStatus = get().classStatus === 'IN_PROGRESS' ? 'FINISHED' : 'IN_PROGRESS';
     try {
       await teacherApi.updateRoomStatusAPI(roomId, newStatus);
       await get().fetchRoomDetails(roomId);
@@ -150,5 +152,19 @@ export const useTeacherStore = create<TeacherState>((set, get) => ({
 
   setTeacherCode: (code: string) => {
     set({ teacherCode: code });
+  },
+
+  deleteRoom: async (roomId: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      await teacherApi.deleteRoomAPI(roomId);
+      // 성공 시 관련 상태 초기화
+      set({ currentRoom: null, students: [], problems: [], classStatus: 'WAITING' });
+    } catch (err) {
+      set({ error: '수업 삭제에 실패했습니다.' });
+      throw err;
+    } finally {
+      set({ isLoading: false });
+    }
   },
 }));

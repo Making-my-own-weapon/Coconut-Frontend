@@ -18,15 +18,17 @@ const StudentClassPage: React.FC = () => {
     codes,
     selectedProblemId,
     isLoading: isRoomLoading,
-    fetchRoomDetails,
+    // fetchRoomDetails,
     selectProblem,
     updateCode,
   } = useStudentStore();
 
-  const { isSubmitting, analysisResult, submitCode, closeAnalysis } = useSubmissionStore();
+  const { submitCode, closeAnalysis } = useSubmissionStore();
   const { user } = useAuthStore();
   const myName = user?.name || '';
   const myId = user?.id;
+  const myName =
+    currentRoom?.participants?.find((p) => p.userId === user?.id)?.name || user?.name || '';
   const inviteCode = currentRoom?.inviteCode;
 
   const [userCode, setUserCode] = useState<string>('');
@@ -45,7 +47,7 @@ const StudentClassPage: React.FC = () => {
     } else if (!selectedProblemId) {
       setUserCode('');
     }
-  }, [selectedProblemId, codes]);
+  }, [selectedProblemId, codes, userCode]);
 
   const storeRef = useRef({ selectedProblemId, updateCode });
   useEffect(() => {
@@ -125,15 +127,16 @@ const StudentClassPage: React.FC = () => {
     const newCode = code || '';
     if (isRemoteUpdate.current) {
       isRemoteUpdate.current = false;
-    } else {
-      setUserCode(newCode);
-      currentCodeRef.current = newCode;
-      if (selectedProblemId) {
-        updateCode({ problemId: selectedProblemId, code: newCode });
-      }
-      if (collaborationId) {
-        socket.emit('collab:edit', { collaborationId, code: newCode });
-      }
+      return;
+    }
+
+    setUserCode(newCode);
+    currentCodeRef.current = newCode;
+    if (selectedProblemId) {
+      updateCode({ problemId: selectedProblemId, code: newCode });
+    }
+    if (collaborationId) {
+      socket.emit('collab:edit', { collaborationId, code: newCode });
     }
   };
 
@@ -180,7 +183,8 @@ const StudentClassPage: React.FC = () => {
       <Header
         classCode={inviteCode || '...'}
         isConnecting={isJoiningRoom}
-        title={currentRoom?.title || ''}
+        title={currentRoom?.title || '수업 제목'}
+        isClassStarted={currentRoom?.status === 'IN_PROGRESS'}
         onLeave={handleLeaveClass}
       />
       <main className="flex flex-grow overflow-hidden">
