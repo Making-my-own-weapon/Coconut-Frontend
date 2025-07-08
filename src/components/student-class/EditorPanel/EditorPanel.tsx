@@ -29,9 +29,8 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
             <img src={usersIcon} alt="참가자 수" className="w-4 h-4" />
-            <span>{studentName ? `학생 (${studentName}) 에디터` : '학생 에디터'}</span>
+            <span>{studentName ? studentName : '학생'}</span>
           </div>
-          <span className="font-mono">00:00</span>
         </div>
       </div>
 
