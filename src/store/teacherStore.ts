@@ -101,11 +101,13 @@ export const useTeacherStore = create<TeacherState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await teacherApi.getRoomDetailsAPI(roomId);
+      // 깊은 복사로 모든 상태를 새로운 객체/배열로 set
+      const newRoom = JSON.parse(JSON.stringify(response.data));
       set({
-        currentRoom: response.data,
-        students: response.data.participants || [],
-        problems: response.data.problems || [],
-        classStatus: response.data.status,
+        currentRoom: newRoom,
+        students: Array.isArray(newRoom.participants) ? [...newRoom.participants] : [],
+        problems: Array.isArray(newRoom.problems) ? [...newRoom.problems] : [],
+        classStatus: newRoom.status,
       });
     } catch {
       set({ error: '방 정보를 불러오는 데 실패했습니다.' });
