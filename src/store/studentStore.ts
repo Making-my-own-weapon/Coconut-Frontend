@@ -33,10 +33,8 @@ export const useStudentStore = create<StudentState>((set) => ({
       const response = await getRoomDetailsAPI(roomId);
       const problems = response.data.problems || [];
       let initialCodes = {};
-      let firstProblemId = null;
 
       if (problems.length > 0) {
-        firstProblemId = problems[0].problemId;
         initialCodes = problems.reduce((acc: Record<string, string>, p: Problem) => {
           acc[p.problemId] = `# 문제 ${p.problemId}번\n# 여기에 코드를 입력하세요.`;
           return acc;
@@ -48,7 +46,7 @@ export const useStudentStore = create<StudentState>((set) => ({
         students: response.data.participants || [],
         problems: problems,
         codes: initialCodes,
-        selectedProblemId: firstProblemId,
+        selectedProblemId: null,
       });
     } catch {
       set({ error: '수업 정보를 불러오는 데 실패했습니다.' });

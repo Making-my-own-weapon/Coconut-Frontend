@@ -1,10 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTeacherStore } from '../../../store/teacherStore';
 import TeacherProblemListView from './TeacherProblemListView';
 import TeacherProblemDetailView from './TeacherProblemDetailView';
 import ProblemCreateForm from '../ProblemCreateForm';
 import ProblemImportForm from '../ProblemImportForm';
-import type { Pyodide } from '../../../types/pyodide';
 import { type Problem } from '../../../store/teacherStore';
 
 // 이 컴포넌트가 부모로부터 받는 props 타입
@@ -45,26 +44,8 @@ export const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({
   const { fetchRoomDetails, currentRoom } = useTeacherStore();
   const roomId = currentRoom?.roomId;
 
-  const [isPyodideLoading, setIsPyodideLoading] = useState(true);
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [isImportModalOpen, setImportModalOpen] = useState(false);
-
-  const [pyodide, setPyodide] = useState<Pyodide | null>(null);
-  useEffect(() => {
-    const initPyodide = async () => {
-      try {
-        const pyodideInstance = await window.loadPyodide({
-          indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/',
-        });
-        setPyodide(pyodideInstance);
-      } catch (error) {
-        console.error('Pyodide 로드 실패:', error);
-      } finally {
-        setIsPyodideLoading(false);
-      }
-    };
-    initPyodide();
-  }, []);
 
   const selectedProblem = useMemo(
     () => problems.find((p) => p.problemId === selectedProblemId) || null,
@@ -89,8 +70,6 @@ export const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({
             onBackToList={() => onSelectProblem(null)}
             onSubmit={onSubmit}
             userCode={userCode}
-            pyodide={pyodide}
-            isPyodideLoading={isPyodideLoading}
           />
         ) : (
           <TeacherProblemListView

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSubmissionStore } from '../../../store/submissionStore';
 import backIcon from '../../../assets/back.svg';
 import playIcon from '../../../assets/play.svg';
@@ -10,8 +10,6 @@ interface TeacherProblemDetailViewProps {
   onBackToList: () => void;
   onSubmit: () => void;
   userCode: string;
-  pyodide: Pyodide | null;
-  isPyodideLoading: boolean;
 }
 
 const ProblemDescription: React.FC<{ problem: Problem }> = ({ problem }) => {
@@ -208,8 +206,6 @@ const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
   onBackToList,
   onSubmit,
   userCode,
-  pyodide,
-  isPyodideLoading,
 }) => {
   const { isSubmitting } = useSubmissionStore();
   const [activeTab, setActiveTab] = useState<'problem' | 'test'>('problem');
@@ -256,6 +252,31 @@ const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
       );
     }
   }, [exampleTc, testCases]);
+
+  const [pyodide, setPyodide] = useState<Pyodide | null>(null);
+  const [isPyodideLoading, setIsPyodideLoading] = useState(true);
+
+  useEffect(() => {
+    // 200ms 후에 Pyodide 로딩 시작
+    const timerId = setTimeout(() => {
+      const initPyodide = async () => {
+        try {
+          const pyodideInstance = await window.loadPyodide({
+            indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/',
+          });
+          setPyodide(pyodideInstance);
+        } catch (error) {
+          console.error('Pyodide 로드 실패:', error);
+        } finally {
+          setIsPyodideLoading(false);
+        }
+      };
+      initPyodide();
+    }, 200);
+
+    // 컴포넌트가 언마운트될 때 타이머를 정리합니다.
+    return () => clearTimeout(timerId);
+  }, []); // 마운트 시 한 번만 실행
 
   return (
     <div className="h-full flex flex-col p-4 bg-slate-800">
