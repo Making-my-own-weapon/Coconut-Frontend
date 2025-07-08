@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGuestStore } from '../../store/guestStore';
+import { useAuthStore } from '../../store/authStore';
 import ActionCard from './ActionCard';
 import GuestForm from './GuestForm';
 import PlayIcon from '../../assets/icons/PlayIcon';
@@ -8,10 +9,16 @@ import DocumentIcon from '../../assets/icons/DocumentIcon';
 const GuestActionContainer = () => {
   // 1. 스토어에서 액션과 상태를 가져옵니다.
   const { joinRoom, isLoading, error } = useGuestStore();
+  const { user } = useAuthStore();
 
   // 2. Form 입력을 위한 상태는 컴포넌트에 둡니다.
   const [inviteCode, setInviteCode] = useState('');
-  const [userName, setUserName] = useState(''); // 수업 내에서 사용할 이름
+  const [userName, setUserName] = useState(user?.name || ''); // 계정 이름으로 초기화
+
+  // user.name이 바뀔 때마다 userName도 동기화
+  React.useEffect(() => {
+    if (user?.name) setUserName(user.name);
+  }, [user?.name]);
 
   const handleJoinClass = async (e: React.FormEvent) => {
     e.preventDefault();

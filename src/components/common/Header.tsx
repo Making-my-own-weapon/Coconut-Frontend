@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import Dropdown from './Dropdown';
+import IconUser from '../../assets/icons/IconUser';
 
 // 1. props 타입을 정의합니다.
 interface HeaderProps {
@@ -34,12 +36,20 @@ const Header: React.FC<HeaderProps> = ({ hideButtons = false }) => {
         {!hideButtons && (
           <div>
             {isLoggedIn ? (
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 rounded-md bg-red-500 text-white font-medium hover:bg-red-600 transition-colors"
-              >
-                로그아웃
-              </button>
+              <Dropdown trigger={<IconUser className="w-10 h-10" />}>
+                <Link
+                  to="/mypage"
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  마이페이지
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  로그아웃
+                </button>
+              </Dropdown>
             ) : (
               <Link to="/login">
                 <button className="px-4 py-2 rounded-md bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">

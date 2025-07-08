@@ -9,10 +9,9 @@ import SignupPage from './pages/SignupPage';
 import JoinPage from './pages/JoinPage';
 import TeacherClassPage from './pages/TeacherClassPage';
 import StudentClassPage from './pages/StudentClassPage';
+import MyPage from './pages/MyPage';
 // --- 컴포넌트 import ---
 import PrivateRoute from './components/PrivateRoute';
-import ProblemImportForm from './components/teacher-class/ProblemImportForm';
-import ProblemCreateForm from './components/teacher-class/ProblemCreateForm';
 
 import './App.css';
 
@@ -66,6 +65,16 @@ function App() {
           element={
             <PrivateRoute>
               <StudentClassPage />
+            </PrivateRoute>
+          }
+        />
+
+        {/* 👇 3. 마이페이지 라우트 추가 및 PrivateRoute 적용 */}
+        <Route
+          path="/mypage"
+          element={
+            <PrivateRoute>
+              <MyPage />
             </PrivateRoute>
           }
         />
