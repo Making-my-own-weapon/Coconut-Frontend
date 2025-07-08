@@ -199,17 +199,25 @@ export default function ProblemImportForm({ onClose }: ProblemImportFormProps) {
         >
           이전
         </button>
-        {Array.from({ length: pageCount }, (_, i) => i + 1).map((num) => (
-          <button
-            key={num}
-            onClick={() => setCurrentPage(num)}
-            className={`w-8 text-center rounded ${
-              num === currentPage ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-100'
-            }`}
-          >
-            {num}
-          </button>
-        ))}
+        {(() => {
+          // 5개씩 묶음의 시작 인덱스 계산
+          const groupSize = 5;
+          const groupStart = Math.floor((currentPage - 1) / groupSize) * groupSize + 1;
+          const groupEnd = Math.min(pageCount, groupStart + groupSize - 1);
+          return Array.from({ length: groupEnd - groupStart + 1 }, (_, i) => groupStart + i).map(
+            (num) => (
+              <button
+                key={num}
+                onClick={() => setCurrentPage(num)}
+                className={`w-8 text-center rounded ${
+                  num === currentPage ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-100'
+                }`}
+              >
+                {num}
+              </button>
+            ),
+          );
+        })()}
         <button
           onClick={() => setCurrentPage((p) => Math.min(p + 1, pageCount))}
           disabled={currentPage === pageCount}

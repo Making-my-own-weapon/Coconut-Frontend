@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import * as submissionApi from '../api/submissionApi';
-import type { AnalysisResult } from '../api/submissionApi';
+import type { SubmissionResult } from '../api/submissionApi';
 
 interface SubmissionState {
   isSubmitting: boolean;
   error: string | null;
-  analysisResult: AnalysisResult | null;
-  submitCode: (roomId: string, problemId: number, code: string) => Promise<void>;
+  analysisResult: SubmissionResult | null;
+  submitCode: (roomId: string, problemId: string, code: string) => Promise<void>;
   closeAnalysis: () => void;
 }
 
@@ -15,20 +15,48 @@ export const useSubmissionStore = create<SubmissionState>((set) => ({
   error: null,
   analysisResult: null,
 
-  submitCode: async (roomId, problemId, code) => {
+  submitCode: async (roomId: string, problemId: string, code: string) => {
     set({ isSubmitting: true, error: null, analysisResult: null });
     try {
+      // 1. 코드 제출
       const response = await submissionApi.submitCodeAPI(roomId, problemId, code, 'python');
-      const { submissionId: _submissionId } = response.data;
+      const { submission_id } = response.data;
 
-      // TODO: 실제로는 submissionId로 결과가 나올 때까지 주기적으로 물어보는 '폴링(Polling)' 로직이 필요합니다.
-      // 지금은 2초 뒤에 가짜 결과를 보여주는 것으로 대체합니다.
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // 2. 폴링으로 결과 조회 (최대 30초, 2초 간격)
+      const maxAttempts = 15; // 30초 / 2초 = 15번
+      let attempts = 0;
 
-      // const resultResponse = await submissionApi.getSubmissionResultAPI(submissionId);
-      // set({ analysisResult: resultResponse.data });
-    } catch {
-      set({ error: '코드 제출 또는 분석 중 에러가 발생했습니다.' });
+      while (attempts < maxAttempts) {
+        attempts++;
+
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 2000)); // 2초 대기
+
+          const resultResponse = await submissionApi.getSubmissionResultAPI(submission_id);
+          const result = resultResponse.data;
+
+          // 채점이 완료된 경우 (SUCCESS, FAIL 등)
+          if (
+            result.status === 'SUCCESS' ||
+            result.status === 'FAIL' ||
+            result.status === 'ERROR'
+          ) {
+            set({ analysisResult: result });
+            return;
+          }
+
+          // 아직 진행 중인 경우 계속 대기
+        } catch (pollError) {
+          console.warn(`폴링 시도 ${attempts} 실패:`, pollError);
+          // 폴링 에러는 무시하고 계속 시도
+        }
+      }
+
+      // 타임아웃 발생
+      set({ error: '채점 결과를 가져오는데 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.' });
+    } catch (error) {
+      console.error('코드 제출 에러:', error);
+      set({ error: '코드 제출 중 에러가 발생했습니다.' });
     } finally {
       set({ isSubmitting: false });
     }
