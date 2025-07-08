@@ -25,9 +25,8 @@ const StudentClassPage: React.FC = () => {
 
   const { submitCode, closeAnalysis } = useSubmissionStore();
   const { user } = useAuthStore();
+  const myName = user?.name || '';
   const myId = user?.id;
-
-  // dev 브랜치의 안정적인 이름, 초대코드 가져오기 로직 사용
   const myName =
     currentRoom?.participants?.find((p) => p.userId === user?.id)?.name || user?.name || '';
   const inviteCode = currentRoom?.inviteCode;
@@ -50,7 +49,6 @@ const StudentClassPage: React.FC = () => {
     }
   }, [selectedProblemId, codes, userCode]);
 
-  // feat/submission/js 브랜치의 storeRef 로직 사용 (useEffect 클로저 문제 방지)
   const storeRef = useRef({ selectedProblemId, updateCode });
   useEffect(() => {
     storeRef.current = { selectedProblemId, updateCode };
@@ -61,7 +59,12 @@ const StudentClassPage: React.FC = () => {
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
 
   useEffect(() => {
-    // feat/submission/js 브랜치의 전체 소켓 로직을 사용 (상태 저장 기능 포함)
+    if (roomId) {
+      fetchRoomDetails(roomId);
+    }
+  }, [roomId, fetchRoomDetails]);
+
+  useEffect(() => {
     if (roomId && inviteCode && myId && myName) {
       setIsJoiningRoom(true);
       socket.connect();
@@ -75,7 +78,6 @@ const StudentClassPage: React.FC = () => {
 
       socket.on('room:joined', (data) => {
         setIsJoiningRoom(false);
-        console.log('입장 성공', data);
       });
       socket.on('room:full', () => {
         setIsJoiningRoom(false);
@@ -85,13 +87,11 @@ const StudentClassPage: React.FC = () => {
         setIsJoiningRoom(false);
         setRoomError('방을 찾을 수 없습니다.');
       });
-
       socket.on('collab:started', ({ collaborationId }) => {
         setCollaborationId(collaborationId);
         setIsCollabLoading(false);
       });
       socket.on('code:request', ({ collaborationId, teacherSocketId }) => {
-        console.log('code:request 수신!', { collaborationId, teacherSocketId });
         setIsCollabLoading(true);
         socket.emit('code:send', { collaborationId, code: currentCodeRef.current });
       });
@@ -99,8 +99,6 @@ const StudentClassPage: React.FC = () => {
         isRemoteUpdate.current = true;
         setUserCode(code);
         currentCodeRef.current = code;
-
-        // 중앙 저장소에 업데이트하는 핵심 로직
         const currentProblemId = storeRef.current.selectedProblemId;
         if (currentProblemId) {
           storeRef.current.updateCode({ problemId: currentProblemId, code });
@@ -115,7 +113,6 @@ const StudentClassPage: React.FC = () => {
         socket.off('room:full');
         socket.off('room:notfound');
         socket.off('collab:started');
-        socket.off('code:request'); // code:request 리스너도 정리
         socket.off('code:update');
         socket.off('collab:ended');
       };
@@ -128,7 +125,6 @@ const StudentClassPage: React.FC = () => {
 
   const handleCodeChange = (code: string | undefined) => {
     const newCode = code || '';
-    // isRemoteUpdate.current를 사용하여 무한 루프 방지
     if (isRemoteUpdate.current) {
       isRemoteUpdate.current = false;
       return;
@@ -155,6 +151,16 @@ const StudentClassPage: React.FC = () => {
     setAnalysisPanelOpen(false);
   };
 
+  // 1. 수업 나가기 핸들러 추가
+  const handleLeaveClass = () => {
+    if (roomId && myId && inviteCode) {
+      socket.emit('room:leave', { roomId, userId: myId, inviteCode });
+      window.location.href = '/';
+    } else {
+      window.location.href = '/';
+    }
+  };
+
   if (isRoomLoading && !currentRoom) {
     return (
       <div className="h-screen bg-slate-900 text-white flex items-center justify-center">
@@ -179,6 +185,7 @@ const StudentClassPage: React.FC = () => {
         isConnecting={isJoiningRoom}
         title={currentRoom?.title || '수업 제목'}
         isClassStarted={currentRoom?.status === 'IN_PROGRESS'}
+        onLeave={handleLeaveClass}
       />
       <main className="flex flex-grow overflow-hidden">
         <ProblemPanel

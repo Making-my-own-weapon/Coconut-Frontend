@@ -8,20 +8,20 @@ interface HeaderProps {
   isConnecting?: boolean;
   title?: string;
   isClassStarted?: boolean;
+  onLeave?: () => void; // 추가
 }
 
 export const Header: React.FC<HeaderProps> = ({
   classCode = '수업 암호',
   isConnecting = false,
   title,
+  onLeave, // 추가
 }) => {
   const handleConnect = () => {
     alert('세션 연결하기 버튼 클릭!');
   };
 
-  const handleManage = () => {
-    alert('수업 관리 버튼 클릭!');
-  };
+  // 기존 handleManage 삭제 또는 미사용
 
   const handleMicrophone = () => {
     alert('마이크 버튼 클릭! (나중에 로직 추가)');
@@ -79,7 +79,7 @@ export const Header: React.FC<HeaderProps> = ({
             선생님 호출하기
           </button>
           <button
-            onClick={handleManage}
+            onClick={onLeave} // 여기!
             className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900"
           >
             수업 나가기

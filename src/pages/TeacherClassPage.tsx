@@ -8,6 +8,7 @@ import TeacherProblemPanel from '../components/teacher-class/ProblemPanel/Teache
 import TeacherEditorPanel from '../components/teacher-class/EditorPanel/EditorPanel';
 import TeacherAnalysisPanel from '../components/teacher-class/AnalysisPanel';
 import StudentGridView from '../components/teacher-class/grid/StudentGridView';
+import { useAuthStore } from '../store/authStore';
 
 const TeacherClassPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -20,6 +21,7 @@ const TeacherClassPage: React.FC = () => {
   );
   // (타이머 관련 상태, useEffect, props 모두 삭제)
   const [seconds, setSeconds] = useState(0);
+  const [, forceUpdate] = useState(0);
 
   const {
     currentRoom,
@@ -40,6 +42,7 @@ const TeacherClassPage: React.FC = () => {
   const { submitCode, isSubmitting, analysisResult, closeAnalysis } = useSubmissionStore();
   // userCode, setUserCode 제거
   const [mode, setMode] = useState<'grid' | 'editor'>('grid');
+  const { user } = useAuthStore();
 
   // 즉시 반영되는 수업 상태 (UI용)
   const [localClassStarted, setLocalClassStarted] = useState(classStatus === 'IN_PROGRESS');
@@ -93,14 +96,21 @@ const TeacherClassPage: React.FC = () => {
       socket.off('code:send');
       socket.off('code:update');
       socket.off('collab:ended');
-      socket.disconnect();
     };
   }, []); // ← 빈 배열!
 
-  // 2) 방 입장 emit (roomId 등이 준비됐을 때만)
+  // 최초 진입 시 한 번만 fetchRoomDetails 호출
   useEffect(() => {
-    if (!roomId || !inviteCode || !teacherId || !teacherName) return;
-    console.log('[Teacher] emit room:join', { roomId, inviteCode, teacherId, teacherName });
+    if (roomId) fetchRoomDetails(roomId);
+  }, [roomId, fetchRoomDetails]);
+
+  // room:join emit - currentRoom 의존성 제거
+  useEffect(() => {
+    if (!roomId || !user) return;
+    const teacherId = user.id;
+    const teacherName = user.name;
+    const inviteCode = currentRoom?.inviteCode;
+    if (!inviteCode || !teacherId || !teacherName) return;
     socket.emit('room:join', {
       roomId,
       inviteCode,
@@ -108,23 +118,17 @@ const TeacherClassPage: React.FC = () => {
       userName: teacherName,
       role: 'teacher',
     });
-  }, [roomId, inviteCode, teacherId, teacherName]);
+  }, [roomId, user, currentRoom?.inviteCode]);
 
+  // room:updated 이벤트에서만 fetchRoomDetails 호출 + 강력한 디버깅 로그
   useEffect(() => {
-    if (roomId) {
-      fetchRoomDetails(roomId);
-    }
-  }, [roomId, fetchRoomDetails]);
-
-  // 학생 입장 등 방 정보가 변경될 때 실시간 갱신
-  useEffect(() => {
-    if (!roomId) return;
-    socket.on('room:updated', () => {
-      fetchRoomDetails(roomId);
-    });
-    return () => {
-      socket.off('room:updated');
+    const handleRoomUpdated = () => {
+      if (roomId) {
+        fetchRoomDetails(roomId);
+      }
     };
+    socket.on('room:updated', handleRoomUpdated);
+    return () => socket.off('room:updated', handleRoomUpdated);
   }, [roomId, fetchRoomDetails]);
 
   // 초를 mm:ss로 변환
@@ -136,7 +140,9 @@ const TeacherClassPage: React.FC = () => {
 
   console.log('현재 스토어의 currentRoom 상태:', currentRoom);
 
+
   const handleToggleClass = async () => {
+    setLocalClassStarted((prev) => !prev);
     if (roomId) {
       if (classStatus === 'IN_PROGRESS') {
         try {
@@ -311,6 +317,7 @@ const TeacherClassPage: React.FC = () => {
         <div className="flex flex-grow">
           {mode === 'grid' ? (
             <StudentGridView
+              key={JSON.stringify(studentsWithoutTeacher.map((s: any) => s.userId))}
               students={studentsWithoutTeacher}
               onStudentSelect={handleStudentSelect}
               isConnecting={isConnectingToStudent}
@@ -355,3 +362,8 @@ const TeacherClassPage: React.FC = () => {
 };
 
 export default TeacherClassPage;
+
+// currentRoom.participants를 안전하게 가져오는 함수
+function getCurrentRoomParticipants() {
+  return currentRoom?.participants ? [...currentRoom.participants] : [];
+}
