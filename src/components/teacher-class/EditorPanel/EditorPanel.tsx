@@ -29,20 +29,10 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
             <img src={usersIcon} alt="참가자 수" className="w-4 h-4" />
             <span>
               {selectedStudentId === null || selectedStudentId === undefined
-                ? '선생님 에디터'
-                : `학생 ${studentName || selectedStudentId} 에디터`}
+                ? '내 코드 에디터'
+                : `${studentName || selectedStudentId} 에디터`}
             </span>
           </div>
-          <span className="font-mono">00:00</span>
-          {/* 학생 모드일 때만 내 코드로 전환 버튼 노출 */}
-          {selectedStudentId !== null && onClickReturnToTeacher && (
-            <button
-              className="ml-2 px-3 py- bg-blue-600 text-white rounded hover:bg-blue-500 transition"
-              onClick={onClickReturnToTeacher}
-            >
-              선생님 에디터
-            </button>
-          )}
         </div>
       </div>
       {/* Monaco Editor */}

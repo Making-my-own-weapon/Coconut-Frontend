@@ -1,5 +1,5 @@
 //src/components/teacher-class/Header.tsx
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import logo from '../../assets/coconutlogo.png';
 import microphoneIcon from '../../assets/microphone.svg';
 import settingsIcon from '../../assets/settings.svg';
@@ -10,6 +10,7 @@ interface TeacherHeaderProps {
   onModeChange: (mode: 'grid' | 'editor') => void;
   isClassStarted: boolean;
   onToggleClass: () => void;
+  title?: string; // 수업 제목만 남김
 }
 
 const TeacherHeader: React.FC<TeacherHeaderProps> = ({
@@ -18,6 +19,7 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   onModeChange,
   isClassStarted,
   onToggleClass,
+  title,
 }) => {
   // 마이크/설정 버튼 핸들러 (학생과 동일)
   const handleMicrophone = () => {
@@ -27,6 +29,44 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
     alert('설정 버튼 클릭! (나중에 로직 추가)');
   };
 
+  // 타이머 상태 및 관리
+  const [timer, setTimer] = useState(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const prevClassStarted = useRef(isClassStarted);
+
+  // 타이머 포맷 함수
+  const formatTime = (seconds: number) => {
+    const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+    const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+    const s = String(seconds % 60).padStart(2, '0');
+    return `${h}:${m}:${s}`;
+  };
+
+  useEffect(() => {
+    // 수업 시작 시 타이머 시작
+    if (isClassStarted && !prevClassStarted.current) {
+      intervalRef.current = setInterval(() => {
+        setTimer((t) => t + 1);
+      }, 1000);
+    }
+    // 수업 종료 시 타이머 정지 및 초기화
+    if (!isClassStarted && prevClassStarted.current) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      setTimer(0);
+    }
+    prevClassStarted.current = isClassStarted;
+    // 언마운트 시 클린업
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [isClassStarted]);
+
   return (
     <header className="w-full h-16 bg-slate-900 text-white flex items-center justify-between px-6 border-b border-slate-700">
       {/* 왼쪽: 로고, 수업코드 */}
@@ -35,11 +75,17 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
           <img src={logo} alt="Coconut Logo" className="h-[170px] w-auto" />
         </div>
         <div className="h-6 w-px bg-slate-600" aria-hidden="true" />
+        <span className="text-lg font-bold text-white">{title}</span>
+        <div className="h-6 w-px bg-slate-600" aria-hidden="true" />
         <span className="text-sm text-slate-400">수업 코드: {classCode}</span>
       </div>
       {/* 오른쪽: 아이콘 + 버튼 */}
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-4 text-slate-400">
+          {/* 타이머 표시 */}
+          <span className="font-mono text-base text-white min-w-[90px] text-center select-none">
+            {formatTime(timer)}
+          </span>
           <button
             className="hover:text-white transition-colors"
             aria-label="Microphone"
@@ -60,7 +106,7 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
           onClick={() => onModeChange(mode === 'grid' ? 'editor' : 'grid')}
           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900"
         >
-          {mode === 'grid' ? '코드 입력창으로' : '그리드 보기'}
+          {mode === 'grid' ? '내 코드 보기' : '그리드 보기'}
         </button>
         {/* 수업 시작/종료 버튼 */}
         <button

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTeacherStore } from '../store/teacherStore';
 import { useSubmissionStore } from '../store/submissionStore';
@@ -17,6 +17,8 @@ const TeacherClassPage: React.FC = () => {
   const [previousEditorState, setPreviousEditorState] = useState<'teacher' | 'student' | null>(
     null,
   );
+  // (타이머 관련 상태, useEffect, props 모두 삭제)
+  const [seconds, setSeconds] = useState(0);
 
   const {
     currentRoom,
@@ -35,6 +37,12 @@ const TeacherClassPage: React.FC = () => {
   const { submitCode } = useSubmissionStore();
   // userCode, setUserCode 제거
   const [mode, setMode] = useState<'grid' | 'editor'>('grid');
+
+  // 즉시 반영되는 수업 상태 (UI용)
+  const [localClassStarted, setLocalClassStarted] = useState(classStatus === 'STARTED');
+  useEffect(() => {
+    setLocalClassStarted(classStatus === 'STARTED');
+  }, [classStatus]);
 
   // 선생님 userId, 이름 추출 (participants 중 role이 teacher인 사람)
   const teacher = currentRoom?.participants?.find((p: any) => p.role === 'teacher');
@@ -105,10 +113,29 @@ const TeacherClassPage: React.FC = () => {
     }
   }, [roomId, fetchRoomDetails]);
 
+  // 학생 입장 등 방 정보가 변경될 때 실시간 갱신
+  useEffect(() => {
+    if (!roomId) return;
+    socket.on('room:updated', () => {
+      fetchRoomDetails(roomId);
+    });
+    return () => {
+      socket.off('room:updated');
+    };
+  }, [roomId, fetchRoomDetails]);
+
+  // 초를 mm:ss로 변환
+  useEffect(() => {
+    const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
+    const ss = String(seconds % 60).padStart(2, '0');
+    // setTimer(`${mm}:${ss}`); // 타이머 상태 제거
+  }, [seconds]);
+
   console.log('현재 스토어의 currentRoom 상태:', currentRoom);
 
   // 3. 핸들러가 스토어의 액션을 호출하도록 수정합니다.
   const handleToggleClass = () => {
+    setLocalClassStarted((prev) => !prev); // 즉시 UI 반영
     if (roomId) {
       updateRoomStatus(roomId);
     }
@@ -179,14 +206,7 @@ const TeacherClassPage: React.FC = () => {
         setSelectedStudentId(null);
       }
     } else if (newMode === 'editor') {
-      // 에디터로 갈 때 이전 상태 복원
-      if (previousEditorState === 'student' && studentsWithoutTeacher.length > 0) {
-        // 이전에 학생 에디터였다면 첫 번째 학생과 협업 시작
-        const firstStudent = studentsWithoutTeacher[0];
-        handleStudentSelect(firstStudent.userId);
-        return; // handleStudentSelect에서 setMode('editor') 호출
-      }
-      // 그 외의 경우는 선생님 에디터로
+      // 무조건 선생님 에디터로 전환
       setSelectedStudentId(null);
     }
     setMode(newMode);
@@ -252,8 +272,9 @@ const TeacherClassPage: React.FC = () => {
         classCode={currentRoom?.inviteCode || '...'}
         mode={mode}
         onModeChange={handleModeChange}
-        isClassStarted={classStatus === 'STARTED'}
+        isClassStarted={localClassStarted}
         onToggleClass={handleToggleClass}
+        title={currentRoom?.title || '수업 제목'}
       />
       <main className="flex flex-grow overflow-hidden">
         <TeacherProblemPanel

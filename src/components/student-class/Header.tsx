@@ -9,6 +9,7 @@ import settingsIcon from '../../assets/settings.svg';
 interface HeaderProps {
   classCode?: string;
   isConnecting?: boolean;
+  title?: string; // 수업 제목 추가
 }
 
 // 함수형 컴포넌트 정의 (header 컴포넌트) FC : React Function Component
@@ -18,6 +19,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   classCode = '수업 암호',
   isConnecting = false,
+  title,
 }) => {
   // 이벤트 처리 헨들러
 
@@ -48,6 +50,8 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-2">
           <img src={logo} alt="Coconut Logo" className="h-[170px] w-auto" />
         </div>
+        <div className="h-6 w-px bg-slate-600" aria-hidden="true" />
+        <span className="text-lg font-bold text-white">{title}</span>
         <div className="h-6 w-px bg-slate-600" aria-hidden="true" />
         <span className="text-sm text-slate-400">
           수업 코드: {classCode}
@@ -90,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={handleManage}
             className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900"
           >
-            수업 도망가기
+            수업 나가기
           </button>
         </div>
       </div>
