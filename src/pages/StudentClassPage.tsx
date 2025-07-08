@@ -18,15 +18,15 @@ const StudentClassPage: React.FC = () => {
     codes,
     selectedProblemId,
     isLoading: isRoomLoading,
-    fetchRoomDetails,
+    // fetchRoomDetails,
     selectProblem,
     updateCode,
   } = useStudentStore();
 
-  const { isSubmitting, analysisResult, submitCode, closeAnalysis } = useSubmissionStore();
+  const { submitCode, closeAnalysis } = useSubmissionStore();
   const { user } = useAuthStore();
   const myId = user?.id;
-  
+
   // dev 브랜치의 안정적인 이름, 초대코드 가져오기 로직 사용
   const myName =
     currentRoom?.participants?.find((p) => p.userId === user?.id)?.name || user?.name || '';
@@ -48,7 +48,7 @@ const StudentClassPage: React.FC = () => {
     } else if (!selectedProblemId) {
       setUserCode('');
     }
-  }, [selectedProblemId, codes]);
+  }, [selectedProblemId, codes, userCode]);
 
   // feat/submission/js 브랜치의 storeRef 로직 사용 (useEffect 클로저 문제 방지)
   const storeRef = useRef({ selectedProblemId, updateCode });
@@ -122,7 +122,6 @@ const StudentClassPage: React.FC = () => {
     }
   }, [roomId, inviteCode, myId, myName]);
 
-
   const handleSelectProblem = (problemId: number | null) => {
     selectProblem(problemId);
   };
@@ -134,7 +133,7 @@ const StudentClassPage: React.FC = () => {
       isRemoteUpdate.current = false;
       return;
     }
-    
+
     setUserCode(newCode);
     currentCodeRef.current = newCode;
     if (selectedProblemId) {
@@ -179,7 +178,7 @@ const StudentClassPage: React.FC = () => {
         classCode={inviteCode || '...'}
         isConnecting={isJoiningRoom}
         title={currentRoom?.title || '수업 제목'}
-        isClassStarted={currentRoom?.status === 'STARTED'}
+        isClassStarted={currentRoom?.status === 'IN_PROGRESS'}
       />
       <main className="flex flex-grow overflow-hidden">
         <ProblemPanel
