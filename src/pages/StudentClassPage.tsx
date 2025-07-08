@@ -195,8 +195,11 @@ const StudentClassPage: React.FC = () => {
           <EditorPanel
             code={userCode}
             onCodeChange={handleCodeChange}
-            studentName={myName}
+            studentName={user?.name}
             disabled={isCollabLoading}
+            roomId={roomId}
+            userId={user?.id ? String(user.id) : undefined}
+            userType="student"
           />
         </div>
         {isAnalysisPanelOpen && (

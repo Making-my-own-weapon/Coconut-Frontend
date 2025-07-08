@@ -282,6 +282,11 @@ const TeacherClassPage: React.FC = () => {
     setPreviousEditorState('teacher'); // 선생님 에디터 상태로 기록
   };
 
+  // userType 디버깅 로그 제거
+  // useEffect(() => {
+  //   console.log('SVGStore userType:', userType);
+  // }, [userType]);
+
   if (isRoomLoading && !currentRoom) {
     return (
       <div className="h-screen bg-slate-900 text-white flex items-center justify-center">
@@ -326,6 +331,9 @@ const TeacherClassPage: React.FC = () => {
                   studentName={studentName}
                   onClickReturnToTeacher={handleReturnToTeacher}
                   isConnecting={isConnectingToStudent}
+                  roomId={roomId}
+                  userId={String(teacherId)}
+                  userType="teacher"
                 />
               </div>
               {/* 분석 패널 열기 버튼: 패널이 닫혔을 때만 보임 */}
