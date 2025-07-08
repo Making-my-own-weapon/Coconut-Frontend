@@ -44,6 +44,7 @@ interface TeacherState {
   problems: Problem[];
   classStatus: 'WAITING' | 'STARTED' | 'ENDED';
   selectedStudentId: number | null;
+  selectedProblemId: number | null;
   studentCodes: Record<number, string>;
   teacherCode: string; // 추가: 선생님 고유 코드
   createRoom: (title: string, maxParticipants: number) => Promise<void>;
@@ -51,6 +52,7 @@ interface TeacherState {
   updateRoomStatus: (roomId: string) => Promise<void>;
   clearCreatedRoom: () => void;
   setSelectedStudentId: (studentId: number | null) => void;
+  selectProblem: (problemId: number | null) => void;
   updateStudentCode: (studentId: number, code: string) => void;
   setTeacherCode: (code: string) => void; // 추가: 선생님 코드 업데이트 함수
 }
@@ -67,11 +69,12 @@ export const useTeacherStore = create<TeacherState>((set, get) => ({
   problems: [],
   classStatus: 'WAITING',
   selectedStudentId: null,
+  selectedProblemId: null,
   studentCodes: {},
   teacherCode: '', // 추가: 선생님 고유 코드 초기값
 
   // --- 액션 ---
-  createRoom: async (title, maxParticipants) => {
+  createRoom: async (title: string, maxParticipants: number) => {
     set({ isLoading: true, error: null, createdRoomInfo: null });
     try {
       const response = await teacherApi.createRoomAPI({
@@ -128,6 +131,10 @@ export const useTeacherStore = create<TeacherState>((set, get) => ({
 
   setSelectedStudentId: (studentId: number | null) => {
     set({ selectedStudentId: studentId });
+  },
+
+  selectProblem: (problemId: number | null) => {
+    set({ selectedProblemId: problemId });
   },
 
   updateStudentCode: (studentId: number, code: string) => {

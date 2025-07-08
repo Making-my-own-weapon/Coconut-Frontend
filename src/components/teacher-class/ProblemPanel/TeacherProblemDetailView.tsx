@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useSubmissionStore } from '../../../store/submissionStore';
 import backIcon from '../../../assets/back.svg';
 import playIcon from '../../../assets/play.svg';
 import type { Pyodide } from '../../../types/pyodide';
@@ -210,6 +211,7 @@ const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
   pyodide,
   isPyodideLoading,
 }) => {
+  const { isSubmitting } = useSubmissionStore();
   const [activeTab, setActiveTab] = useState<'problem' | 'test'>('problem');
 
   // 백엔드의 problem.exampleTc -> {id, input, expectedOutput} 배열로 변환
@@ -279,7 +281,8 @@ const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
       <footer className="mt-auto pt-4 border-t border-slate-700">
         <button
           onClick={onSubmit}
-          className="w-full bg-blue-600 text-white font-bold py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2"
+          disabled={isSubmitting}
+          className="w-full bg-blue-600 text-white font-bold py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 disabled:bg-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -291,7 +294,7 @@ const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
-          채점 및 분석
+          {isSubmitting ? '채점 중...' : '채점 및 분석'}
         </button>
       </footer>
     </div>

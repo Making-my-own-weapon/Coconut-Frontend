@@ -10,117 +10,152 @@ import AnalysisPanel from '../components/student-class/AnalysisPanel';
 import socket from '../lib/socket';
 
 const StudentClassPage: React.FC = () => {
-  // URL에서 roomId(숫자) 문자열로 추출
   const { roomId } = useParams<{ roomId: string }>();
 
-  // 2. 각 스토어에서 필요한 상태와 액션을 가져옵니다.
-  const { currentRoom, problems, isLoading: isRoomLoading, fetchRoomDetails } = useStudentStore();
+  const {
+    currentRoom,
+    problems,
+    codes,
+    selectedProblemId,
+    isLoading: isRoomLoading,
+    fetchRoomDetails,
+    selectProblem,
+    updateCode,
+  } = useStudentStore();
+
   const { isSubmitting, analysisResult, submitCode, closeAnalysis } = useSubmissionStore();
   const { user } = useAuthStore();
   const myId = user?.id;
+  
+  // dev 브랜치의 안정적인 이름, 초대코드 가져오기 로직 사용
   const myName =
-    currentRoom?.participants?.find((p) => p.userId === user.id)?.name || user.name || '';
-
-  // 방 정보 fetch 후 inviteCode(문자열)도 별도 변수로 저장
+    currentRoom?.participants?.find((p) => p.userId === user?.id)?.name || user?.name || '';
   const inviteCode = currentRoom?.inviteCode;
 
-  const [userCode, setUserCode] = useState<string>('# 여기에 코드를 입력하세요');
+  const [userCode, setUserCode] = useState<string>('');
   const [collaborationId, setCollaborationId] = useState<string | null>(null);
+  const [isAnalysisPanelOpen, setAnalysisPanelOpen] = useState(false);
   const isRemoteUpdate = useRef(false);
-  const currentCodeRef = useRef<string>('# 여기에 코드를 입력하세요'); // 현재 에디터 코드 참조
+  const currentCodeRef = useRef<string>('');
+
+  useEffect(() => {
+    if (selectedProblemId && codes[selectedProblemId]) {
+      const newCode = codes[selectedProblemId];
+      if (newCode !== userCode) {
+        setUserCode(newCode);
+        currentCodeRef.current = newCode;
+      }
+    } else if (!selectedProblemId) {
+      setUserCode('');
+    }
+  }, [selectedProblemId, codes]);
+
+  // feat/submission/js 브랜치의 storeRef 로직 사용 (useEffect 클로저 문제 방지)
+  const storeRef = useRef({ selectedProblemId, updateCode });
+  useEffect(() => {
+    storeRef.current = { selectedProblemId, updateCode };
+  }, [selectedProblemId, updateCode]);
 
   const [roomError, setRoomError] = useState<string | null>(null);
   const [isCollabLoading, setIsCollabLoading] = useState(false);
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
 
   useEffect(() => {
-    if (roomId) fetchRoomDetails(roomId);
-  }, [roomId, fetchRoomDetails]);
+    // feat/submission/js 브랜치의 전체 소켓 로직을 사용 (상태 저장 기능 포함)
+    if (roomId && inviteCode && myId && myName) {
+      setIsJoiningRoom(true);
+      socket.connect();
+      socket.emit('room:join', {
+        roomId,
+        inviteCode,
+        userId: myId,
+        userName: myName,
+        role: 'student',
+      });
 
-  useEffect(() => {
-    if (!user || !roomId || !inviteCode) return;
-    const myId = user.id;
-    const myName = user.name;
-    setIsJoiningRoom(true);
-    socket.connect();
-    socket.emit('room:join', {
-      roomId, // 내부 식별자 (문자열)
-      inviteCode, // 외부 공유 코드 (문자열)
-      userId: myId,
-      userName: myName,
-      role: 'student',
-    });
+      socket.on('room:joined', (data) => {
+        setIsJoiningRoom(false);
+        console.log('입장 성공', data);
+      });
+      socket.on('room:full', () => {
+        setIsJoiningRoom(false);
+        setRoomError('방이 가득 찼습니다!');
+      });
+      socket.on('room:notfound', () => {
+        setIsJoiningRoom(false);
+        setRoomError('방을 찾을 수 없습니다.');
+      });
 
-    // 입장 성공/실패 이벤트 리스너
-    socket.on('room:joined', (data) => {
-      setIsJoiningRoom(false);
-      console.log('입장 성공', data);
-    });
-    socket.on('room:full', () => {
-      setIsJoiningRoom(false);
-      setRoomError('방이 가득 찼습니다!');
-    });
-    socket.on('room:notfound', () => {
-      setIsJoiningRoom(false);
-      setRoomError('방을 찾을 수 없습니다.');
-    });
+      socket.on('collab:started', ({ collaborationId }) => {
+        setCollaborationId(collaborationId);
+        setIsCollabLoading(false);
+      });
+      socket.on('code:request', ({ collaborationId, teacherSocketId }) => {
+        console.log('code:request 수신!', { collaborationId, teacherSocketId });
+        setIsCollabLoading(true);
+        socket.emit('code:send', { collaborationId, code: currentCodeRef.current });
+      });
+      socket.on('code:update', ({ code }) => {
+        isRemoteUpdate.current = true;
+        setUserCode(code);
+        currentCodeRef.current = code;
 
-    // 협업 시작 완료(collab:started)
-    socket.on('collab:started', ({ collaborationId }) => {
-      setCollaborationId(collaborationId);
-      setIsCollabLoading(false);
-    });
-    // 협업 요청(code:request)
-    socket.on('code:request', ({ collaborationId, teacherSocketId }) => {
-      console.log('code:request 수신!', { collaborationId, teacherSocketId });
-      setIsCollabLoading(true);
-      // 현재 에디터에 표시된 실제 코드를 전송
-      socket.emit('code:send', { collaborationId, code: currentCodeRef.current });
-    });
-    // 코드 동기화(code:update)
-    socket.on('code:update', ({ code }) => {
-      setUserCode(code);
-      currentCodeRef.current = code; // 원격 업데이트 시에도 참조 업데이트
-    });
-    // 협업 종료(collab:ended)
-    socket.on('collab:ended', () => {
-      setCollaborationId(null);
-    });
+        // 중앙 저장소에 업데이트하는 핵심 로직
+        const currentProblemId = storeRef.current.selectedProblemId;
+        if (currentProblemId) {
+          storeRef.current.updateCode({ problemId: currentProblemId, code });
+        }
+      });
+      socket.on('collab:ended', () => {
+        setCollaborationId(null);
+      });
 
-    // cleanup
-    return () => {
-      socket.off('room:joined');
-      socket.off('room:full');
-      socket.off('room:notfound');
-      socket.off('collab:started');
-      socket.off('code:update');
-      socket.off('collab:ended');
-    };
-  }, [user, roomId, inviteCode, fetchRoomDetails]);
+      return () => {
+        socket.off('room:joined');
+        socket.off('room:full');
+        socket.off('room:notfound');
+        socket.off('collab:started');
+        socket.off('code:request'); // code:request 리스너도 정리
+        socket.off('code:update');
+        socket.off('collab:ended');
+      };
+    }
+  }, [roomId, inviteCode, myId, myName]);
 
-  // (타이머 관련 상태, useEffect, props 모두 삭제)
+
+  const handleSelectProblem = (problemId: number | null) => {
+    selectProblem(problemId);
+  };
 
   const handleCodeChange = (code: string | undefined) => {
     const newCode = code || '';
+    // isRemoteUpdate.current를 사용하여 무한 루프 방지
+    if (isRemoteUpdate.current) {
+      isRemoteUpdate.current = false;
+      return;
+    }
+    
     setUserCode(newCode);
-    currentCodeRef.current = newCode; // 현재 코드 참조 업데이트
+    currentCodeRef.current = newCode;
+    if (selectedProblemId) {
+      updateCode({ problemId: selectedProblemId, code: newCode });
+    }
     if (collaborationId) {
       socket.emit('collab:edit', { collaborationId, code: newCode });
     }
-    isRemoteUpdate.current = false;
   };
 
-  // 3. 제출 핸들러가 submissionStore의 액션을 호출하도록 수정합니다.
   const handleSubmit = () => {
-    // 현재 선택된 문제 ID를 가져오는 로직이 필요합니다.
-    // 여기서는 첫 번째 문제를 제출하는 것으로 가정합니다.
-    const currentProblemId = problems[0]?.problemId;
-    if (!roomId || !currentProblemId) return;
-
-    submitCode(roomId, currentProblemId, userCode);
+    if (!roomId || !selectedProblemId) return;
+    setAnalysisPanelOpen(true);
+    submitCode(roomId, String(selectedProblemId), userCode);
   };
 
-  // 방 정보가 없고 로딩 중일 때만 최소한의 로딩 표시
+  const handleCloseAnalysis = () => {
+    closeAnalysis();
+    setAnalysisPanelOpen(false);
+  };
+
   if (isRoomLoading && !currentRoom) {
     return (
       <div className="h-screen bg-slate-900 text-white flex items-center justify-center">
@@ -132,9 +167,6 @@ const StudentClassPage: React.FC = () => {
     );
   }
 
-  console.log('페이지 렌더링, currentRoom 상태:', currentRoom);
-
-  // 메인 렌더링
   return (
     <div className="flex flex-col h-screen bg-slate-900 text-white">
       {roomError && (
@@ -150,7 +182,13 @@ const StudentClassPage: React.FC = () => {
         isClassStarted={currentRoom?.status === 'STARTED'}
       />
       <main className="flex flex-grow overflow-hidden">
-        <ProblemPanel problems={problems} userCode={userCode} onSubmit={handleSubmit} />
+        <ProblemPanel
+          problems={problems}
+          userCode={userCode}
+          onSubmit={handleSubmit}
+          selectedProblemId={selectedProblemId}
+          onSelectProblem={handleSelectProblem}
+        />
         <div className="flex-grow flex-shrink min-w-0">
           <EditorPanel
             code={userCode}
@@ -159,15 +197,9 @@ const StudentClassPage: React.FC = () => {
             disabled={isCollabLoading}
           />
         </div>
-
-        {/* 분석 패널 (너비 고정, 조건부 렌더링) */}
-        {(isSubmitting || analysisResult) && (
+        {isAnalysisPanelOpen && (
           <div className="flex-shrink-0">
-            <AnalysisPanel
-              isLoading={isSubmitting}
-              result={analysisResult}
-              onClose={closeAnalysis}
-            />
+            <AnalysisPanel onClose={handleCloseAnalysis} />
           </div>
         )}
       </main>

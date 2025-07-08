@@ -19,41 +19,19 @@ import lightbulbIcon from '../../assets/lightbulb.svg';
 import checkCircleGreenIcon from '../../assets/check-circle-green.svg';
 import checkCircleSlateIcon from '../../assets/check-circle-slate.svg';
 import exclamationTriangleIcon from '../../assets/exclamation-triangle.svg';
+import type { SubmissionResult } from '../../api/submissionApi';
 
 // --- Type Definitions --- //
+// 기존 AnalysisResult 타입은 현재 API 응답과 맞지 않으므로 주석 처리 또는 삭제
+/*
 interface AnalysisResult {
-  progress: {
-    percentage: number;
-    tests: string;
-    time: string;
-  };
-  aiSuggestions: {
-    type: 'performance' | 'optimization' | 'best-practice';
-    title: string;
-    line?: number;
-  }[];
-  execution: {
-    problemTitle: string;
-    time: string;
-    memory: string;
-    status: 'success' | 'fail';
-  };
-  complexity: {
-    time: string;
-    space: string;
-    cyclomatic: number;
-    loc: number;
-  };
-  quality: {
-    efficiency: number;
-    readability: number;
-  };
-  performanceImprovements: string[];
+  // ... 기존 복잡한 타입
 }
+*/
 
 interface TeacherAnalysisPanelProps {
   isLoading: boolean;
-  result: AnalysisResult | null;
+  result: SubmissionResult | null;
   onClose: () => void;
 }
 
@@ -71,11 +49,10 @@ const InfoCard: React.FC<{ title: string; children: React.ReactNode; icon?: Reac
   </div>
 );
 
-const AnalysisContent: React.FC<{ result: AnalysisResult }> = ({ result }) => (
+const AnalysisContent: React.FC<{ result: SubmissionResult }> = ({ result }) => (
   <div>
-    {/* 실행 결과 카드 */}
     <InfoCard
-      title={result.execution.problemTitle}
+      title="채점 결과"
       icon={<img src={chartBarIcon} alt="Chart" className="h-5 w-5 mr-2" />}
     >
       <div className="space-y-2 text-sm">
@@ -83,51 +60,33 @@ const AnalysisContent: React.FC<{ result: AnalysisResult }> = ({ result }) => (
           <div className="flex items-center text-slate-300">
             <img src={brainIcon} alt="Brain" className="h-5 w-5 mr-2" /> 실행 시간
           </div>
-          <span className="text-white font-mono">{result.execution.time}</span>
+          <span className="text-white font-mono">{result.executionTimeMs} ms</span>
         </div>
         <div className="flex justify-between items-center">
           <div className="flex items-center text-slate-300">
-            <img src={lightbulbIcon} alt="Lightbulb" className="h-5 w-5 mr-2" /> 사용된 메모리양
+            <img src={lightbulbIcon} alt="Lightbulb" className="h-5 w-5 mr-2" /> 메모리 사용량
           </div>
-          <span className="text-white font-mono">{result.execution.memory}</span>
+          <span className="text-white font-mono">{result.memoryUsageKb} KB</span>
         </div>
         <div className="flex justify-between items-center">
           <div className="flex items-center text-slate-300">
-            <img src={checkCircleSlateIcon} alt="Check" className="h-5 w-5 mr-2" /> 결과
+            <img src={checkCircleSlateIcon} alt="Check" className="h-5 w-5 mr-2" /> 통과 여부
           </div>
-          <span
-            className={`font-semibold ${result.execution.status === 'success' ? 'text-green-400' : 'text-red-400'}`}
-          >
-            {result.execution.status.toUpperCase()}
+          <span className={`font-semibold ${result.isPassed ? 'text-green-400' : 'text-red-400'}`}>
+            {result.isPassed ? '성공' : '실패'}
+          </span>
+        </div>
+        <div className="flex justify-between items-center">
+          <div className="flex items-center text-slate-300">
+            <img src={checkCircleGreenIcon} alt="Check" className="h-5 w-5 mr-2" /> 테스트케이스
+          </div>
+          <span className="text-white font-mono">
+            {result.passedTestCount} / {result.totalTestCount}
           </span>
         </div>
       </div>
     </InfoCard>
-    {/* AI 개선 제안 카드 */}
-    <InfoCard
-      title="AI 개선 제안"
-      icon={<img src={boltIcon} alt="Bolt" className="h-5 w-5 mr-2" />}
-    >
-      {result.aiSuggestions.map((suggestion, index) => (
-        <div key={index} className="flex items-start p-3 rounded-md mb-2 bg-slate-700/50">
-          {suggestion.type === 'performance' && (
-            <img src={exclamationTriangleIcon} alt="Warning" className="h-6 w-6" />
-          )}
-          {suggestion.type === 'optimization' && (
-            <img src={boltIcon} alt="Optimization" className="h-6 w-6 text-blue-400" />
-          )}
-          {suggestion.type === 'best-practice' && (
-            <img src={checkCircleGreenIcon} alt="Best Practice" className="h-6 w-6" />
-          )}
-          <div className="ml-3">
-            <p className="text-white text-sm">{suggestion.title}</p>
-            {suggestion.line && (
-              <span className="text-xs text-slate-400">Line {suggestion.line}</span>
-            )}
-          </div>
-        </div>
-      ))}
-    </InfoCard>
+    {/* AI 개선 제안 카드 등은 일단 숨김 */}
   </div>
 );
 
@@ -165,7 +124,7 @@ export const TeacherAnalysisPanel: React.FC<TeacherAnalysisPanelProps> = ({
       style={{ top: '64px', height: 'calc(100vh - 64px)' }}
     >
       <div className="flex justify-between items-center p-4 border-b border-slate-700">
-        <h2 className="text-xl font-bold text-white">분석 리포트(선생님)</h2>
+        <h2 className="text-xl font-bold text-white">분석 리포트</h2>
         <button onClick={onClose} className="text-slate-400 hover:text-white text-2xl font-bold">
           &times;
         </button>
@@ -174,7 +133,7 @@ export const TeacherAnalysisPanel: React.FC<TeacherAnalysisPanelProps> = ({
         {isLoading && (
           <div className="h-full flex flex-col items-center justify-center">
             <Spinner />
-            <p className="text-slate-400 mt-4">AI가 선생님의 코드를 분석 중입니다...</p>
+            <p className="text-slate-400 mt-4">채점 서버가 열심히 일하고 있어요!</p>
           </div>
         )}
         {!isLoading && result && <AnalysisContent result={result} />}

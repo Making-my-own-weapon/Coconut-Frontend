@@ -12,6 +12,8 @@ interface TeacherProblemPanelProps {
   problems: Problem[];
   userCode: string;
   onSubmit: () => void;
+  selectedProblemId: number | null;
+  onSelectProblem: (problemId: number | null) => void;
 }
 
 // 간단한 Modal 컴포넌트 정의
@@ -37,11 +39,12 @@ export const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({
   problems,
   userCode,
   onSubmit,
+  selectedProblemId,
+  onSelectProblem,
 }) => {
   const { fetchRoomDetails, currentRoom } = useTeacherStore();
   const roomId = currentRoom?.roomId;
 
-  const [selectedProblemId, setSelectedProblemId] = useState<number | null>(null);
   const [isPyodideLoading, setIsPyodideLoading] = useState(true);
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [isImportModalOpen, setImportModalOpen] = useState(false);
@@ -83,7 +86,7 @@ export const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({
         {selectedProblem ? (
           <TeacherProblemDetailView
             problem={selectedProblem}
-            onBackToList={() => setSelectedProblemId(null)}
+            onBackToList={() => onSelectProblem(null)}
             onSubmit={onSubmit}
             userCode={userCode}
             pyodide={pyodide}
@@ -92,7 +95,7 @@ export const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({
         ) : (
           <TeacherProblemListView
             problems={problems}
-            onSelectProblem={setSelectedProblemId}
+            onSelectProblem={onSelectProblem}
             onOpenCreateModal={() => setCreateModalOpen(true)}
             onOpenImportModal={() => setImportModalOpen(true)}
           />
