@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useTeacherStore } from '../store/teacherStore';
+import { useTeacherStore, type Student } from '../store/teacherStore';
 import { useSubmissionStore } from '../store/submissionStore';
 import socket from '../lib/socket';
 import TeacherHeader from '../components/teacher-class/Header';
@@ -23,16 +23,18 @@ const TeacherClassPage: React.FC = () => {
     classStatus,
     students,
     selectedStudentId,
+    selectedProblemId,
     isLoading: isRoomLoading,
     fetchRoomDetails,
     updateRoomStatus,
     setSelectedStudentId,
+    selectProblem,
     teacherCode,
     studentCodes,
     setTeacherCode,
     updateStudentCode,
   } = useTeacherStore();
-  const { submitCode } = useSubmissionStore();
+  const { submitCode, isSubmitting, analysisResult, closeAnalysis } = useSubmissionStore();
   // userCode, setUserCode 제거
   const [mode, setMode] = useState<'grid' | 'editor'>('grid');
 
@@ -114,6 +116,10 @@ const TeacherClassPage: React.FC = () => {
     }
   };
 
+  const handleSelectProblem = (problemId: number | null) => {
+    selectProblem(problemId);
+  };
+
   // 에디터에 표시할 코드
   const code = selectedStudentId !== null ? studentCodes[selectedStudentId] || '' : teacherCode;
 
@@ -131,17 +137,27 @@ const TeacherClassPage: React.FC = () => {
   };
 
   const handleSubmit = () => {
-    const currentProblemId = currentRoom?.problems[0]?.problemId;
-    if (!roomId || !currentProblemId) return;
+    if (!roomId || !selectedProblemId) {
+      alert('채점할 문제를 먼저 선택해주세요.');
+      return;
+    }
+    if (!code || code.trim() === '') {
+      alert('코드를 입력한 후 제출해주세요.');
+      return;
+    }
+    setAnalysisPanelOpen(true);
+    submitCode(roomId, String(selectedProblemId), code);
+  };
 
-    // userCode 대신 code 사용
-    submitCode(roomId, currentProblemId, code);
+  const handleCloseAnalysis = () => {
+    closeAnalysis();
+    setAnalysisPanelOpen(false);
   };
 
   // 학생 이름 찾기
   const studentName =
     selectedStudentId !== null
-      ? students.find((s) => s.userId === selectedStudentId)?.name
+      ? students.find((s: Student) => s.userId === selectedStudentId)?.name
       : undefined;
 
   // 학생만 필터링 (userType 기반으로 필터링)
@@ -260,6 +276,8 @@ const TeacherClassPage: React.FC = () => {
           problems={currentRoom?.problems || []}
           userCode={code}
           onSubmit={handleSubmit}
+          selectedProblemId={selectedProblemId}
+          onSelectProblem={handleSelectProblem}
         />
         <div className="flex flex-grow">
           {mode === 'grid' ? (
@@ -294,9 +312,9 @@ const TeacherClassPage: React.FC = () => {
               {/* 분석 패널: 열렸을 때만 보임 */}
               {isAnalysisPanelOpen && (
                 <TeacherAnalysisPanel
-                  isLoading={false}
-                  result={null}
-                  onClose={() => setAnalysisPanelOpen(false)}
+                  isLoading={isSubmitting}
+                  result={analysisResult}
+                  onClose={handleCloseAnalysis}
                 />
               )}
             </>
