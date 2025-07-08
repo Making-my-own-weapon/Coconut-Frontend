@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { apiClient } from '../api/client';
 import * as authApi from '../api/authApi';
+import * as userApi from '../api/userApi';
 
 // 스토어의 상태(state)와 액션(action)의 타입을 정의합니다.
 interface AuthState {
@@ -14,6 +15,7 @@ interface AuthState {
   fetchUser: () => Promise<void>;
   silentRefresh: () => Promise<void>;
   setAccessToken: (token: string) => void;
+  deleteAccount: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -75,6 +77,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (apiClient.defaults.headers.common) {
         delete apiClient.defaults.headers.common['Authorization'];
       }
+    }
+  },
+
+  deleteAccount: async () => {
+    try {
+      await userApi.deleteUserAPI(); // 1. 계정 삭제 API 호출
+      set({ accessToken: null, isLoggedIn: false, user: null });
+      if (apiClient.defaults.headers.common) {
+        delete apiClient.defaults.headers.common['Authorization'];
+      }
+    } catch (err) {
+      console.error('계정 삭제 실패:', err);
+      throw err; // 에러를 다시 던져서 컴포넌트에서 처리할 수 있도록 함
     }
   },
 }));
