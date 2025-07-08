@@ -14,7 +14,7 @@ interface TeacherEditorPanelProps {
   isConnecting?: boolean; // 추가: 학생 연결 중 상태
   roomId?: string; // 추가: 방 ID
   userId?: string; // 추가: 사용자 ID
-  userType?: 'teacher' | 'student'; // 추가: 사용자 타입
+  role?: 'teacher' | 'student'; // 추가: 사용자 역할
 }
 
 const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
@@ -26,7 +26,7 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
   isConnecting = false,
   roomId,
   userId,
-  userType,
+  role,
 }) => {
   // SVGOverlay 관련 상태
   const editorRef = useRef<any>(null);
@@ -38,13 +38,13 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
 
   // svgStore 연결
   useEffect(() => {
-    if (roomId && userId && userType) {
-      connectToRoom(roomId, userId, userType);
+    if (roomId && userId && role) {
+      connectToRoom(roomId, userId, role);
       return () => {
         leaveRoom();
       };
     }
-  }, [roomId, userId, userType, connectToRoom, leaveRoom]);
+  }, [roomId, userId, role, connectToRoom, leaveRoom]);
 
   // Monaco Editor 스크롤 동기화
   const handleEditorMount = (editor: any) => {
@@ -74,8 +74,8 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
             <img src={usersIcon} alt="참가자 수" className="w-4 h-4" />
             <span>
               {selectedStudentId === null || selectedStudentId === undefined
-                ? '내 코드 에디터'
-                : `${studentName || selectedStudentId} 에디터`}
+                ? '선생님 에디터'
+                : `학생 ${studentName || selectedStudentId} 에디터`}
             </span>
           </div>
           <span className="font-mono">00:00</span>

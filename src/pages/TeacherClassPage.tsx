@@ -303,7 +303,6 @@ const TeacherClassPage: React.FC = () => {
         onModeChange={handleModeChange}
         isClassStarted={localClassStarted}
         onToggleClass={handleToggleClass}
-        title={currentRoom?.title || '수업 제목'}
       />
       <main className="flex flex-grow overflow-hidden">
         <TeacherProblemPanel
@@ -333,7 +332,7 @@ const TeacherClassPage: React.FC = () => {
                   isConnecting={isConnectingToStudent}
                   roomId={roomId}
                   userId={String(teacherId)}
-                  userType="teacher"
+                  role="teacher"
                 />
               </div>
               {/* 분석 패널 열기 버튼: 패널이 닫혔을 때만 보임 */}
@@ -364,8 +363,3 @@ const TeacherClassPage: React.FC = () => {
 };
 
 export default TeacherClassPage;
-
-// currentRoom.participants를 안전하게 가져오는 함수
-function getCurrentRoomParticipants() {
-  return currentRoom?.participants ? [...currentRoom.participants] : [];
-}

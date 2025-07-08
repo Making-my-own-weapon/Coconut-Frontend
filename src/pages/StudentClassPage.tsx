@@ -199,7 +199,7 @@ const StudentClassPage: React.FC = () => {
             disabled={isCollabLoading}
             roomId={roomId}
             userId={user?.id ? String(user.id) : undefined}
-            userType="student"
+            role="student"
           />
         </div>
         {isAnalysisPanelOpen && (

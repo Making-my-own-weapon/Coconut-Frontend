@@ -17,7 +17,7 @@ interface EditorPanelProps {
   disabled?: boolean; // 추가: 에디터 비활성화
   roomId?: string; // 추가: 방 ID
   userId?: string; // 추가: 사용자 ID
-  userType?: 'teacher' | 'student'; // 추가: 사용자 타입
+  role?: 'teacher' | 'student'; // 추가: 사용자 역할
 }
 
 export const EditorPanel: React.FC<EditorPanelProps> = ({
@@ -27,7 +27,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   disabled,
   roomId,
   userId,
-  userType,
+  role,
 }) => {
   // SVGOverlay 관련 상태
   const editorRef = useRef<any>(null);
@@ -39,13 +39,13 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
 
   // svgStore 연결
   useEffect(() => {
-    if (roomId && userId && userType) {
-      connectToRoom(roomId, userId, userType);
+    if (roomId && userId && role) {
+      connectToRoom(roomId, userId, role);
       return () => {
         leaveRoom();
       };
     }
-  }, [roomId, userId, userType, connectToRoom, leaveRoom]);
+  }, [roomId, userId, role, connectToRoom, leaveRoom]);
 
   // Monaco Editor 스크롤 동기화
   const handleEditorMount = (editor: any) => {
@@ -73,9 +73,8 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
             <img src={usersIcon} alt="참가자 수" className="w-4 h-4" />
-            <span>{studentName ? studentName : '학생'}</span>
+            <span>{studentName ? `학생 (${studentName}) 에디터` : '학생 에디터'}</span>
           </div>
-
           <span className="font-mono">00:00</span>
           {/* 그림판 토글 버튼: 개발 편의상 항상 보이게 */}
           <button
@@ -118,7 +117,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
           addLine={addLine}
           color={color}
           setColor={setColor}
-          readOnly={userType !== 'teacher'}
+          readOnly={role !== 'teacher'}
           show={showOverlay}
           onClear={handleClear}
           editorRef={editorRef}
