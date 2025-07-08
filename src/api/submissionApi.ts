@@ -1,11 +1,12 @@
 import { apiClient } from './client';
+import type { AxiosResponse } from 'axios';
 
 // 제출 응답 타입
 export interface SubmissionResponse {
   statusCode: number;
   message: string;
   data: {
-    submission_id: number;
+    submission_id: number; // 백엔드에서 submission_id로 응답
   };
 }
 
@@ -35,7 +36,7 @@ export const submitCodeAPI = (
   problemId: string,
   code: string,
   language: string,
-): Promise<SubmissionResponse> => {
+): Promise<AxiosResponse<SubmissionResponse>> => {
   return apiClient.post(`/rooms/${roomId}/submissions`, {
     pid: problemId,
     code,
@@ -44,6 +45,8 @@ export const submitCodeAPI = (
 };
 
 // 채점 결과 조회 API
-export const getSubmissionResultAPI = (submissionId: number): Promise<SubmissionResultResponse> => {
+export const getSubmissionResultAPI = (
+  submissionId: number,
+): Promise<AxiosResponse<SubmissionResultResponse>> => {
   return apiClient.get(`/submissions/${submissionId}`);
 };

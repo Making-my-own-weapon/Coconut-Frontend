@@ -31,6 +31,7 @@ const StudentClassPage: React.FC = () => {
 
   const [userCode, setUserCode] = useState<string>('');
   const [collaborationId, setCollaborationId] = useState<string | null>(null);
+  const [isAnalysisPanelOpen, setAnalysisPanelOpen] = useState(false);
   const isRemoteUpdate = useRef(false);
   const currentCodeRef = useRef<string>('');
 
@@ -142,7 +143,13 @@ const StudentClassPage: React.FC = () => {
 
   const handleSubmit = () => {
     if (!roomId || !selectedProblemId) return;
-    submitCode(roomId, selectedProblemId, userCode);
+    setAnalysisPanelOpen(true);
+    submitCode(roomId, String(selectedProblemId), userCode);
+  };
+
+  const handleCloseAnalysis = () => {
+    closeAnalysis();
+    setAnalysisPanelOpen(false);
   };
 
   if (isRoomLoading && !currentRoom) {
@@ -183,9 +190,9 @@ const StudentClassPage: React.FC = () => {
             disabled={isCollabLoading}
           />
         </div>
-        {(isSubmitting || analysisResult) && (
+        {isAnalysisPanelOpen && (
           <div className="flex-shrink-0">
-            <AnalysisPanel onClose={closeAnalysis} />
+            <AnalysisPanel onClose={handleCloseAnalysis} />
           </div>
         )}
       </main>

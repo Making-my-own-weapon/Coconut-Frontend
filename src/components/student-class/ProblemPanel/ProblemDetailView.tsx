@@ -1,5 +1,6 @@
 // src/components/student-class/ProblemPanel/ProblemDetailView.tsx
 import React, { useState, useMemo } from 'react';
+import { useSubmissionStore } from '../../../store/submissionStore';
 import backIcon from '../../../assets/back.svg';
 import playIconUrl from '../../../assets/play.svg';
 import SvgIcon from '../../../components/common/SvgIcon';
@@ -212,6 +213,7 @@ const StudentProblemDetailView: React.FC<StudentProblemDetailViewProps> = ({
   pyodide,
   isPyodideLoading,
 }) => {
+  const { isSubmitting } = useSubmissionStore();
   const [activeTab, setActiveTab] = useState<'problem' | 'test'>('problem');
 
   // 받아온 문제의 exampleTc를 id/input/expectedOutput 형태로 변환합니다.
@@ -282,7 +284,8 @@ const StudentProblemDetailView: React.FC<StudentProblemDetailViewProps> = ({
       <footer className="mt-auto pt-4 border-t border-slate-700">
         <button
           onClick={onSubmit}
-          className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2"
+          disabled={isSubmitting}
+          className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 disabled:bg-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -294,7 +297,7 @@ const StudentProblemDetailView: React.FC<StudentProblemDetailViewProps> = ({
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
-          제출하기
+          {isSubmitting ? '채점 중...' : '제출하기'}
         </button>
       </footer>
     </div>
