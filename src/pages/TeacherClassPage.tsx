@@ -95,6 +95,7 @@ const TeacherClassPage: React.FC = () => {
       socket.off('code:send');
       socket.off('code:update');
       socket.off('collab:ended');
+      // void만 리턴 (아무것도 리턴하지 않음)
     };
   }, []); // ← 빈 배열!
 
@@ -127,7 +128,9 @@ const TeacherClassPage: React.FC = () => {
       }
     };
     socket.on('room:updated', handleRoomUpdated);
-    return () => socket.off('room:updated', handleRoomUpdated);
+    return () => {
+      socket.off('room:updated', handleRoomUpdated);
+    };
   }, [roomId, fetchRoomDetails]);
 
   // 초를 mm:ss로 변환
@@ -345,6 +348,8 @@ const TeacherClassPage: React.FC = () => {
                   isLoading={isSubmitting}
                   result={analysisResult}
                   onClose={handleCloseAnalysis}
+                  code={code} // 에디터 코드 전달
+                  isSubmitted={!!analysisResult} // 제출 여부: 결과가 있으면 true
                 />
               )}
             </>
@@ -356,8 +361,3 @@ const TeacherClassPage: React.FC = () => {
 };
 
 export default TeacherClassPage;
-
-// currentRoom.participants를 안전하게 가져오는 함수
-function getCurrentRoomParticipants() {
-  return currentRoom?.participants ? [...currentRoom.participants] : [];
-}

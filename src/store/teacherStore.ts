@@ -30,6 +30,7 @@ export interface Problem {
 export interface RoomInfo {
   roomId: number;
   inviteCode: string;
+  title: string;
   status: 'WAITING' | 'STARTED' | 'ENDED';
   participants: Student[];
   problems: Problem[];
