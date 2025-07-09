@@ -3,11 +3,14 @@
  * @description
  *    - 코드 분석 결과를 표시하는 오른쪽 사이드바 패널(선생님 전용)입니다.
  *    - 모든 상태(로딩, 결과 데이터, 열림/닫힘)는 부모에서 props로 제어합니다.
+ *    - "제출 전"에는 에디터 코드의 실시간 정적 분석 결과를 보여주고, "제출 후"에는 서버 결과(result)를 보여줍니다.
  *
  * @props
  *    - `isLoading`: `true`이면 로딩 스피너를, `false`이면 결과를 보여줍니다.
  *    - `result`: 서버로부터 받은 분석 결과 데이터 객체입니다.
  *    - `onClose`: 패널의 닫기 버튼(×)을 눌렀을 때 호출될 함수입니다.
+ *    - `code`: 에디터에 입력 중인 코드(제출 전 실시간 분석용)
+ *    - `isSubmitted`: true면 result, false면 code의 정적 분석 결과를 보여줌
  */
 import React from 'react';
 
@@ -20,6 +23,7 @@ import checkCircleGreenIcon from '../../assets/check-circle-green.svg';
 import checkCircleSlateIcon from '../../assets/check-circle-slate.svg';
 import exclamationTriangleIcon from '../../assets/exclamation-triangle.svg';
 import type { SubmissionResult } from '../../api/submissionApi';
+import StaticAnalysisReport from '../analysis/StaticAnalysisReport';
 
 // --- Type Definitions --- //
 // 기존 AnalysisResult 타입은 현재 API 응답과 맞지 않으므로 주석 처리 또는 삭제
@@ -33,6 +37,8 @@ interface TeacherAnalysisPanelProps {
   isLoading: boolean;
   result: SubmissionResult | null;
   onClose: () => void;
+  code: string; // 추가: 에디터 코드
+  isSubmitted: boolean; // 추가: 제출 여부
 }
 
 const InfoCard: React.FC<{ title: string; children: React.ReactNode; icon?: React.ReactNode }> = ({
@@ -94,6 +100,8 @@ export const TeacherAnalysisPanel: React.FC<TeacherAnalysisPanelProps> = ({
   isLoading,
   result,
   onClose,
+  code,
+  isSubmitted,
 }) => {
   const Spinner = () => (
     <svg
@@ -136,8 +144,9 @@ export const TeacherAnalysisPanel: React.FC<TeacherAnalysisPanelProps> = ({
             <p className="text-slate-400 mt-4">채점 서버가 열심히 일하고 있어요!</p>
           </div>
         )}
-        {!isLoading && result && <AnalysisContent result={result} />}
-        {!isLoading && !result && (
+        {!isLoading && isSubmitted && result && <AnalysisContent result={result} />}
+        {!isLoading && !isSubmitted && <StaticAnalysisReport code={code} />}
+        {!isLoading && isSubmitted && !result && (
           <div className="h-full flex items-center justify-center">
             <p className="text-slate-400">제출된 코드가 없습니다.</p>
           </div>
