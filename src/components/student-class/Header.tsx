@@ -1,48 +1,36 @@
-// 필요한 모듈과 파일을 불러오기
 import React from 'react';
 import logo from '../../assets/coconutlogo.png';
 import microphoneIcon from '../../assets/microphone.svg';
 import settingsIcon from '../../assets/settings.svg';
 
-// props 상속 받기
-/* 부모의 전달은 <Header classCode={myClassCode} /> 와 같이 사용할 수 있음 */
 interface HeaderProps {
   classCode?: string;
   isConnecting?: boolean;
-  title?: string; // 수업 제목 추가
+  title?: string;
+  isClassStarted?: boolean;
   onLeave?: () => void; // 추가
 }
 
-// 함수형 컴포넌트 정의 (header 컴포넌트) FC : React Function Component
-// export const Header: export 키워드를 사용해 이 Header 컴포넌트를 다른 파일에서 import하여 재사용할 수 있도록 정의
-// React.FC<HeaderProps> 타입 정의: 이 컴포넌트는 HeaderProps 타입의 props를 받을 수 있음
-// 기본값 설정: classCode 프로퍼티가 전달되지 않으면 '수업 암호'로 설정됨
 export const Header: React.FC<HeaderProps> = ({
   classCode = '수업 암호',
   isConnecting = false,
   title,
   onLeave, // 추가
 }) => {
-  // 이벤트 처리 헨들러
-
-  // 버튼 클릭 이벤트를 처리하는 예시 핸들러입니다.
   const handleConnect = () => {
     alert('세션 연결하기 버튼 클릭!');
   };
 
   // 기존 handleManage 삭제 또는 미사용
 
-  // 마이크 버튼 클릭 핸들러 (나중에 로직 추가)
   const handleMicrophone = () => {
     alert('마이크 버튼 클릭! (나중에 로직 추가)');
   };
 
-  // 설정 버튼 클릭 핸들러 (나중에 로직 추가)
   const handleSettings = () => {
     alert('설정 버튼 클릭! (나중에 로직 추가)');
   };
 
-  //JSX (JavaScript XML) Html 코드를 JS 코드로 작성할 수 있도록 해주는 것. Js에서 UI 구조를 작성할 수 있도록 해줌.
   return (
     <header className="w-full h-16 bg-slate-900 text-white flex items-center justify-between px-6 border-b border-slate-700">
       {/* 왼쪽 섹션: 로고 및 수업 정보 */}
