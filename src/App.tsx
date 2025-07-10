@@ -11,8 +11,6 @@ import TeacherClassPage from './pages/TeacherClassPage';
 import StudentClassPage from './pages/StudentClassPage';
 // --- 컴포넌트 import ---
 import PrivateRoute from './components/PrivateRoute';
-import ProblemImportForm from './components/teacher-class/ProblemImportForm';
-import ProblemCreateForm from './components/teacher-class/ProblemCreateForm';
 
 import './App.css';
 
