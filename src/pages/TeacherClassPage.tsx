@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTeacherStore, type Student } from '../store/teacherStore';
 import { useSubmissionStore } from '../store/submissionStore';
+import { useWorkerStore } from '../store/workerStore'; // 1. workerStore import
 import socket from '../lib/socket';
 import TeacherHeader from '../components/teacher-class/Header';
 import TeacherProblemPanel from '../components/teacher-class/ProblemPanel/TeacherProblemPanel';
@@ -11,6 +12,16 @@ import StudentGridView from '../components/teacher-class/grid/StudentGridView';
 import { useAuthStore } from '../store/authStore';
 
 const TeacherClassPage: React.FC = () => {
+  const { initialize, terminate } = useWorkerStore(); // 2. 워커 함수 가져오기
+
+  // 3. 워커 생명주기 관리 useEffect 추가
+  useEffect(() => {
+    initialize();
+    return () => {
+      terminate();
+    };
+  }, [initialize, terminate]);
+
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
   const [isAnalysisPanelOpen, setAnalysisPanelOpen] = useState(false);
@@ -292,8 +303,8 @@ const TeacherClassPage: React.FC = () => {
 
   if (isRoomLoading && !currentRoom) {
     return (
-      <div className="h-screen bg-slate-900 text-white flex items-center justify-center">
-        Loading room...
+      <div className="h-screen bg-slate-900 flex items-center justify-center">
+        {/* 학생 페이지와 동일하게, 스피너와 문구를 모두 삭제하여 배경색만 남김 */}
       </div>
     );
   }
