@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useStudentStore } from '../store/studentStore';
 import { useSubmissionStore } from '../store/submissionStore';
 import { useAuthStore } from '../store/authStore';
+import { useWorkerStore } from '../store/workerStore';
 import { Header } from '../components/student-class/Header';
 import ProblemPanel from '../components/student-class/ProblemPanel/ProblemPanel';
 import EditorPanel from '../components/student-class/EditorPanel/EditorPanel';
@@ -10,6 +11,15 @@ import AnalysisPanel from '../components/student-class/AnalysisPanel';
 import socket from '../lib/socket';
 
 const StudentClassPage: React.FC = () => {
+  const { initialize, terminate } = useWorkerStore();
+
+  useEffect(() => {
+    initialize();
+    return () => {
+      terminate();
+    };
+  }, [initialize, terminate]);
+
   const { roomId } = useParams<{ roomId: string }>();
 
   const {
@@ -162,11 +172,8 @@ const StudentClassPage: React.FC = () => {
 
   if (isRoomLoading && !currentRoom) {
     return (
-      <div className="h-screen bg-slate-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
-          <p>수업 정보를 불러오는 중...</p>
-        </div>
+      <div className="h-screen bg-slate-900 flex flex-col items-center justify-center">
+        {/* 스피너와 문구를 모두 삭제하여 배경색만 남김 */}
       </div>
     );
   }
