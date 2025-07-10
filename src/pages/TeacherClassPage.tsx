@@ -143,7 +143,6 @@ const TeacherClassPage: React.FC = () => {
 
   console.log('현재 스토어의 currentRoom 상태:', currentRoom);
 
-
   const handleToggleClass = async () => {
     setLocalClassStarted((prev) => !prev);
     if (roomId) {
