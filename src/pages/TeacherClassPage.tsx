@@ -11,6 +11,11 @@ import TeacherAnalysisPanel from '../components/teacher-class/AnalysisPanel';
 import StudentGridView from '../components/teacher-class/grid/StudentGridView';
 import { useAuthStore } from '../store/authStore';
 
+interface SVGLine {
+  points: [number, number][];
+  color: string;
+}
+
 const TeacherClassPage: React.FC = () => {
   const { initialize, terminate } = useWorkerStore(); // 2. 워커 함수 가져오기
 
@@ -33,6 +38,8 @@ const TeacherClassPage: React.FC = () => {
   // (타이머 관련 상태, useEffect, props 모두 삭제)
   const [seconds, setSeconds] = useState(0);
   const [, forceUpdate] = useState(0);
+
+  const [svgLines, setSvgLines] = useState<SVGLine[]>([]);
 
   const {
     currentRoom,
@@ -99,6 +106,17 @@ const TeacherClassPage: React.FC = () => {
       setIsConnectingToStudent(false); // 협업 종료 시 연결 상태 초기화
     });
 
+    // SVG 관련 이벤트 리스너
+    socket.on('svgData', (data: { lines: SVGLine[] }) => {
+      console.log('[Teacher] svgData 수신', data.lines?.length || 0, '개 라인');
+      setSvgLines(data.lines || []);
+    });
+
+    socket.on('svgCleared', () => {
+      console.log('[Teacher] svgCleared 수신');
+      setSvgLines([]);
+    });
+
     return () => {
       socket.off('room:joined');
       socket.off('room:full');
@@ -107,6 +125,8 @@ const TeacherClassPage: React.FC = () => {
       socket.off('code:send');
       socket.off('code:update');
       socket.off('collab:ended');
+      socket.off('svgData');
+      socket.off('svgCleared');
       // void만 리턴 (아무것도 리턴하지 않음)
     };
   }, []); // ← 빈 배열!
@@ -301,6 +321,36 @@ const TeacherClassPage: React.FC = () => {
     setPreviousEditorState('teacher'); // 선생님 에디터 상태로 기록
   };
 
+  // SVG 관련 핸들러 함수들
+  const handleAddSVGLine = (line: SVGLine) => {
+    const newLines = [...svgLines, line];
+    setSvgLines(newLines);
+    // 실시간으로 다른 사용자에게 전송 (협업 세션이 있을 때만)
+    if (collaborationId) {
+      console.log('[Teacher] SVG 라인 추가 및 전송:', collaborationId, newLines.length, '개 라인');
+      socket.emit('updateSVG', {
+        collaborationId,
+        lines: newLines,
+      });
+    } else {
+      console.log('[Teacher] 협업 세션이 없어서 SVG 전송 안함');
+    }
+  };
+
+  const handleClearSVGLines = () => {
+    setSvgLines([]);
+    if (collaborationId) {
+      console.log('[Teacher] SVG 클리어 및 전송:', collaborationId);
+      socket.emit('clearSVG', { collaborationId });
+    } else {
+      console.log('[Teacher] 협업 세션이 없어서 SVG 클리어 전송 안함');
+    }
+  };
+
+  const handleSetSVGLines = (lines: SVGLine[]) => {
+    setSvgLines(lines);
+  };
+
   if (isRoomLoading && !currentRoom) {
     return (
       <div className="h-screen bg-slate-900 flex items-center justify-center">
@@ -345,6 +395,13 @@ const TeacherClassPage: React.FC = () => {
                   studentName={studentName}
                   onClickReturnToTeacher={handleReturnToTeacher}
                   isConnecting={isConnectingToStudent}
+                  roomId={roomId}
+                  userId={String(teacherId)}
+                  role="teacher"
+                  svgLines={svgLines}
+                  onAddSVGLine={handleAddSVGLine}
+                  onClearSVGLines={handleClearSVGLines}
+                  onSetSVGLines={handleSetSVGLines}
                 />
               </div>
               {/* 분석 패널 열기 버튼: 패널이 닫혔을 때만 보임 */}

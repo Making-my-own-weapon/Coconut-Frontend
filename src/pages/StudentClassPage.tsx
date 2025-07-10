@@ -10,6 +10,11 @@ import EditorPanel from '../components/student-class/EditorPanel/EditorPanel';
 import AnalysisPanel from '../components/student-class/AnalysisPanel';
 import socket from '../lib/socket';
 
+interface SVGLine {
+  points: [number, number][];
+  color: string;
+}
+
 const StudentClassPage: React.FC = () => {
   const { initialize, terminate } = useWorkerStore();
 
@@ -66,6 +71,8 @@ const StudentClassPage: React.FC = () => {
   const [roomError, setRoomError] = useState<string | null>(null);
   const [isCollabLoading, setIsCollabLoading] = useState(false);
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
+  // SVG 상태 관리
+  const [svgLines, setSvgLines] = useState<SVGLine[]>([]);
 
   useEffect(() => {
     if (roomId) {
@@ -117,6 +124,17 @@ const StudentClassPage: React.FC = () => {
         setCollaborationId(null);
       });
 
+      // SVG 관련 이벤트 리스너
+      socket.on('svgData', (data: { lines: SVGLine[] }) => {
+        console.log('[Student] svgData 수신', data.lines?.length || 0, '개 라인');
+        setSvgLines(data.lines || []);
+      });
+
+      socket.on('svgCleared', () => {
+        console.log('[Student] svgCleared 수신');
+        setSvgLines([]);
+      });
+
       return () => {
         socket.off('room:joined');
         socket.off('room:full');
@@ -124,6 +142,8 @@ const StudentClassPage: React.FC = () => {
         socket.off('collab:started');
         socket.off('code:update');
         socket.off('collab:ended');
+        socket.off('svgData');
+        socket.off('svgCleared');
       };
     }
   }, [roomId, inviteCode, myId, myName]);
@@ -169,6 +189,18 @@ const StudentClassPage: React.FC = () => {
       window.location.href = '/';
     }
   };
+  // SVG 관련 핸들러 함수들 (학생은 읽기 전용)
+  const handleAddSVGLine = (line: SVGLine) => {
+    // 학생은 그림을 그릴 수 없음 (읽기 전용)
+  };
+
+  const handleClearSVGLines = () => {
+    // 학생은 그림을 지울 수 없음 (읽기 전용)
+  };
+
+  const handleSetSVGLines = (lines: SVGLine[]) => {
+    setSvgLines(lines);
+  };
 
   if (isRoomLoading && !currentRoom) {
     return (
@@ -205,8 +237,15 @@ const StudentClassPage: React.FC = () => {
           <EditorPanel
             code={userCode}
             onCodeChange={handleCodeChange}
-            studentName={myName}
+            studentName={user?.name}
             disabled={isCollabLoading}
+            roomId={roomId}
+            userId={user?.id ? String(user.id) : undefined}
+            role="student"
+            svgLines={svgLines}
+            onAddSVGLine={handleAddSVGLine}
+            onClearSVGLines={handleClearSVGLines}
+            onSetSVGLines={handleSetSVGLines}
           />
         </div>
         {isAnalysisPanelOpen && (
