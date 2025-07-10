@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { useEffect, useState } from 'react';
-import socket from './lib/socket';
 
 // --- 페이지 import ---
 import MainPage from './pages/MainPage';
@@ -28,16 +27,6 @@ function App() {
     };
     initializeApp();
   }, [silentRefresh]);
-
-  useEffect(() => {
-    socket.connect();
-    socket.on('connect', () => console.log('[socket] connected:', socket.id));
-    socket.on('disconnect', () => console.log('[socket] disconnected'));
-    return () => {
-      socket.off('connect');
-      socket.off('disconnect');
-    };
-  }, []);
 
   if (isLoading) {
     return <div>Loading...</div>;

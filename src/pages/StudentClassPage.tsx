@@ -18,14 +18,13 @@ const StudentClassPage: React.FC = () => {
     codes,
     selectedProblemId,
     isLoading: isRoomLoading,
-    // fetchRoomDetails,
+    fetchRoomDetails,
     selectProblem,
     updateCode,
   } = useStudentStore();
 
   const { submitCode, closeAnalysis } = useSubmissionStore();
   const { user } = useAuthStore();
-  const myName = user?.name || '';
   const myId = user?.id;
   const myName =
     currentRoom?.participants?.find((p) => p.userId === user?.id)?.name || user?.name || '';
