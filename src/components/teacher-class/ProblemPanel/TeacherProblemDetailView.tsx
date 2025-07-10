@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSubmissionStore } from '../../../store/submissionStore';
 import backIcon from '../../../assets/back.svg';
 import playIcon from '../../../assets/play.svg';
 import type { Pyodide } from '../../../types/pyodide';
@@ -9,44 +10,100 @@ interface TeacherProblemDetailViewProps {
   onBackToList: () => void;
   onSubmit: () => void;
   userCode: string;
-  pyodide: Pyodide | null;
 }
 
-const ProblemDescription: React.FC<{ problem: Problem }> = ({ problem }) => (
-  <div className="text-slate-300 space-y-6">
-    <h2 className="text-2xl font-bold text-white">{problem.title}</h2>
-    <p className="text-sm">{problem.description}</p>
-  </div>
-);
+const ProblemDescription: React.FC<{ problem: Problem }> = ({ problem }) => {
+  // 마크다운 볼드 문법(**텍스트**)을 HTML로 변환
+  const formatDescription = (text: string) => {
+    return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  };
+
+  return (
+    <div className="text-slate-300 space-y-6">
+      <h2 className="text-2xl font-bold text-white">{problem.title}</h2>
+      <div
+        className="text-sm whitespace-pre-wrap leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: formatDescription(problem.description) }}
+      />
+    </div>
+  );
+};
 
 const TestCaseItem: React.FC<{
   testCase: { id: number; input: string; expectedOutput: string };
   userCode: string;
   pyodide: Pyodide | null;
-}> = ({ testCase, userCode, pyodide }) => {
+  isPyodideLoading: boolean;
+}> = ({ testCase, userCode, pyodide, isPyodideLoading }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [output, setOutput] = useState('');
   const [error, setError] = useState('');
+  const [hasRun, setHasRun] = useState(false);
 
   const handleRunTest = async () => {
     if (!pyodide || !userCode) return;
     setIsRunning(true);
     setOutput('');
     setError('');
+    setHasRun(true);
+
     try {
-      pyodide.globals.set('test_input', testCase.input);
-      pyodide.runPython(`import sys; from io import StringIO; sys.stdin = StringIO(test_input)`);
-      let capturedOutput = '';
-      pyodide.setStdout({
-        batched: (out: string) => {
-          capturedOutput += out + '\n';
-        },
+      // Pyodide 상태 초기화
+      pyodide.setStdout({});
+      pyodide.runPython('import sys; sys.stdout.flush()');
+
+      // 타임아웃 추가 (5초)
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('실행 시간 초과 (5초)')), 5000);
       });
-      await pyodide.runPythonAsync(userCode);
-      setOutput(capturedOutput.trim());
+
+      const executePromise = (async () => {
+        pyodide.globals.set('test_input', testCase.input);
+        pyodide.runPython(`import sys; from io import StringIO; sys.stdin = StringIO(test_input)`);
+        let capturedOutput = '';
+        pyodide.setStdout({
+          batched: (out: string) => {
+            capturedOutput += out + '\n';
+          },
+        });
+        await pyodide.runPythonAsync(userCode);
+        return capturedOutput.trim();
+      })();
+
+      const result = await Promise.race([executePromise, timeoutPromise]);
+      setOutput(result as string);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e));
+      // 에러 메시지 간소화
+      let errorMessage = '';
+      if (e instanceof Error) {
+        if (e.message === '실행 시간 초과 (5초)') {
+          errorMessage = e.message;
+        } else {
+          // Python traceback에서 마지막 에러 메시지만 추출
+          const lines = e.message.split('\n');
+          const lastErrorLine = lines.find(
+            (line) =>
+              line.includes('Error:') ||
+              line.includes('Exception:') ||
+              line.trim().startsWith('NameError:') ||
+              line.trim().startsWith('SyntaxError:') ||
+              line.trim().startsWith('ValueError:') ||
+              line.trim().startsWith('TypeError:'),
+          );
+          errorMessage = lastErrorLine ? lastErrorLine.trim() : e.message;
+        }
+      } else {
+        errorMessage = String(e);
+      }
+      setError(errorMessage);
     } finally {
+      // Pyodide 상태 정리
+      try {
+        pyodide.setStdout({});
+        pyodide.runPython('import sys; sys.stdout.flush(); sys.stdin = sys.__stdin__');
+      } catch {
+        // 정리 중 에러는 무시
+      }
       setIsRunning(false);
     }
   };
@@ -57,13 +114,22 @@ const TestCaseItem: React.FC<{
     <div className="bg-slate-700 p-3 rounded-md">
       <div className="flex justify-between items-center mb-2">
         <h4 className="font-semibold text-white text-sm">Test Case {testCase.id}</h4>
-        <button onClick={handleRunTest} disabled={isRunning} className="disabled:opacity-50">
-          {isRunning ? (
-            <img src={playIcon} alt="실행 중" className="w-5 h-5 animate-spin" />
-          ) : (
-            <img src={playIcon} alt="실행" className="w-5 h-5 text-slate-400 hover:text-white" />
+        <div className="flex items-center gap-2">
+          {isPyodideLoading && (
+            <span className="text-xs text-slate-400">테스트 환경 로딩 중...</span>
           )}
-        </button>
+          <button
+            onClick={handleRunTest}
+            disabled={isRunning || isPyodideLoading || !pyodide}
+            className="disabled:opacity-50"
+          >
+            {isRunning ? (
+              <img src={playIcon} alt="실행 중" className="w-5 h-5 animate-spin" />
+            ) : (
+              <img src={playIcon} alt="실행" className="w-5 h-5 text-slate-400 hover:text-white" />
+            )}
+          </button>
+        </div>
       </div>
       <div className="text-xs font-mono text-slate-400 space-y-1">
         <p>
@@ -72,12 +138,14 @@ const TestCaseItem: React.FC<{
         <p>
           <strong>예상 출력:</strong> {testCase.expectedOutput}
         </p>
-        {output && (
+        {hasRun && (
           <p>
-            <strong>실제 출력:</strong> {output}
-            <span className={`${isCorrect ? 'text-green-400' : 'text-red-400'} ml-2`}>
-              {isCorrect ? '정답' : '오답'}
-            </span>
+            <strong>실제 출력:</strong> {output || '(출력 없음)'}
+            {output !== '' && (
+              <span className={`${isCorrect ? 'text-green-400' : 'text-red-400'} ml-2`}>
+                {isCorrect ? '정답' : '오답'}
+              </span>
+            )}
           </p>
         )}
         {error && (
@@ -94,10 +162,17 @@ const TestCaseViewer: React.FC<{
   testCases: { id: number; input: string; expectedOutput: string }[];
   userCode: string;
   pyodide: Pyodide | null;
-}> = ({ testCases, userCode, pyodide }) => (
+  isPyodideLoading: boolean;
+}> = ({ testCases, userCode, pyodide, isPyodideLoading }) => (
   <div className="space-y-4">
     {testCases.map((tc) => (
-      <TestCaseItem key={tc.id} testCase={tc} userCode={userCode} pyodide={pyodide} />
+      <TestCaseItem
+        key={tc.id}
+        testCase={tc}
+        userCode={userCode}
+        pyodide={pyodide}
+        isPyodideLoading={isPyodideLoading}
+      />
     ))}
   </div>
 );
@@ -131,20 +206,77 @@ const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
   onBackToList,
   onSubmit,
   userCode,
-  pyodide,
 }) => {
+  const { isSubmitting } = useSubmissionStore();
   const [activeTab, setActiveTab] = useState<'problem' | 'test'>('problem');
 
-  // 백엔드의 problem.testcases -> {id, input, expectedOutput} 배열로 변환
-  const formattedTestCases = useMemo(
-    () =>
-      problem.testCases?.map((tc, idx) => ({
+  // 백엔드의 problem.exampleTc -> {id, input, expectedOutput} 배열로 변환
+  const problemWithExampleTc = problem as Problem & {
+    exampleTc?: { input: string; output: string }[];
+    testCases?: { input: string; output?: string; expectedOutput?: string }[];
+  };
+  const exampleTc = problemWithExampleTc.exampleTc;
+  const testCases = problemWithExampleTc.testCases;
+  const formattedTestCases = useMemo(() => {
+    try {
+      const exampleTcData = exampleTc;
+
+      if (!exampleTcData || !Array.isArray(exampleTcData)) {
+        // fallback: 기존 testCases 사용
+        return (
+          testCases?.map(
+            (tc: { input: string; output?: string; expectedOutput?: string }, idx: number) => ({
+              id: idx + 1,
+              input: tc.input,
+              expectedOutput: tc.output || tc.expectedOutput || '',
+            }),
+          ) || []
+        );
+      }
+
+      return exampleTcData.map((tc: { input: string; output: string }, idx: number) => ({
         id: idx + 1,
         input: tc.input,
         expectedOutput: tc.output,
-      })) || [],
-    [problem.testCases],
-  );
+      }));
+    } catch {
+      // fallback: 기존 testCases 사용
+      return (
+        testCases?.map(
+          (tc: { input: string; output?: string; expectedOutput?: string }, idx: number) => ({
+            id: idx + 1,
+            input: tc.input,
+            expectedOutput: tc.output || tc.expectedOutput || '',
+          }),
+        ) || []
+      );
+    }
+  }, [exampleTc, testCases]);
+
+  const [pyodide, setPyodide] = useState<Pyodide | null>(null);
+  const [isPyodideLoading, setIsPyodideLoading] = useState(true);
+
+  useEffect(() => {
+    // 200ms 후에 Pyodide 로딩 시작
+    const timerId = setTimeout(() => {
+      const initPyodide = async () => {
+        try {
+          const pyodideInstance = await window.loadPyodide({
+            indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/',
+          });
+          setPyodide(pyodideInstance);
+        } catch (error) {
+          console.error('Pyodide 로드 실패:', error);
+        } finally {
+          setIsPyodideLoading(false);
+        }
+      };
+      initPyodide();
+    }, 200);
+
+    // 컴포넌트가 언마운트될 때 타이머를 정리합니다.
+    return () => clearTimeout(timerId);
+  }, []); // 마운트 시 한 번만 실행
 
   return (
     <div className="h-full flex flex-col p-4 bg-slate-800">
@@ -159,13 +291,19 @@ const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
         {activeTab === 'problem' ? (
           <ProblemDescription problem={problem} />
         ) : (
-          <TestCaseViewer testCases={formattedTestCases} userCode={userCode} pyodide={pyodide} />
+          <TestCaseViewer
+            testCases={formattedTestCases}
+            userCode={userCode}
+            pyodide={pyodide}
+            isPyodideLoading={isPyodideLoading}
+          />
         )}
       </main>
       <footer className="mt-auto pt-4 border-t border-slate-700">
         <button
           onClick={onSubmit}
-          className="w-full bg-blue-600 text-white font-bold py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2"
+          disabled={isSubmitting}
+          className="w-full bg-blue-600 text-white font-bold py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 disabled:bg-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -177,7 +315,7 @@ const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
-          채점 및 분석
+          {isSubmitting ? '채점 중...' : '채점 및 분석'}
         </button>
       </footer>
     </div>

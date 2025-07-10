@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-// 교사와 학생이 공통으로 사용하는 API와 타입을 각자의 파일에서 가져옵니다.
 import { getRoomDetailsAPI } from '../api/teacherApi';
 import { type RoomInfo as Room, type Student, type Problem } from './teacherStore';
 
@@ -10,7 +9,11 @@ interface StudentState {
   currentRoom: Room | null;
   students: Student[];
   problems: Problem[];
+  codes: Record<string, string>;
+  selectedProblemId: number | null;
   fetchRoomDetails: (roomId: string) => Promise<void>;
+  selectProblem: (problemId: number | null) => void;
+  updateCode: (payload: { problemId: number; code: string }) => void;
 }
 
 export const useStudentStore = create<StudentState>((set) => ({
@@ -20,22 +23,48 @@ export const useStudentStore = create<StudentState>((set) => ({
   currentRoom: null,
   students: [],
   problems: [],
+  codes: {},
+  selectedProblemId: null,
 
   // --- 액션 ---
   fetchRoomDetails: async (roomId: string) => {
     set({ isLoading: true, error: null });
     try {
-      // teacherApi에 만들어 둔 방 정보 조회 API를 재사용합니다.
       const response = await getRoomDetailsAPI(roomId);
+      const problems = response.data.problems || [];
+      let initialCodes = {};
+
+      if (problems.length > 0) {
+        initialCodes = problems.reduce((acc: Record<string, string>, p: Problem) => {
+          acc[p.problemId] = `# 문제 ${p.problemId}번\n# 여기에 코드를 입력하세요.`;
+          return acc;
+        }, {});
+      }
+
       set({
         currentRoom: response.data,
         students: response.data.participants || [],
-        problems: response.data.problems || [],
+        problems: problems,
+        codes: initialCodes,
+        selectedProblemId: null,
       });
     } catch {
       set({ error: '수업 정보를 불러오는 데 실패했습니다.' });
     } finally {
       set({ isLoading: false });
     }
+  },
+
+  selectProblem: (problemId: number | null) => {
+    set({ selectedProblemId: problemId });
+  },
+
+  updateCode: ({ problemId, code }: { problemId: number; code: string }) => {
+    set((state) => ({
+      codes: {
+        ...state.codes,
+        [problemId]: code,
+      },
+    }));
   },
 }));

@@ -11,9 +11,16 @@ import usersIcon from '../../../assets/usersIcon.svg';
 interface EditorPanelProps {
   code: string;
   onCodeChange: (value: string | undefined) => void;
+  studentName?: string; // 추가: 학생 이름
+  disabled?: boolean; // 추가: 에디터 비활성화
 }
 
-export const EditorPanel: React.FC<EditorPanelProps> = ({ code, onCodeChange }) => {
+export const EditorPanel: React.FC<EditorPanelProps> = ({
+  code,
+  onCodeChange,
+  studentName,
+  disabled,
+}) => {
   return (
     <div className="bg-[#1e1e1e] flex flex-col h-full">
       {/* 에디터 상단에 위치한 정보 바 */}
@@ -22,9 +29,8 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ code, onCodeChange }) 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
             <img src={usersIcon} alt="참가자 수" className="w-4 h-4" />
-            <span>5/6</span>
+            <span>{studentName ? studentName : '학생'}</span>
           </div>
-          <span className="font-mono">00:00</span>
         </div>
       </div>
 
@@ -34,13 +40,22 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ code, onCodeChange }) 
           height="100%"
           language="python"
           theme="vs-dark"
-          value={code} // 상위에서 받은 코드를 에디터에 표시
+          value={code || '# 문제를 선택해 주세요.\n'} // 상위에서 받은 코드를 에디터에 표시
           onChange={onCodeChange} // 코드 변경 시 상위의 핸들러 호출
+          loading={
+            <div className="flex items-center justify-center h-full text-slate-400">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-400 mx-auto mb-2"></div>
+                <p className="text-sm">에디터 로딩 중...</p>
+              </div>
+            </div>
+          }
           options={{
             fontSize: 14,
             minimap: { enabled: false }, // 코드 미니맵 비활성화
             scrollBeyondLastLine: false,
             padding: { top: 16 },
+            readOnly: disabled, // 추가: 비활성화 시 읽기 전용
           }}
         />
       </div>
