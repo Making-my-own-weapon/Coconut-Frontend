@@ -23,7 +23,7 @@ function StudentDashboard() {
           </div>
         )}
       </div>
-      <StudentGridView students={students} />
+      <StudentGridView students={students} onStudentSelect={() => {}} />
     </div>
   );
 }
