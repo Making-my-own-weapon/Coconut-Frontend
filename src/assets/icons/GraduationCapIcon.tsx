@@ -1,4 +1,3 @@
-import React from 'react';
 import type { IconProps } from './IconProps';
 
 const GraduationCapIcon = ({ className = 'w-6 h-6 text-white' }: IconProps) => (
