@@ -13,7 +13,8 @@
       "essential": true,
       "portMappings": [
         {
-          "containerPort": 3000,
+          "containerPort": 80,
+          "hostPort": 3000,
           "protocol": "tcp"
         }
       ],
@@ -24,7 +25,7 @@
         },
         {
           "name": "VITE_API_URL",
-          "value": "http://3.39.237.25:3000"
+          "value": "http://3.39.237.25:3001"
         }
       ],
       "logConfiguration": {
@@ -38,7 +39,7 @@
       "healthCheck": {
         "command": [
           "CMD-SHELL",
-          "curl -f http://3.34.48.6:3000 || exit 1"
+          "curl -f http://localhost:80 || exit 1"
         ],
         "interval": 30,
         "timeout": 5,
