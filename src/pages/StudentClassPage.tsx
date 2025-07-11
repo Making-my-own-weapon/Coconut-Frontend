@@ -135,6 +135,12 @@ const StudentClassPage: React.FC = () => {
         setSvgLines([]);
       });
 
+      // 소켓 연결 해제 시 그림 자동 지우기
+      socket.on('disconnect', () => {
+        console.log('[Student] 소켓 연결 해제 - 그림 자동 지우기');
+        setSvgLines([]);
+      });
+
       return () => {
         socket.off('room:joined');
         socket.off('room:full');
@@ -144,6 +150,7 @@ const StudentClassPage: React.FC = () => {
         socket.off('collab:ended');
         socket.off('svgData');
         socket.off('svgCleared');
+        socket.off('disconnect');
       };
     }
   }, [roomId, inviteCode, myId, myName]);
@@ -237,7 +244,7 @@ const StudentClassPage: React.FC = () => {
           <EditorPanel
             code={userCode}
             onCodeChange={handleCodeChange}
-            studentName={user?.name}
+            studentName={myName}
             disabled={isCollabLoading}
             roomId={roomId}
             userId={user?.id ? String(user.id) : undefined}

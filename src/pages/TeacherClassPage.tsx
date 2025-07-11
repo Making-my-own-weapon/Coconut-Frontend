@@ -40,6 +40,7 @@ const TeacherClassPage: React.FC = () => {
   const [, forceUpdate] = useState(0);
 
   const [svgLines, setSvgLines] = useState<SVGLine[]>([]);
+  const [studentSvgLines, setStudentSvgLines] = useState<Map<number, SVGLine[]>>(new Map());
 
   const {
     currentRoom,
@@ -104,6 +105,11 @@ const TeacherClassPage: React.FC = () => {
       setCollaborationId(null);
       setSelectedStudentId(null);
       setIsConnectingToStudent(false); // 협업 종료 시 연결 상태 초기화
+      // 협업 종료 시 현재 학생의 그림 데이터 저장
+      if (selectedStudentId) {
+        setStudentSvgLines((prev) => new Map(prev.set(selectedStudentId, svgLines)));
+        setSvgLines([]); // 현재 그림 초기화
+      }
     });
 
     // SVG 관련 이벤트 리스너
@@ -117,6 +123,12 @@ const TeacherClassPage: React.FC = () => {
       setSvgLines([]);
     });
 
+    // 소켓 연결 해제 시 그림 자동 지우기
+    socket.on('disconnect', () => {
+      console.log('[Teacher] 소켓 연결 해제 - 그림 자동 지우기');
+      setSvgLines([]);
+    });
+
     return () => {
       socket.off('room:joined');
       socket.off('room:full');
@@ -127,6 +139,7 @@ const TeacherClassPage: React.FC = () => {
       socket.off('collab:ended');
       socket.off('svgData');
       socket.off('svgCleared');
+      socket.off('disconnect');
       // void만 리턴 (아무것도 리턴하지 않음)
     };
   }, []); // ← 빈 배열!
@@ -257,6 +270,8 @@ const TeacherClassPage: React.FC = () => {
       // 그리드로 돌아갈 때 현재 상태를 기억
       if (selectedStudentId !== null) {
         setPreviousEditorState('student');
+        // 현재 학생의 그림 데이터 저장
+        setStudentSvgLines((prev) => new Map(prev.set(selectedStudentId, svgLines)));
       } else {
         setPreviousEditorState('teacher');
       }
@@ -267,10 +282,12 @@ const TeacherClassPage: React.FC = () => {
         socket.emit('collab:end', { collaborationId });
         setCollaborationId(null);
         setSelectedStudentId(null);
+        setSvgLines([]); // 그림 초기화
       }
     } else if (newMode === 'editor') {
       // 무조건 선생님 에디터로 전환
       setSelectedStudentId(null);
+      setSvgLines([]); // 그림 초기화
     }
     setMode(newMode);
   };
@@ -291,6 +308,10 @@ const TeacherClassPage: React.FC = () => {
       setSelectedStudentId(studentId);
       setMode('editor');
       setIsConnectingToStudent(true); // 학생 연결 시작
+
+      // 4) 해당 학생의 저장된 그림 데이터 불러오기
+      const savedSvgLines = studentSvgLines.get(studentId) || [];
+      setSvgLines(savedSvgLines);
 
       if (socket.connected) {
         console.log('collab:start emit (immediate)', {
@@ -315,10 +336,15 @@ const TeacherClassPage: React.FC = () => {
     if (collaborationId) {
       socket.emit('collab:end', { collaborationId });
     }
+    // 현재 학생의 그림 데이터 저장
+    if (selectedStudentId) {
+      setStudentSvgLines((prev) => new Map(prev.set(selectedStudentId, svgLines)));
+    }
     setSelectedStudentId(null);
     setCollaborationId(null);
     setIsConnectingToStudent(false); // 연결 상태 초기화
     setPreviousEditorState('teacher'); // 선생님 에디터 상태로 기록
+    setSvgLines([]); // 그림 초기화
   };
 
   // SVG 관련 핸들러 함수들
