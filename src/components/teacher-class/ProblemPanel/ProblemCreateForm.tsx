@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useParams } from 'react-router-dom';
-import { useProblemStore } from '../../store/problemStore';
-import type { CreateProblemDto } from '../../api/problemApi';
+import { useProblemStore } from '../../../store/problemStore';
+import type { CreateProblemDto } from '../../../api/problemApi';
 
 export default function ProblemCreateForm({ onClose }: { onClose?: () => void }) {
   const { roomId } = useParams<{ roomId: string }>();
@@ -37,6 +37,9 @@ export default function ProblemCreateForm({ onClose }: { onClose?: () => void })
     const copy = [...testCases];
     copy[idx] = { ...copy[idx], [field]: value };
     setTestCases(copy);
+  };
+  const removeTestCase = (idx: number) => {
+    setTestCases((prev) => prev.filter((_, i) => i !== idx));
   };
 
   // 3. handleSubmit 로직을 스토어 액션 호출로 단순화합니다.
@@ -204,7 +207,7 @@ export default function ProblemCreateForm({ onClose }: { onClose?: () => void })
             </button>
           </div>
           {testCases.map((tc, idx) => (
-            <div key={idx} className="grid grid-cols-2 gap-4 mb-2">
+            <div key={idx} className="relative grid grid-cols-2 gap-4 mb-2">
               <textarea
                 className="w-full h-16 p-2 bg-gray-700 rounded"
                 placeholder="입력"
@@ -217,6 +220,16 @@ export default function ProblemCreateForm({ onClose }: { onClose?: () => void })
                 value={tc.output}
                 onChange={(e) => updateTestCase(idx, 'output', e.target.value)}
               />
+              {testCases.length > 1 && idx > 0 && (
+                <button
+                  type="button"
+                  onClick={() => removeTestCase(idx)}
+                  className="absolute right-2 bottom-2 w-5 h-5 rounded-full bg-red-500 text-white text-base flex items-center justify-center hover:bg-red-600"
+                  title="이 테스트 케이스 삭제"
+                >
+                  -
+                </button>
+              )}
             </div>
           ))}
         </div>

@@ -118,6 +118,17 @@ const StudentClassPage: React.FC = () => {
     }
   }, [roomId, inviteCode, myId, myName]);
 
+  useEffect(() => {
+    if (!roomId) return;
+    const handleProblemUpdated = () => {
+      fetchRoomDetails(roomId);
+    };
+    socket.on('problem:updated', handleProblemUpdated);
+    return () => {
+      socket.off('problem:updated', handleProblemUpdated);
+    };
+  }, [roomId, fetchRoomDetails]);
+
   const handleSelectProblem = (problemId: number | null) => {
     selectProblem(problemId);
   };

@@ -2,9 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { useTeacherStore } from '../../../store/teacherStore';
 import TeacherProblemListView from './TeacherProblemListView';
 import TeacherProblemDetailView from './TeacherProblemDetailView';
-import ProblemCreateForm from '../ProblemCreateForm';
-import ProblemImportForm from '../ProblemImportForm';
+import ProblemCreateForm from './ProblemCreateForm';
+import ProblemImportForm from './ProblemImportForm';
 import { type Problem } from '../../../store/teacherStore';
+import { useProblemStore } from '../../../store/problemStore';
 
 // 이 컴포넌트가 부모로부터 받는 props 타입
 interface TeacherProblemPanelProps {
@@ -42,6 +43,7 @@ export const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({
   onSelectProblem,
 }) => {
   const { fetchRoomDetails, currentRoom } = useTeacherStore();
+  const { removeProblemFromRoom } = useProblemStore();
   const roomId = currentRoom?.roomId;
 
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
@@ -61,6 +63,27 @@ export const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({
     if (roomId) fetchRoomDetails(String(roomId));
   };
 
+  const handleDeleteProblem = async (problemId: number) => {
+    if (!roomId) return;
+
+    if (
+      window.confirm(
+        '정말로 이 문제를 방에서 제거하시겠습니까?\n\n(문제 자체는 삭제되지 않고 다른 방에서 재사용할 수 있습니다)',
+      )
+    ) {
+      try {
+        await removeProblemFromRoom(roomId, problemId);
+        // 삭제된 문제가 현재 선택된 문제라면 선택 해제
+        if (selectedProblemId === problemId) {
+          onSelectProblem(null);
+        }
+      } catch (error) {
+        console.error('문제 제거 실패:', error);
+        alert('문제 제거에 실패했습니다.');
+      }
+    }
+  };
+
   return (
     <>
       <aside className="w-[360px] h-full bg-slate-800 border-r border-slate-700">
@@ -75,6 +98,7 @@ export const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({
           <TeacherProblemListView
             problems={problems}
             onSelectProblem={onSelectProblem}
+            onDeleteProblem={handleDeleteProblem}
             onOpenCreateModal={() => setCreateModalOpen(true)}
             onOpenImportModal={() => setImportModalOpen(true)}
           />

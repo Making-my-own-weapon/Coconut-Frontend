@@ -1,9 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSubmissionStore } from '../../../store/submissionStore';
 import backIcon from '../../../assets/back.svg';
 import playIcon from '../../../assets/play.svg';
 import type { Pyodide } from '../../../types/pyodide';
 import type { Problem } from '../../../store/teacherStore';
+import CustomTestCaseItem from '../../common/CustomTestCaseItem';
+import useAutoResizeTextarea from '../../common/useAutoResizeTextarea';
 
 interface TeacherProblemDetailViewProps {
   problem: Problem;
@@ -109,6 +111,9 @@ const TestCaseItem: React.FC<{
   };
 
   const isCorrect = output.trim() === testCase.expectedOutput.trim();
+  const inputRef = useAutoResizeTextarea(testCase.input);
+  const expectedRef = useAutoResizeTextarea(testCase.expectedOutput);
+  const outputRef = useAutoResizeTextarea(output);
 
   return (
     <div className="bg-slate-700 p-3 rounded-md">
@@ -132,17 +137,40 @@ const TestCaseItem: React.FC<{
         </div>
       </div>
       <div className="text-xs font-mono text-slate-400 space-y-1">
-        <p>
-          <strong>입력:</strong> {testCase.input}
+        <p className="mb-2">
+          <strong>입력:</strong>
+          <textarea
+            className="mt-1 bg-slate-800 text-white rounded px-1 py-0.5 w-full min-h-8 resize-none overflow-hidden"
+            value={testCase.input}
+            readOnly
+            ref={inputRef}
+            rows={1}
+          />
         </p>
-        <p>
-          <strong>예상 출력:</strong> {testCase.expectedOutput}
+        <p className="mb-2">
+          <strong>예상 출력:</strong>
+          <textarea
+            className="mt-1 bg-slate-800 text-white rounded px-1 py-0.5 w-full min-h-8 resize-none overflow-hidden"
+            value={testCase.expectedOutput}
+            readOnly
+            ref={expectedRef}
+            rows={1}
+          />
         </p>
         {hasRun && (
-          <p>
-            <strong>실제 출력:</strong> {output || '(출력 없음)'}
-            {output !== '' && (
-              <span className={`${isCorrect ? 'text-green-400' : 'text-red-400'} ml-2`}>
+          <p className="mb-2">
+            <strong>실제 출력:</strong>
+            <textarea
+              className="mt-1 bg-slate-800 text-white rounded px-1 py-0.5 w-full min-h-8 resize-none overflow-hidden"
+              value={output}
+              readOnly
+              ref={outputRef}
+              rows={1}
+            />
+            {output === '' ? (
+              <span className="ml-2">(출력 없음)</span>
+            ) : (
+              <span className={`${isCorrect ? 'text-green-400' : 'text-red-400'} block mt-1`}>
                 {isCorrect ? '정답' : '오답'}
               </span>
             )}
@@ -253,6 +281,20 @@ const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
     }
   }, [exampleTc, testCases]);
 
+  const [customTestCases, setCustomTestCases] = useState<
+    { input: string; expectedOutput: string }[]
+  >([]);
+  const handleAddCustomTestCase = () =>
+    setCustomTestCases([...customTestCases, { input: '', expectedOutput: '' }]);
+  const handleRemoveCustomTestCase = (idx: number) =>
+    setCustomTestCases(customTestCases.filter((_, i) => i !== idx));
+  const handleCustomInputChange = (idx: number, v: string) =>
+    setCustomTestCases(customTestCases.map((tc, i) => (i === idx ? { ...tc, input: v } : tc)));
+  const handleCustomExpectedChange = (idx: number, v: string) =>
+    setCustomTestCases(
+      customTestCases.map((tc, i) => (i === idx ? { ...tc, expectedOutput: v } : tc)),
+    );
+
   const [pyodide, setPyodide] = useState<Pyodide | null>(null);
   const [isPyodideLoading, setIsPyodideLoading] = useState(true);
 
@@ -291,12 +333,35 @@ const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
         {activeTab === 'problem' ? (
           <ProblemDescription problem={problem} />
         ) : (
-          <TestCaseViewer
-            testCases={formattedTestCases}
-            userCode={userCode}
-            pyodide={pyodide}
-            isPyodideLoading={isPyodideLoading}
-          />
+          <div className="space-y-4">
+            <TestCaseViewer
+              testCases={formattedTestCases}
+              userCode={userCode}
+              pyodide={pyodide}
+              isPyodideLoading={isPyodideLoading}
+            />
+            {customTestCases.map((tc, idx) => (
+              <CustomTestCaseItem
+                key={idx}
+                input={tc.input}
+                expectedOutput={tc.expectedOutput}
+                onInputChange={(v) => handleCustomInputChange(idx, v)}
+                onExpectedChange={(v) => handleCustomExpectedChange(idx, v)}
+                onRemove={() => handleRemoveCustomTestCase(idx)}
+                userCode={userCode}
+                pyodide={pyodide}
+                isPyodideLoading={isPyodideLoading}
+                playIcon={playIcon}
+              />
+            ))}
+            <button
+              onClick={handleAddCustomTestCase}
+              className="w-full py-2 bg-slate-600 text-white rounded-md hover:bg-slate-500 text-sm font-medium"
+              type="button"
+            >
+              + 테스트 케이스 추가
+            </button>
+          </div>
         )}
       </main>
       <footer className="mt-auto pt-4 border-t border-slate-700">

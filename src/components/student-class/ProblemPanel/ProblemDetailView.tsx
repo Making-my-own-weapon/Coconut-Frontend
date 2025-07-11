@@ -1,11 +1,13 @@
 // src/components/student-class/ProblemPanel/ProblemDetailView.tsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useSubmissionStore } from '../../../store/submissionStore';
 import backIcon from '../../../assets/back.svg';
 import playIconUrl from '../../../assets/play.svg';
-import SvgIcon from '../../../components/common/SvgIcon';
+import SvgIcon from '../../common/SvgIcon';
 import type { Pyodide } from '../../../types/pyodide';
 import type { Problem } from '../../../store/teacherStore';
+import CustomTestCaseItem from '../../common/CustomTestCaseItem';
+import useAutoResizeTextarea from '../../common/useAutoResizeTextarea';
 
 // --- Props 타입 변경
 interface StudentProblemDetailViewProps {
@@ -60,6 +62,7 @@ const ProblemDescription: React.FC<{ problem: Problem }> = ({ problem }) => {
   );
 };
 
+// TestCaseItem 수정
 const TestCaseItem: React.FC<{
   testCase: { id: number; input: string; expectedOutput: string };
   userCode: string;
@@ -79,15 +82,11 @@ const TestCaseItem: React.FC<{
     setHasRun(true);
 
     try {
-      // Pyodide 상태 초기화
       pyodide.setStdout({});
       pyodide.runPython('import sys; sys.stdout.flush()');
-
-      // 타임아웃 추가 (5초)
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('실행 시간 초과 (5초)')), 5000);
       });
-
       const executePromise = (async () => {
         pyodide.globals.set('test_input', testCase.input);
         pyodide.runPython(`import sys; from io import StringIO; sys.stdin = StringIO(test_input)`);
@@ -96,17 +95,14 @@ const TestCaseItem: React.FC<{
         await pyodide.runPythonAsync(userCode);
         return captured.trim();
       })();
-
       const result = await Promise.race([executePromise, timeoutPromise]);
       setOutput(result as string);
     } catch (e: unknown) {
-      // 에러 메시지 간소화
       let errorMessage = '';
       if (e instanceof Error) {
         if (e.message === '실행 시간 초과 (5초)') {
           errorMessage = e.message;
         } else {
-          // Python traceback에서 마지막 에러 메시지만 추출
           const lines = e.message.split('\n');
           const lastErrorLine = lines.find(
             (line) =>
@@ -124,7 +120,6 @@ const TestCaseItem: React.FC<{
       }
       setError(errorMessage);
     } finally {
-      // Pyodide 상태 정리
       try {
         pyodide.setStdout({});
         pyodide.runPython('import sys; sys.stdout.flush(); sys.stdin = sys.__stdin__');
@@ -136,6 +131,9 @@ const TestCaseItem: React.FC<{
   };
 
   const isCorrect = output.trim() === testCase.expectedOutput.trim();
+  const inputRef = useAutoResizeTextarea(testCase.input);
+  const expectedRef = useAutoResizeTextarea(testCase.expectedOutput);
+  const outputRef = useAutoResizeTextarea(output);
 
   return (
     <div className="bg-slate-700 p-3 rounded-md">
@@ -159,17 +157,40 @@ const TestCaseItem: React.FC<{
         </div>
       </div>
       <div className="text-xs font-mono text-slate-400 space-y-1">
-        <p>
-          <strong>입력:</strong> {testCase.input}
+        <p className="mb-2">
+          <strong>입력:</strong>
+          <textarea
+            className="mt-1 bg-slate-800 text-white rounded px-1 py-0.5 w-full min-h-8 resize-none overflow-hidden"
+            value={testCase.input}
+            readOnly
+            ref={inputRef}
+            rows={1}
+          />
         </p>
-        <p>
-          <strong>기대 출력:</strong> {testCase.expectedOutput}
+        <p className="mb-2">
+          <strong>예상 출력:</strong>
+          <textarea
+            className="mt-1 bg-slate-800 text-white rounded px-1 py-0.5 w-full min-h-8 resize-none overflow-hidden"
+            value={testCase.expectedOutput}
+            readOnly
+            ref={expectedRef}
+            rows={1}
+          />
         </p>
         {hasRun && (
-          <p>
-            <strong>실제 출력:</strong> {output || '(출력 없음)'}
-            {output !== '' && (
-              <span className={`${isCorrect ? 'text-green-400' : 'text-red-400'} ml-2`}>
+          <p className="mb-2">
+            <strong>실제 출력:</strong>
+            <textarea
+              className="mt-1 bg-slate-800 text-white rounded px-1 py-0.5 w-full min-h-8 resize-none overflow-hidden"
+              value={output}
+              readOnly
+              ref={outputRef}
+              rows={1}
+            />
+            {output === '' ? (
+              <span className="ml-2">(출력 없음)</span>
+            ) : (
+              <span className={`${isCorrect ? 'text-green-400' : 'text-red-400'} block mt-1`}>
                 {isCorrect ? '정답' : '오답'}
               </span>
             )}
@@ -257,6 +278,21 @@ const StudentProblemDetailView: React.FC<StudentProblemDetailViewProps> = ({
     }
   }, [problem]);
 
+  // 커스텀 테스트 케이스 상태 및 핸들러 추가
+  const [customTestCases, setCustomTestCases] = useState<
+    { input: string; expectedOutput: string }[]
+  >([]);
+  const handleAddCustomTestCase = () =>
+    setCustomTestCases([...customTestCases, { input: '', expectedOutput: '' }]);
+  const handleRemoveCustomTestCase = (idx: number) =>
+    setCustomTestCases(customTestCases.filter((_, i) => i !== idx));
+  const handleCustomInputChange = (idx: number, v: string) =>
+    setCustomTestCases(customTestCases.map((tc, i) => (i === idx ? { ...tc, input: v } : tc)));
+  const handleCustomExpectedChange = (idx: number, v: string) =>
+    setCustomTestCases(
+      customTestCases.map((tc, i) => (i === idx ? { ...tc, expectedOutput: v } : tc)),
+    );
+
   return (
     <div className="h-full flex flex-col p-4 bg-slate-800">
       <header className="flex items-center mb-4">
@@ -272,12 +308,36 @@ const StudentProblemDetailView: React.FC<StudentProblemDetailViewProps> = ({
         {activeTab === 'problem' ? (
           <ProblemDescription problem={problem} />
         ) : (
-          <TestCaseViewer
-            testCases={formatted}
-            userCode={userCode}
-            pyodide={pyodide}
-            isPyodideLoading={isPyodideLoading}
-          />
+          <div className="space-y-4">
+            <TestCaseViewer
+              testCases={formatted}
+              userCode={userCode}
+              pyodide={pyodide}
+              isPyodideLoading={isPyodideLoading}
+            />
+            {customTestCases.map((tc, idx) => (
+              <CustomTestCaseItem
+                key={idx}
+                input={tc.input}
+                expectedOutput={tc.expectedOutput}
+                onInputChange={(v) => handleCustomInputChange(idx, v)}
+                onExpectedChange={(v) => handleCustomExpectedChange(idx, v)}
+                onRemove={() => handleRemoveCustomTestCase(idx)}
+                userCode={userCode}
+                pyodide={pyodide}
+                isPyodideLoading={isPyodideLoading}
+                playIcon={playIconUrl}
+                SvgIcon={SvgIcon}
+              />
+            ))}
+            <button
+              onClick={handleAddCustomTestCase}
+              className="w-full py-2 bg-slate-600 text-white rounded-md hover:bg-slate-500 text-sm font-medium"
+              type="button"
+            >
+              + 테스트 케이스 추가
+            </button>
+          </div>
         )}
       </main>
 
