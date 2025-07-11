@@ -57,6 +57,8 @@ const TeacherClassPage: React.FC = () => {
     studentCodes,
     setTeacherCode,
     updateStudentCode,
+    otherCursor,
+    setOtherCursor,
   } = useTeacherStore();
   const { submitCode, isSubmitting, analysisResult, closeAnalysis } = useSubmissionStore();
   // userCode, setUserCode 제거
@@ -140,6 +142,14 @@ const TeacherClassPage: React.FC = () => {
       setSvgLines([]);
     });
 
+    socket.on('cursor:update', ({ lineNumber, column }) => {
+      setOtherCursor({ lineNumber, column });
+    });
+
+    socket.on('cursor:update', ({ lineNumber, column }) => {
+      setOtherCursor({ lineNumber, column });
+    });
+
     return () => {
       socket.off('room:joined');
       socket.off('room:full');
@@ -148,10 +158,11 @@ const TeacherClassPage: React.FC = () => {
       socket.off('code:send');
       socket.off('code:update');
       socket.off('collab:ended');
+      socket.off('cursor:update');
       socket.off('svgData');
       socket.off('svgCleared');
       socket.off('disconnect');
-      
+
       // void만 리턴 (아무것도 리턴하지 않음)
     };
   }, []); // ← 빈 배열!
@@ -232,6 +243,14 @@ const TeacherClassPage: React.FC = () => {
       }
     } else {
       setTeacherCode(code || '');
+    }
+  };
+
+  // 커서 위치 변경 핸들러
+  const handleCursorChange = (position: { lineNumber: number; column: number }) => {
+    if (collaborationId) {
+      console.log('[Teacher] cursor 위치 변경 → 서버로 emit', position);
+      socket.emit('cursor:update', { collaborationId, ...position });
     }
   };
 
@@ -389,36 +408,6 @@ const TeacherClassPage: React.FC = () => {
     setSvgLines(lines);
   };
 
-  // SVG 관련 핸들러 함수들
-  const handleAddSVGLine = (line: SVGLine) => {
-    const newLines = [...svgLines, line];
-    setSvgLines(newLines);
-    // 실시간으로 다른 사용자에게 전송 (협업 세션이 있을 때만)
-    if (collaborationId) {
-      console.log('[Teacher] SVG 라인 추가 및 전송:', collaborationId, newLines.length, '개 라인');
-      socket.emit('updateSVG', {
-        collaborationId,
-        lines: newLines,
-      });
-    } else {
-      console.log('[Teacher] 협업 세션이 없어서 SVG 전송 안함');
-    }
-  };
-
-  const handleClearSVGLines = () => {
-    setSvgLines([]);
-    if (collaborationId) {
-      console.log('[Teacher] SVG 클리어 및 전송:', collaborationId);
-      socket.emit('clearSVG', { collaborationId });
-    } else {
-      console.log('[Teacher] 협업 세션이 없어서 SVG 클리어 전송 안함');
-    }
-  };
-
-  const handleSetSVGLines = (lines: SVGLine[]) => {
-    setSvgLines(lines);
-  };
-
   if (isRoomLoading && !currentRoom) {
     return (
       <div className="h-screen bg-slate-900 flex items-center justify-center">
@@ -463,6 +452,8 @@ const TeacherClassPage: React.FC = () => {
                   studentName={studentName}
                   onClickReturnToTeacher={handleReturnToTeacher}
                   isConnecting={isConnectingToStudent}
+                  otherCursor={otherCursor}
+                  onCursorChange={handleCursorChange}
                   roomId={roomId}
                   userId={String(teacherId)}
                   role="teacher"

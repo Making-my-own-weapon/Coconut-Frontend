@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import usersIcon from '../../../assets/usersIcon.svg';
 import SvgOverlay from '../../common/SvgOverlay';
-import { useRef, useState, useEffect } from 'react';
 
 interface SVGLine {
   points: [number, number][];
@@ -12,17 +11,19 @@ interface SVGLine {
 interface TeacherEditorPanelProps {
   code: string;
   onCodeChange: (value: string | undefined) => void;
-  selectedStudentId?: number | null; // 추가: 현재 선택된 학생 id
-  studentName?: string; // 추가: 학생 이름
-  onClickReturnToTeacher?: () => void; // 추가: 내 코드로 전환 버튼 클릭 핸들러
-  isConnecting?: boolean; // 추가: 학생 연결 중 상태
-  roomId?: string; // 추가: 방 ID
-  userId?: string; // 추가: 사용자 ID
-  role?: 'teacher' | 'student'; // 추가: 사용자 역할
-  svgLines: SVGLine[]; // SVG 라인 데이터
-  onAddSVGLine: (line: SVGLine) => void; // SVG 라인 추가 핸들러
-  onClearSVGLines: () => void; // SVG 라인 클리어 핸들러
-  onSetSVGLines: (lines: SVGLine[]) => void; // SVG 라인 설정 핸들러
+  selectedStudentId?: number | null;
+  studentName?: string;
+  onClickReturnToTeacher?: () => void;
+  isConnecting?: boolean;
+  otherCursor?: { lineNumber: number; column: number } | null;
+  onCursorChange?: (position: { lineNumber: number; column: number }) => void;
+  roomId?: string;
+  userId?: string;
+  role?: 'teacher' | 'student';
+  svgLines: SVGLine[];
+  onAddSVGLine: (line: SVGLine) => void;
+  onClearSVGLines: () => void;
+  onSetSVGLines: (lines: SVGLine[]) => void;
 }
 
 const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
@@ -32,6 +33,8 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
   studentName,
   onClickReturnToTeacher,
   isConnecting = false,
+  otherCursor,
+  onCursorChange,
   roomId,
   userId,
   role,
@@ -41,32 +44,90 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
   onSetSVGLines,
 }) => {
   const editorRef = useRef<any>(null);
+  const decorationIds = useRef<string[]>([]);
+  const monacoRef = useRef<any>(null);
   const [color, setColor] = useState('#ff0000');
-  // 그림판 on/off 상태
   const [showOverlay, setShowOverlay] = useState(false);
   const [scrollTop, setScrollTop] = useState(0);
 
-  // Monaco Editor 스크롤 동기화
-  const handleEditorMount = (editor: any) => {
+  // Editor mount에서 그림판+커서 모두 처리
+  function handleEditorDidMount(editor: any, monaco: any) {
     editorRef.current = editor;
+    monacoRef.current = monaco;
     setScrollTop(editor.getScrollTop());
     editor.onDidScrollChange(() => {
       setScrollTop(editor.getScrollTop());
     });
-  };
+    // 커서 위치 변경 이벤트 리스너 추가
+    if (onCursorChange) {
+      editor.onDidChangeCursorPosition((e: any) => {
+        onCursorChange({
+          lineNumber: e.position.lineNumber,
+          column: e.position.column,
+        });
+      });
+    }
+  }
 
-  // SVGOverlay에서 사용할 핸들러들
+  // 커서 동기화(Decoration, 라벨)
+  useEffect(() => {
+    if (!editorRef.current || !monacoRef.current) return;
+    try {
+      decorationIds.current = editorRef.current.deltaDecorations(
+        decorationIds.current,
+        otherCursor
+          ? [
+              {
+                range: new monacoRef.current.Range(
+                  otherCursor.lineNumber,
+                  otherCursor.column,
+                  otherCursor.lineNumber,
+                  otherCursor.column + 1,
+                ),
+                options: {
+                  className: 'remote-cursor',
+                  stickiness: 1,
+                },
+              },
+            ]
+          : [],
+      );
+    } catch (e) {
+      console.error(e);
+    }
+    if (!otherCursor) return;
+    const widgetId = 'remote-cursor-label-widget';
+    const labelDom = document.createElement('div');
+    labelDom.className = 'remote-cursor-label';
+    labelDom.textContent = studentName || '학생';
+    const widget = {
+      getId: () => widgetId,
+      getDomNode: () => labelDom,
+      getPosition: () => ({
+        position: {
+          lineNumber: otherCursor.lineNumber,
+          column: otherCursor.column,
+        },
+        preference: [monacoRef.current.editor.ContentWidgetPositionPreference.ABOVE],
+      }),
+    };
+    editorRef.current.addContentWidget(widget);
+    return () => {
+      editorRef.current.removeContentWidget(widget);
+    };
+  }, [otherCursor, monacoRef, studentName]);
+
+  // 그림판 핸들러
   const handleSetLines = (newLines: Array<{ points: [number, number][]; color: string }>) => {
     onSetSVGLines(newLines);
   };
-
   const handleClear = () => {
     onClearSVGLines();
   };
 
   return (
     <div className="bg-[#1e1e1e] flex flex-col h-full">
-      {/* 에디터 상단 정보 바 (선생님/학생 모드 표시) */}
+      {/* 에디터 상단 정보 바 */}
       <div className="flex justify-between items-center bg-slate-900 px-4 py-2 text-sm text-slate-400 border-b border-slate-700">
         <span className="font-mono">&lt; &gt; solution.py</span>
         <div className="flex items-center gap-4">
@@ -78,7 +139,6 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
                 : `${studentName || selectedStudentId} 에디터`}
             </span>
           </div>
-          
           <div className="flex items-center gap-2">
             {/* 그림판 토글 버튼: 항상 보이게 */}
             <button
@@ -90,7 +150,6 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
           </div>
         </div>
       </div>
-      
       {/* Monaco Editor + SvgOverlay */}
       <div className="flex-grow relative">
         {isConnecting ? (
@@ -109,13 +168,13 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
               theme="vs-dark"
               value={code}
               onChange={onCodeChange}
+              onMount={handleEditorDidMount}
               options={{
                 fontSize: 14,
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
                 padding: { top: 16 },
               }}
-              onMount={handleEditorMount}
             />
             <SvgOverlay
               lines={svgLines}

@@ -36,6 +36,8 @@ const StudentClassPage: React.FC = () => {
     fetchRoomDetails,
     selectProblem,
     updateCode,
+    otherCursor,
+    setOtherCursor,
   } = useStudentStore();
 
   const { submitCode, closeAnalysis } = useSubmissionStore();
@@ -45,6 +47,7 @@ const StudentClassPage: React.FC = () => {
     currentRoom?.participants?.find((p) => p.userId === user?.id)?.name || user?.name || '';
   const inviteCode = currentRoom?.inviteCode;
 
+  const collabIdRef = useRef<string | null>(null);
   const [userCode, setUserCode] = useState<string>('');
   const [collaborationId, setCollaborationId] = useState<string | null>(null);
   const [isAnalysisPanelOpen, setAnalysisPanelOpen] = useState(false);
@@ -105,9 +108,11 @@ const StudentClassPage: React.FC = () => {
       });
       socket.on('collab:started', ({ collaborationId }) => {
         setCollaborationId(collaborationId);
+        collabIdRef.current = collaborationId;
         setIsCollabLoading(false);
       });
       socket.on('code:request', ({ collaborationId, teacherSocketId }) => {
+        setCollaborationId(collaborationId);
         setIsCollabLoading(true);
         socket.emit('code:send', { collaborationId, code: currentCodeRef.current });
       });
@@ -122,8 +127,11 @@ const StudentClassPage: React.FC = () => {
       });
       socket.on('collab:ended', () => {
         setCollaborationId(null);
+        collabIdRef.current = null;
       });
-
+      socket.on('cursor:update', ({ lineNumber, column }) => {
+        setOtherCursor({ lineNumber, column });
+      });
       // SVG 관련 이벤트 리스너
       socket.on('svgData', (data: { lines: SVGLine[] }) => {
         console.log('[Student] svgData 수신', data.lines?.length || 0, '개 라인');
@@ -146,12 +154,13 @@ const StudentClassPage: React.FC = () => {
         socket.off('room:full');
         socket.off('room:notfound');
         socket.off('collab:started');
+        socket.off('code:request');
         socket.off('code:update');
         socket.off('collab:ended');
+        socket.off('cursor:update');
         socket.off('svgData');
         socket.off('svgCleared');
         socket.off('disconnect');
-
       };
     }
   }, [roomId, inviteCode, myId, myName]);
@@ -175,6 +184,16 @@ const StudentClassPage: React.FC = () => {
     if (collaborationId) {
       socket.emit('collab:edit', { collaborationId, code: newCode });
     }
+  };
+
+  const handleCursorChange = (position: { lineNumber: number; column: number }) => {
+    console.log('[Student] handleCursorChange', { collabId: collabIdRef.current, position });
+    if (!collabIdRef.current) {
+      console.warn('[Student] collaborationId 가 없어 emit 스킵');
+      return;
+    }
+    console.log('[Student] cursor 위치 변경 → 서버로 emit', position);
+    socket.emit('cursor:update', { collaborationId: collabIdRef.current, ...position });
   };
 
   const handleSubmit = () => {
@@ -247,6 +266,8 @@ const StudentClassPage: React.FC = () => {
             onCodeChange={handleCodeChange}
             studentName={user?.name}
             disabled={isCollabLoading}
+            otherCursor={otherCursor}
+            onCursorChange={handleCursorChange}
             roomId={roomId}
             userId={user?.id ? String(user.id) : undefined}
             role="student"
