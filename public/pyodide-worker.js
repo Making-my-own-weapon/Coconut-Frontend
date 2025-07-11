@@ -22,6 +22,13 @@ async function initializePyodide() {
   self.postMessage({ type: 'status', data: 'Pyodide를 초기화하는 중입니다...' });
   try {
     pyodide = await self.loadPyodide();
+    // 1. Pyflakes 패키지 설치 로직 추가
+    self.postMessage({ type: 'status', data: '정적 분석 도구를 설치하는 중입니다...' });
+    await pyodide.loadPackage('micropip');
+    await pyodide.runPythonAsync(`
+      import micropip
+      await micropip.install('pyflakes')
+    `);
     self.postMessage({ type: 'status', data: 'Pyodide가 준비되었습니다.' });
     self.postMessage({ type: 'ready' });
   } catch (error) {
@@ -84,8 +91,33 @@ self.onmessage = async (event) => {
     return;
   }
 
-  const { code, id, ...context } = event.data;
+  const { task, code, id, ...context } = event.data;
 
+  // 2. 'task'에 따라 작업 분기
+  if (task === 'analyze') {
+    // 정적 분석 작업 수행
+    try {
+      const pyflakesResult = await pyodide.runPythonAsync(`
+        import base64
+        from pyflakes.api import check
+        from pyflakes.reporter import Reporter
+        import io
+        
+        code_to_check = base64.b64decode("${btoa(unescape(encodeURIComponent(code)))}").decode("utf-8")
+        
+        output = io.StringIO()
+        reporter = Reporter(output, output)
+        check(code_to_check, '<input>', reporter)
+        output.getvalue()
+      `);
+      self.postMessage({ type: 'analyze_result', data: pyflakesResult, id });
+    } catch (e) {
+      self.postMessage({ type: 'error', data: `정적 분석 중 에러: ${e.message}`, id });
+    }
+    return; // 정적 분석 후 종료
+  }
+
+  // --- 기존의 테스트 케이스 실행 작업 ---
   try {
     // 5초 타임아웃 Promise 생성
     const timeoutPromise = new Promise((_, reject) => {

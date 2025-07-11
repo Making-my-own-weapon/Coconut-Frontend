@@ -151,6 +151,7 @@ const StudentClassPage: React.FC = () => {
         socket.off('svgData');
         socket.off('svgCleared');
         socket.off('disconnect');
+
       };
     }
   }, [roomId, inviteCode, myId, myName]);
@@ -244,7 +245,7 @@ const StudentClassPage: React.FC = () => {
           <EditorPanel
             code={userCode}
             onCodeChange={handleCodeChange}
-            studentName={myName}
+            studentName={user?.name}
             disabled={isCollabLoading}
             roomId={roomId}
             userId={user?.id ? String(user.id) : undefined}

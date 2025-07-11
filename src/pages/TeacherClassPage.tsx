@@ -129,6 +129,17 @@ const TeacherClassPage: React.FC = () => {
       setSvgLines([]);
     });
 
+    // SVG 관련 이벤트 리스너
+    socket.on('svgData', (data: { lines: SVGLine[] }) => {
+      console.log('[Teacher] svgData 수신', data.lines?.length || 0, '개 라인');
+      setSvgLines(data.lines || []);
+    });
+
+    socket.on('svgCleared', () => {
+      console.log('[Teacher] svgCleared 수신');
+      setSvgLines([]);
+    });
+
     return () => {
       socket.off('room:joined');
       socket.off('room:full');
@@ -140,6 +151,7 @@ const TeacherClassPage: React.FC = () => {
       socket.off('svgData');
       socket.off('svgCleared');
       socket.off('disconnect');
+      
       // void만 리턴 (아무것도 리턴하지 않음)
     };
   }, []); // ← 빈 배열!
@@ -345,6 +357,36 @@ const TeacherClassPage: React.FC = () => {
     setIsConnectingToStudent(false); // 연결 상태 초기화
     setPreviousEditorState('teacher'); // 선생님 에디터 상태로 기록
     setSvgLines([]); // 그림 초기화
+  };
+
+  // SVG 관련 핸들러 함수들
+  const handleAddSVGLine = (line: SVGLine) => {
+    const newLines = [...svgLines, line];
+    setSvgLines(newLines);
+    // 실시간으로 다른 사용자에게 전송 (협업 세션이 있을 때만)
+    if (collaborationId) {
+      console.log('[Teacher] SVG 라인 추가 및 전송:', collaborationId, newLines.length, '개 라인');
+      socket.emit('updateSVG', {
+        collaborationId,
+        lines: newLines,
+      });
+    } else {
+      console.log('[Teacher] 협업 세션이 없어서 SVG 전송 안함');
+    }
+  };
+
+  const handleClearSVGLines = () => {
+    setSvgLines([]);
+    if (collaborationId) {
+      console.log('[Teacher] SVG 클리어 및 전송:', collaborationId);
+      socket.emit('clearSVG', { collaborationId });
+    } else {
+      console.log('[Teacher] 협업 세션이 없어서 SVG 클리어 전송 안함');
+    }
+  };
+
+  const handleSetSVGLines = (lines: SVGLine[]) => {
+    setSvgLines(lines);
   };
 
   // SVG 관련 핸들러 함수들

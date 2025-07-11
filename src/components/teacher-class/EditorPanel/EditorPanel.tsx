@@ -78,6 +78,7 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
                 : `${studentName || selectedStudentId} 에디터`}
             </span>
           </div>
+          
           <div className="flex items-center gap-2">
             {/* 그림판 토글 버튼: 항상 보이게 */}
             <button
@@ -89,7 +90,7 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
           </div>
         </div>
       </div>
-
+      
       {/* Monaco Editor + SvgOverlay */}
       <div className="flex-grow relative">
         {isConnecting ? (

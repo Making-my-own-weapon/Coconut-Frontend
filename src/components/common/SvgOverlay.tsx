@@ -128,7 +128,9 @@ const SvgOverlay: React.FC<SVGOverlayProps> = ({
           )}
         </g>
       </svg>
+
       {/* 색상 선택 & 지우기 버튼: readOnly가 아니고 show일 때만 (우상단) */}
+
       {!readOnly && setColor && (
         <div
           style={{
