@@ -128,6 +128,7 @@ const StudentClassPage: React.FC = () => {
       socket.on('collab:ended', () => {
         setCollaborationId(null);
         collabIdRef.current = null;
+        setOtherCursor(null);
       });
       socket.on('cursor:update', ({ lineNumber, column }) => {
         setOtherCursor({ lineNumber, column });

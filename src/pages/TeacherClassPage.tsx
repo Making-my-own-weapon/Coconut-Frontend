@@ -131,21 +131,6 @@ const TeacherClassPage: React.FC = () => {
       setSvgLines([]);
     });
 
-    // SVG 관련 이벤트 리스너
-    socket.on('svgData', (data: { lines: SVGLine[] }) => {
-      console.log('[Teacher] svgData 수신', data.lines?.length || 0, '개 라인');
-      setSvgLines(data.lines || []);
-    });
-
-    socket.on('svgCleared', () => {
-      console.log('[Teacher] svgCleared 수신');
-      setSvgLines([]);
-    });
-
-    socket.on('cursor:update', ({ lineNumber, column }) => {
-      setOtherCursor({ lineNumber, column });
-    });
-
     socket.on('cursor:update', ({ lineNumber, column }) => {
       setOtherCursor({ lineNumber, column });
     });
