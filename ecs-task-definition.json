@@ -31,7 +31,7 @@
           "awslogs-region": "ap-northeast-2",
           "awslogs-stream-prefix": "ecs"
         }
-      },
+      }, 
       "healthCheck": {
         "command": [
           "CMD-SHELL",
