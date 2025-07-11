@@ -48,6 +48,7 @@ interface TeacherState {
   selectedProblemId: number | null;
   studentCodes: Record<number, string>;
   teacherCode: string;
+  otherCursor: { lineNumber: number; column: number } | null;
   createRoom: (title: string, maxParticipants: number) => Promise<void>;
   fetchRoomDetails: (roomId: string) => Promise<void>;
   updateRoomStatus: (roomId: string) => Promise<void>;
@@ -57,6 +58,7 @@ interface TeacherState {
   updateStudentCode: (studentId: number, code: string) => void;
   setTeacherCode: (code: string) => void;
   deleteRoom: (roomId: string) => Promise<void>;
+  setOtherCursor: (cursor: { lineNumber: number; column: number } | null) => void;
 }
 
 // --- 스토어 생성 ---
@@ -74,6 +76,7 @@ export const useTeacherStore = create<TeacherState>((set, get) => ({
   selectedProblemId: null,
   studentCodes: {},
   teacherCode: '', // 추가: 선생님 고유 코드 초기값
+  otherCursor: null,
 
   // --- 액션 ---
   createRoom: async (title: string, maxParticipants: number) => {
@@ -167,4 +170,5 @@ export const useTeacherStore = create<TeacherState>((set, get) => ({
       set({ isLoading: false });
     }
   },
+  setOtherCursor: (cursor) => set({ otherCursor: cursor }),
 }));
