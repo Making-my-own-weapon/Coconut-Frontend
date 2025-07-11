@@ -7,23 +7,18 @@ const ReportHeader: React.FC = () => {
 
       {/* Room Info Badge */}
       <div className="w-[115px] h-[22px] flex-shrink-0 absolute left-48 top-[25px]">
-        <div className="w-[115px] h-[22px] flex-shrink-0 rounded-full border border-slate-600 absolute left-0 top-0"></div>
-        <div className="w-[98px] h-4 flex-shrink-0 absolute left-[9px] top-[3px]">
-          <div className="text-slate-300 font-inter text-xs font-semibold leading-4 absolute left-0 top-0 w-[30px] h-4">
-            수업:
-          </div>
-          <div className="text-slate-300 font-inter text-xs font-semibold leading-4 absolute left-[26px] top-0 w-[72px] h-4">
-            83rg8fvecjp
-          </div>
+        <div className="w-[115px] h-[22px] flex-shrink-0 rounded-full border border-slate-00 absolute left-0 top-0"></div>
+        <div className="flex items-center gap-1 absolute left-[9px] top-[3px]">
+          <div className="text-slate-300 font-inter text-xs font-semibold">수업:</div>
+          <div className="text-slate-300 font-inter text-xs font-semibold">83rg8fvecjp</div>
         </div>
       </div>
 
       {/* Teacher Badge */}
-      <div className="w-[83px] h-[30px] flex-shrink-0 absolute left-[315px] top-[21px]">
-        <div className="w-[83px] h-[30px] rounded-[15px] bg-gradient-to-r from-purple-600 to-purple-800 absolute left-0 top-0"></div>
+      <div className="absolute left-[315px] top-[21px] inline-flex items-center gap-1 px-3 h-[30px] w-[84px] rounded-full bg-gradient-to-r from-purple-600 to-purple-800">
         {/* Graduation cap icon */}
         <svg
-          className="w-6 h-6 flex-shrink-0 absolute left-2 top-[3px]"
+          className="w-5 h-5 text-slate-50"
           width="24"
           height="24"
           viewBox="0 0 24 24"
@@ -52,13 +47,13 @@ const ReportHeader: React.FC = () => {
             strokeLinejoin="round"
           />
         </svg>
-        <span className="text-slate-50 font-inter text-xs font-semibold absolute left-8 top-2">
+        <span className="text-slate-50 font-inter text-xs font-semibold absolute left-9 top-2">
           선생님
         </span>
       </div>
 
       {/* Logo */}
-      <div className="inline-flex h-[73px] justify-end items-center flex-shrink-0 absolute left-0 top-0 w-44">
+      <div className="inline-flex h-[73px] justify-end items-center flex-shrink-0 absolute left-0 top-0 w-full">
         <img
           className="w-[187px] h-[73px] absolute left-0 top-0"
           src="https://cdn.builder.io/api/v1/image/assets/TEMP/e2b6d2604ebed166d89ab22af652c8a65e3d0763?width=375"
