@@ -3,7 +3,7 @@
 name: Deploy Frontend to ECS (Rolling Update)
  
 on:
-  push:
+  push: 
     branches:
       - release
       - deploy-test
