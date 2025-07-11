@@ -1,10 +1,9 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSubmissionStore } from '../../../store/submissionStore';
 import backIcon from '../../../assets/back.svg';
 import playIcon from '../../../assets/play.svg';
-import type { Pyodide } from '../../../types/pyodide';
+import { useWorkerStore } from '../../../store/workerStore';
 import type { Problem } from '../../../store/teacherStore';
-import CustomTestCaseItem from '../../common/CustomTestCaseItem';
 import useAutoResizeTextarea from '../../common/useAutoResizeTextarea';
 
 interface TeacherProblemDetailViewProps {
@@ -34,98 +33,56 @@ const ProblemDescription: React.FC<{ problem: Problem }> = ({ problem }) => {
 const TestCaseItem: React.FC<{
   testCase: { id: number; input: string; expectedOutput: string };
   userCode: string;
-  pyodide: Pyodide | null;
-  isPyodideLoading: boolean;
-}> = ({ testCase, userCode, pyodide, isPyodideLoading }) => {
+}> = ({ testCase, userCode }) => {
+  const { runCode, output, error, isReady } = useWorkerStore();
   const [isRunning, setIsRunning] = useState(false);
-  const [output, setOutput] = useState('');
-  const [error, setError] = useState('');
-  const [hasRun, setHasRun] = useState(false);
+  const [testOutput, setTestOutput] = useState<string | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
 
-  const handleRunTest = async () => {
-    if (!pyodide || !userCode) return;
-    setIsRunning(true);
-    setOutput('');
-    setError('');
-    setHasRun(true);
-
-    try {
-      // Pyodide 상태 초기화
-      pyodide.setStdout({});
-      pyodide.runPython('import sys; sys.stdout.flush()');
-
-      // 타임아웃 추가 (5초)
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('실행 시간 초과 (5초)')), 5000);
-      });
-
-      const executePromise = (async () => {
-        pyodide.globals.set('test_input', testCase.input);
-        pyodide.runPython(`import sys; from io import StringIO; sys.stdin = StringIO(test_input)`);
-        let capturedOutput = '';
-        pyodide.setStdout({
-          batched: (out: string) => {
-            capturedOutput += out + '\n';
-          },
-        });
-        await pyodide.runPythonAsync(userCode);
-        return capturedOutput.trim();
-      })();
-
-      const result = await Promise.race([executePromise, timeoutPromise]);
-      setOutput(result as string);
-    } catch (e: unknown) {
-      // 에러 메시지 간소화
-      let errorMessage = '';
-      if (e instanceof Error) {
-        if (e.message === '실행 시간 초과 (5초)') {
-          errorMessage = e.message;
-        } else {
-          // Python traceback에서 마지막 에러 메시지만 추출
-          const lines = e.message.split('\n');
-          const lastErrorLine = lines.find(
-            (line) =>
-              line.includes('Error:') ||
-              line.includes('Exception:') ||
-              line.trim().startsWith('NameError:') ||
-              line.trim().startsWith('SyntaxError:') ||
-              line.trim().startsWith('ValueError:') ||
-              line.trim().startsWith('TypeError:'),
-          );
-          errorMessage = lastErrorLine ? lastErrorLine.trim() : e.message;
-        }
-      } else {
-        errorMessage = String(e);
-      }
-      setError(errorMessage);
-    } finally {
-      // Pyodide 상태 정리
-      try {
-        pyodide.setStdout({});
-        pyodide.runPython('import sys; sys.stdout.flush(); sys.stdin = sys.__stdin__');
-      } catch {
-        // 정리 중 에러는 무시
-      }
-      setIsRunning(false);
-    }
-  };
-
-  const isCorrect = output.trim() === testCase.expectedOutput.trim();
+  // textarea 자동 리사이즈
   const inputRef = useAutoResizeTextarea(testCase.input);
   const expectedRef = useAutoResizeTextarea(testCase.expectedOutput);
-  const outputRef = useAutoResizeTextarea(output);
+  const outputRef = useAutoResizeTextarea(testOutput ?? '');
+  const caseId = testCase.id;
+
+  useEffect(() => {
+    if (output && output.id === caseId) {
+      setTestOutput(output.data);
+      setIsRunning(false);
+    }
+  }, [output, caseId]);
+
+  useEffect(() => {
+    if (error && error.id === caseId) {
+      setTestError(error.data);
+      setIsRunning(false);
+    }
+  }, [error, caseId]);
+
+  const handleRunTest = () => {
+    if (!userCode.trim()) {
+      setTestError('코드를 입력한 후 실행해주세요.');
+      setTestOutput(null);
+      return;
+    }
+    if (!isReady) return;
+    setIsRunning(true);
+    setTestOutput(null);
+    setTestError(null);
+    runCode(userCode, { test_input: testCase.input }, caseId);
+  };
+
+  const isCorrect = testOutput?.trim() === testCase.expectedOutput.trim();
 
   return (
     <div className="bg-slate-700 p-3 rounded-md">
       <div className="flex justify-between items-center mb-2">
         <h4 className="font-semibold text-white text-sm">Test Case {testCase.id}</h4>
         <div className="flex items-center gap-2">
-          {isPyodideLoading && (
-            <span className="text-xs text-slate-400">테스트 환경 로딩 중...</span>
-          )}
+          {!isReady && <span className="text-xs text-slate-400">테스트 환경 준비 중...</span>}
           <button
             onClick={handleRunTest}
-            disabled={isRunning || isPyodideLoading || !pyodide}
+            disabled={isRunning || !isReady}
             className="disabled:opacity-50"
           >
             {isRunning ? (
@@ -157,29 +114,155 @@ const TestCaseItem: React.FC<{
             rows={1}
           />
         </p>
-        {hasRun && (
-          <p className="mb-2">
-            <strong>실제 출력:</strong>
-            <textarea
-              className="mt-1 bg-slate-800 text-white rounded px-1 py-0.5 w-full min-h-8 resize-none overflow-hidden"
-              value={output}
-              readOnly
-              ref={outputRef}
-              rows={1}
-            />
-            {output === '' ? (
-              <span className="ml-2">(출력 없음)</span>
-            ) : (
-              <span className={`${isCorrect ? 'text-green-400' : 'text-red-400'} block mt-1`}>
-                {isCorrect ? '정답' : '오답'}
-              </span>
+        {(testOutput !== null || testError !== null) && (
+          <>
+            <p className="mb-2">
+              <strong>실제 출력:</strong>
+              <textarea
+                className="mt-1 bg-slate-800 text-white rounded px-1 py-0.5 w-full min-h-8 resize-none overflow-hidden"
+                value={testOutput ?? ''}
+                readOnly
+                ref={outputRef}
+                rows={1}
+              />
+              {testOutput !== null && !testError && (
+                <span className={`${isCorrect ? 'text-green-400' : 'text-red-400'} ml-2`}>
+                  {isCorrect ? '정답' : '오답'}
+                </span>
+              )}
+            </p>
+            {testError && (
+              <p className="text-red-400">
+                <strong>에러:</strong> {testError}
+              </p>
             )}
-          </p>
+          </>
         )}
-        {error && (
-          <p className="text-red-400">
-            <strong>에러:</strong> {error}
-          </p>
+      </div>
+    </div>
+  );
+};
+
+const CustomTestCaseItem: React.FC<{
+  idx: number;
+  input: string;
+  expectedOutput: string;
+  onInputChange: (v: string) => void;
+  onExpectedChange: (v: string) => void;
+  onRemove: () => void;
+  userCode: string;
+}> = ({ idx, input, expectedOutput, onInputChange, onExpectedChange, onRemove, userCode }) => {
+  const { runCode, output, error, isReady } = useWorkerStore();
+  const [isRunning, setIsRunning] = useState(false);
+  const [testOutput, setTestOutput] = useState<string | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
+  // textarea 자동 리사이즈
+  const inputRef = useAutoResizeTextarea(input);
+  const expectedRef = useAutoResizeTextarea(expectedOutput);
+  const outputRef = useAutoResizeTextarea(testOutput ?? '');
+
+  // 커스텀 케이스는 idx에 10000을 더한 값으로 고유 id 부여
+  const caseId = idx + 10000;
+
+  useEffect(() => {
+    if (output && output.id === caseId) {
+      setTestOutput(output.data);
+      setIsRunning(false);
+    }
+  }, [output, caseId]);
+
+  useEffect(() => {
+    if (error && error.id === caseId) {
+      setTestError(error.data);
+      setIsRunning(false);
+    }
+  }, [error, caseId]);
+
+  const handleRunTest = () => {
+    if (!userCode.trim()) {
+      setTestError('코드를 입력한 후 실행해주세요.');
+      setTestOutput(null);
+      return;
+    }
+    if (!isReady) return;
+    setIsRunning(true);
+    setTestOutput(null);
+    setTestError(null);
+    runCode(userCode, { test_input: input }, caseId);
+  };
+
+  const isCorrect = testOutput?.trim() === expectedOutput.trim();
+
+  return (
+    <div className="bg-slate-700 p-3 rounded-md">
+      <div className="flex justify-between items-center mb-2">
+        <h4 className="font-semibold text-white text-sm">Custom Test</h4>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onRemove}
+            className="text-xs text-red-400 hover:text-red-600 px-2"
+            type="button"
+          >
+            삭제
+          </button>
+          <button
+            onClick={handleRunTest}
+            disabled={isRunning || !isReady}
+            className="disabled:opacity-50"
+            type="button"
+          >
+            {isRunning ? (
+              <img src={playIcon} alt="실행 중" className="w-5 h-5 animate-spin" />
+            ) : (
+              <img src={playIcon} alt="실행" className="w-5 h-5 text-slate-400 hover:text-white" />
+            )}
+          </button>
+        </div>
+      </div>
+      <div className="text-xs font-mono text-slate-400 space-y-1">
+        <p className="mb-2">
+          <strong>입력:</strong>
+          <textarea
+            className="mt-1 bg-slate-800 text-white rounded px-1 py-0.5 w-full min-h-8 resize-none overflow-hidden"
+            value={input}
+            onChange={(e) => onInputChange(e.target.value)}
+            ref={inputRef}
+            rows={1}
+          />
+        </p>
+        <p className="mb-2">
+          <strong>예상 출력:</strong>
+          <textarea
+            className="mt-1 bg-slate-800 text-white rounded px-1 py-0.5 w-full min-h-8 resize-none overflow-hidden"
+            value={expectedOutput}
+            onChange={(e) => onExpectedChange(e.target.value)}
+            ref={expectedRef}
+            rows={1}
+          />
+        </p>
+        {(testOutput !== null || testError !== null) && (
+          <>
+            <p className="mb-2">
+              <strong>실제 출력:</strong>
+              <textarea
+                className="mt-1 bg-slate-800 text-white rounded px-1 py-0.5 w-full min-h-8 resize-none overflow-hidden"
+                value={testOutput ?? ''}
+                readOnly
+                ref={outputRef}
+                rows={1}
+              />
+              {testOutput !== null && !testError && (
+                <span className={`${isCorrect ? 'text-green-400' : 'text-red-400'} ml-2`}>
+                  {isCorrect ? '정답' : '오답'}
+                </span>
+              )}
+            </p>
+            {testError && (
+              <p className="text-red-400">
+                <strong>에러:</strong> {testError}
+              </p>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -189,18 +272,10 @@ const TestCaseItem: React.FC<{
 const TestCaseViewer: React.FC<{
   testCases: { id: number; input: string; expectedOutput: string }[];
   userCode: string;
-  pyodide: Pyodide | null;
-  isPyodideLoading: boolean;
-}> = ({ testCases, userCode, pyodide, isPyodideLoading }) => (
+}> = ({ testCases, userCode }) => (
   <div className="space-y-4">
     {testCases.map((tc) => (
-      <TestCaseItem
-        key={tc.id}
-        testCase={tc}
-        userCode={userCode}
-        pyodide={pyodide}
-        isPyodideLoading={isPyodideLoading}
-      />
+      <TestCaseItem key={tc.id} testCase={tc} userCode={userCode} />
     ))}
   </div>
 );
@@ -295,31 +370,6 @@ const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
       customTestCases.map((tc, i) => (i === idx ? { ...tc, expectedOutput: v } : tc)),
     );
 
-  const [pyodide, setPyodide] = useState<Pyodide | null>(null);
-  const [isPyodideLoading, setIsPyodideLoading] = useState(true);
-
-  useEffect(() => {
-    // 200ms 후에 Pyodide 로딩 시작
-    const timerId = setTimeout(() => {
-      const initPyodide = async () => {
-        try {
-          const pyodideInstance = await window.loadPyodide({
-            indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/',
-          });
-          setPyodide(pyodideInstance);
-        } catch (error) {
-          console.error('Pyodide 로드 실패:', error);
-        } finally {
-          setIsPyodideLoading(false);
-        }
-      };
-      initPyodide();
-    }, 200);
-
-    // 컴포넌트가 언마운트될 때 타이머를 정리합니다.
-    return () => clearTimeout(timerId);
-  }, []); // 마운트 시 한 번만 실행
-
   return (
     <div className="h-full flex flex-col p-4 bg-slate-800">
       <header className="flex items-center mb-4">
@@ -334,24 +384,17 @@ const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
           <ProblemDescription problem={problem} />
         ) : (
           <div className="space-y-4">
-            <TestCaseViewer
-              testCases={formattedTestCases}
-              userCode={userCode}
-              pyodide={pyodide}
-              isPyodideLoading={isPyodideLoading}
-            />
+            <TestCaseViewer testCases={formattedTestCases} userCode={userCode} />
             {customTestCases.map((tc, idx) => (
               <CustomTestCaseItem
                 key={idx}
+                idx={idx}
                 input={tc.input}
                 expectedOutput={tc.expectedOutput}
                 onInputChange={(v) => handleCustomInputChange(idx, v)}
                 onExpectedChange={(v) => handleCustomExpectedChange(idx, v)}
                 onRemove={() => handleRemoveCustomTestCase(idx)}
                 userCode={userCode}
-                pyodide={pyodide}
-                isPyodideLoading={isPyodideLoading}
-                playIcon={playIcon}
               />
             ))}
             <button

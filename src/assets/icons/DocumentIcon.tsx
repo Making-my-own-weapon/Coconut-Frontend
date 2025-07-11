@@ -1,4 +1,3 @@
-import React from 'react';
 import type { IconProps } from './IconProps';
 
 const DocumentIcon = ({ className = 'w-6 h-6' }: IconProps) => (

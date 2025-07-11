@@ -28,8 +28,21 @@ function App() {
     initializeApp();
   }, [silentRefresh]);
 
+  // 로딩이 끝나면 스플래시 스크린을 숨깁니다.
+  useEffect(() => {
+    if (!isLoading) {
+      const splashScreen = document.getElementById('splash-screen');
+      if (splashScreen) {
+        // 이제 CSS 애니메이션이 없으므로, 즉시 DOM에서 제거합니다.
+        splashScreen.remove();
+      }
+    }
+  }, [isLoading]);
+
+  // React는 로딩 중 아무것도 렌더링하지 않습니다.
+  // 실제 로딩 표시는 index.html의 스플래시 스크린이 담당합니다.
   if (isLoading) {
-    return <div>Loading...</div>;
+    return null;
   }
 
   return (

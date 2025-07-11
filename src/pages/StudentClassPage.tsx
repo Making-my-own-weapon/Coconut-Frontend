@@ -3,13 +3,28 @@ import { useParams } from 'react-router-dom';
 import { useStudentStore } from '../store/studentStore';
 import { useSubmissionStore } from '../store/submissionStore';
 import { useAuthStore } from '../store/authStore';
+import { useWorkerStore } from '../store/workerStore';
 import { Header } from '../components/student-class/Header';
 import ProblemPanel from '../components/student-class/ProblemPanel/ProblemPanel';
 import EditorPanel from '../components/student-class/EditorPanel/EditorPanel';
 import AnalysisPanel from '../components/student-class/AnalysisPanel';
 import socket from '../lib/socket';
 
+interface SVGLine {
+  points: [number, number][];
+  color: string;
+}
+
 const StudentClassPage: React.FC = () => {
+  const { initialize, terminate } = useWorkerStore();
+
+  useEffect(() => {
+    initialize();
+    return () => {
+      terminate();
+    };
+  }, [initialize, terminate]);
+
   const { roomId } = useParams<{ roomId: string }>();
 
   const {
@@ -21,6 +36,8 @@ const StudentClassPage: React.FC = () => {
     fetchRoomDetails,
     selectProblem,
     updateCode,
+    otherCursor,
+    setOtherCursor,
   } = useStudentStore();
 
   const { submitCode, closeAnalysis } = useSubmissionStore();
@@ -30,6 +47,7 @@ const StudentClassPage: React.FC = () => {
     currentRoom?.participants?.find((p) => p.userId === user?.id)?.name || user?.name || '';
   const inviteCode = currentRoom?.inviteCode;
 
+  const collabIdRef = useRef<string | null>(null);
   const [userCode, setUserCode] = useState<string>('');
   const [collaborationId, setCollaborationId] = useState<string | null>(null);
   const [isAnalysisPanelOpen, setAnalysisPanelOpen] = useState(false);
@@ -56,6 +74,8 @@ const StudentClassPage: React.FC = () => {
   const [roomError, setRoomError] = useState<string | null>(null);
   const [isCollabLoading, setIsCollabLoading] = useState(false);
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
+  // SVG 상태 관리
+  const [svgLines, setSvgLines] = useState<SVGLine[]>([]);
 
   useEffect(() => {
     if (roomId) {
@@ -88,9 +108,11 @@ const StudentClassPage: React.FC = () => {
       });
       socket.on('collab:started', ({ collaborationId }) => {
         setCollaborationId(collaborationId);
+        collabIdRef.current = collaborationId;
         setIsCollabLoading(false);
       });
       socket.on('code:request', ({ collaborationId, teacherSocketId }) => {
+        setCollaborationId(collaborationId);
         setIsCollabLoading(true);
         socket.emit('code:send', { collaborationId, code: currentCodeRef.current });
       });
@@ -105,6 +127,26 @@ const StudentClassPage: React.FC = () => {
       });
       socket.on('collab:ended', () => {
         setCollaborationId(null);
+        collabIdRef.current = null;
+      });
+      socket.on('cursor:update', ({ lineNumber, column }) => {
+        setOtherCursor({ lineNumber, column });
+      });
+      // SVG 관련 이벤트 리스너
+      socket.on('svgData', (data: { lines: SVGLine[] }) => {
+        console.log('[Student] svgData 수신', data.lines?.length || 0, '개 라인');
+        setSvgLines(data.lines || []);
+      });
+
+      socket.on('svgCleared', () => {
+        console.log('[Student] svgCleared 수신');
+        setSvgLines([]);
+      });
+
+      // 소켓 연결 해제 시 그림 자동 지우기
+      socket.on('disconnect', () => {
+        console.log('[Student] 소켓 연결 해제 - 그림 자동 지우기');
+        setSvgLines([]);
       });
 
       return () => {
@@ -112,8 +154,13 @@ const StudentClassPage: React.FC = () => {
         socket.off('room:full');
         socket.off('room:notfound');
         socket.off('collab:started');
+        socket.off('code:request');
         socket.off('code:update');
         socket.off('collab:ended');
+        socket.off('cursor:update');
+        socket.off('svgData');
+        socket.off('svgCleared');
+        socket.off('disconnect');
       };
     }
   }, [roomId, inviteCode, myId, myName]);
@@ -150,6 +197,16 @@ const StudentClassPage: React.FC = () => {
     }
   };
 
+  const handleCursorChange = (position: { lineNumber: number; column: number }) => {
+    console.log('[Student] handleCursorChange', { collabId: collabIdRef.current, position });
+    if (!collabIdRef.current) {
+      console.warn('[Student] collaborationId 가 없어 emit 스킵');
+      return;
+    }
+    console.log('[Student] cursor 위치 변경 → 서버로 emit', position);
+    socket.emit('cursor:update', { collaborationId: collabIdRef.current, ...position });
+  };
+
   const handleSubmit = () => {
     if (!roomId || !selectedProblemId) return;
     setAnalysisPanelOpen(true);
@@ -170,14 +227,23 @@ const StudentClassPage: React.FC = () => {
       window.location.href = '/';
     }
   };
+  // SVG 관련 핸들러 함수들 (학생은 읽기 전용)
+  const handleAddSVGLine = (line: SVGLine) => {
+    // 학생은 그림을 그릴 수 없음 (읽기 전용)
+  };
+
+  const handleClearSVGLines = () => {
+    // 학생은 그림을 지울 수 없음 (읽기 전용)
+  };
+
+  const handleSetSVGLines = (lines: SVGLine[]) => {
+    setSvgLines(lines);
+  };
 
   if (isRoomLoading && !currentRoom) {
     return (
-      <div className="h-screen bg-slate-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
-          <p>수업 정보를 불러오는 중...</p>
-        </div>
+      <div className="h-screen bg-slate-900 flex flex-col items-center justify-center">
+        {/* 스피너와 문구를 모두 삭제하여 배경색만 남김 */}
       </div>
     );
   }
@@ -209,8 +275,17 @@ const StudentClassPage: React.FC = () => {
           <EditorPanel
             code={userCode}
             onCodeChange={handleCodeChange}
-            studentName={myName}
+            studentName={user?.name}
             disabled={isCollabLoading}
+            otherCursor={otherCursor}
+            onCursorChange={handleCursorChange}
+            roomId={roomId}
+            userId={user?.id ? String(user.id) : undefined}
+            role="student"
+            svgLines={svgLines}
+            onAddSVGLine={handleAddSVGLine}
+            onClearSVGLines={handleClearSVGLines}
+            onSetSVGLines={handleSetSVGLines}
           />
         </div>
         {isAnalysisPanelOpen && (

@@ -11,9 +11,11 @@ interface StudentState {
   problems: Problem[];
   codes: Record<string, string>;
   selectedProblemId: number | null;
+  otherCursor: { lineNumber: number; column: number } | null;
   fetchRoomDetails: (roomId: string) => Promise<void>;
   selectProblem: (problemId: number | null) => void;
   updateCode: (payload: { problemId: number; code: string }) => void;
+  setOtherCursor: (cursor: { lineNumber: number; column: number } | null) => void;
 }
 
 export const useStudentStore = create<StudentState>((set) => ({
@@ -25,6 +27,7 @@ export const useStudentStore = create<StudentState>((set) => ({
   problems: [],
   codes: {},
   selectedProblemId: null,
+  otherCursor: null,
 
   // --- 액션 ---
   fetchRoomDetails: async (roomId: string) => {
@@ -67,4 +70,5 @@ export const useStudentStore = create<StudentState>((set) => ({
       },
     }));
   },
+  setOtherCursor: (cursor) => set({ otherCursor: cursor }),
 }));
