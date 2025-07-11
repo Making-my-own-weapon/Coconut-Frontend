@@ -22,10 +22,6 @@
         {
           "name": "NODE_ENV",
           "value": "production"
-        },
-        {
-          "name": "VITE_API_BASE_URL",
-          "value": "http://3.39.237.25:3001"
         }
       ],
       "logConfiguration": {
