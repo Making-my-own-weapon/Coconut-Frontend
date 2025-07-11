@@ -26,3 +26,13 @@ export const assignProblemsToRoomAPI = (roomId: number, problemIds: number[]) =>
 export const fetchAllSummariesAPI = () => {
   return apiClient.get('db/problems/summary');
 };
+
+// 특정 문제 상세 정보를 가져오는 API (방 할당 여부와 관계없이)
+export const fetchProblemDetailByIdAPI = (problemId: number) => {
+  return apiClient.get(`db/problems/${problemId}`);
+};
+
+// 특정 방에서 문제를 삭제하는 API
+export const deleteProblemFromRoomAPI = (roomId: number, problemId: number) => {
+  return apiClient.delete(`/rooms/${roomId}/problems/${problemId}`);
+};

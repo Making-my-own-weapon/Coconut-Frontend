@@ -6,6 +6,7 @@ import backIcon from '../../../assets/back.svg';
 import playIconUrl from '../../../assets/play.svg';
 import SvgIcon from '../../../components/common/SvgIcon';
 import type { Problem } from '../../../store/teacherStore';
+import useAutoResizeTextarea from '../../common/useAutoResizeTextarea';
 
 // --- Props 타입 변경
 interface StudentProblemDetailViewProps {
@@ -57,6 +58,7 @@ const ProblemDescription: React.FC<{ problem: Problem }> = ({ problem }) => {
   );
 };
 
+// TestCaseItem 수정
 const TestCaseItem: React.FC<{
   testCase: { id: number; input: string; expectedOutput: string };
   userCode: string;
@@ -66,19 +68,25 @@ const TestCaseItem: React.FC<{
   const [testOutput, setTestOutput] = useState<string | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
 
+  // textarea 자동 리사이즈
+  const inputRef = useAutoResizeTextarea(testCase.input);
+  const expectedRef = useAutoResizeTextarea(testCase.expectedOutput);
+  const outputRef = useAutoResizeTextarea(testOutput ?? '');
+  const caseId = testCase.id;
+
   useEffect(() => {
-    if (output && output.id === testCase.id) {
+    if (output && output.id === caseId) {
       setTestOutput(output.data);
       setIsRunning(false);
     }
-  }, [output, testCase.id]);
+  }, [output, caseId]);
 
   useEffect(() => {
-    if (error && error.id === testCase.id) {
+    if (error && error.id === caseId) {
       setTestError(error.data);
       setIsRunning(false);
     }
-  }, [error, testCase.id]);
+  }, [error, caseId]);
 
   const handleRunTest = () => {
     if (!userCode.trim()) {
@@ -90,7 +98,7 @@ const TestCaseItem: React.FC<{
     setIsRunning(true);
     setTestOutput(null);
     setTestError(null);
-    runCode(userCode, { test_input: testCase.input }, testCase.id);
+    runCode(userCode, { test_input: testCase.input }, caseId);
   };
 
   const isCorrect = testOutput?.trim() === testCase.expectedOutput.trim();
@@ -115,16 +123,37 @@ const TestCaseItem: React.FC<{
         </div>
       </div>
       <div className="text-xs font-mono text-slate-400 space-y-1">
-        <p>
-          <strong>입력:</strong> {testCase.input}
+        <p className="mb-2">
+          <strong>입력:</strong>
+          <textarea
+            className="mt-1 bg-slate-800 text-white rounded px-1 py-0.5 w-full min-h-8 resize-none overflow-hidden"
+            value={testCase.input}
+            readOnly
+            ref={inputRef}
+            rows={1}
+          />
         </p>
-        <p>
-          <strong>기대 출력:</strong> {testCase.expectedOutput}
+        <p className="mb-2">
+          <strong>예상 출력:</strong>
+          <textarea
+            className="mt-1 bg-slate-800 text-white rounded px-1 py-0.5 w-full min-h-8 resize-none overflow-hidden"
+            value={testCase.expectedOutput}
+            readOnly
+            ref={expectedRef}
+            rows={1}
+          />
         </p>
         {(testOutput !== null || testError !== null) && (
           <>
-            <p>
-              <strong>실제 출력:</strong> {testOutput ?? '(출력 없음)'}
+            <p className="mb-2">
+              <strong>실제 출력:</strong>
+              <textarea
+                className="mt-1 bg-slate-800 text-white rounded px-1 py-0.5 w-full min-h-8 resize-none overflow-hidden"
+                value={testOutput ?? ''}
+                readOnly
+                ref={outputRef}
+                rows={1}
+              />
               {testOutput !== null && !testError && (
                 <span className={`${isCorrect ? 'text-green-400' : 'text-red-400'} ml-2`}>
                   {isCorrect ? '정답' : '오답'}
@@ -154,6 +183,133 @@ const TestCaseViewer: React.FC<{
   </div>
 );
 
+// CustomTestCaseItem: 워커 기반으로 동작하도록 수정
+const CustomTestCaseItem: React.FC<{
+  idx: number;
+  input: string;
+  expectedOutput: string;
+  onInputChange: (v: string) => void;
+  onExpectedChange: (v: string) => void;
+  onRemove: () => void;
+  userCode: string;
+}> = ({ idx, input, expectedOutput, onInputChange, onExpectedChange, onRemove, userCode }) => {
+  const { runCode, output, error, isReady } = useWorkerStore();
+  const [isRunning, setIsRunning] = useState(false);
+  const [testOutput, setTestOutput] = useState<string | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
+  // textarea 자동 리사이즈
+  const inputRef = useAutoResizeTextarea(input);
+  const expectedRef = useAutoResizeTextarea(expectedOutput);
+  const outputRef = useAutoResizeTextarea(testOutput ?? '');
+
+  // 커스텀 케이스는 idx에 10000을 더한 값으로 고유 id 부여
+  const caseId = idx + 10000;
+
+  useEffect(() => {
+    if (output && output.id === caseId) {
+      setTestOutput(output.data);
+      setIsRunning(false);
+    }
+  }, [output, caseId]);
+
+  useEffect(() => {
+    if (error && error.id === caseId) {
+      setTestError(error.data);
+      setIsRunning(false);
+    }
+  }, [error, caseId]);
+
+  const handleRunTest = () => {
+    if (!userCode.trim()) {
+      setTestError('코드를 입력한 후 실행해주세요.');
+      setTestOutput(null);
+      return;
+    }
+    if (!isReady) return;
+    setIsRunning(true);
+    setTestOutput(null);
+    setTestError(null);
+    runCode(userCode, { test_input: input }, caseId);
+  };
+
+  const isCorrect = testOutput?.trim() === expectedOutput.trim();
+
+  return (
+    <div className="bg-slate-700 p-3 rounded-md">
+      <div className="flex justify-between items-center mb-2">
+        <h4 className="font-semibold text-white text-sm">Custom Test</h4>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onRemove}
+            className="text-xs text-red-400 hover:text-red-600 px-2"
+            type="button"
+          >
+            삭제
+          </button>
+          <button
+            onClick={handleRunTest}
+            disabled={isRunning || !isReady}
+            className="disabled:opacity-50"
+            type="button"
+          >
+            {isRunning ? (
+              <SvgIcon src={playIconUrl} className="w-5 h-5 animate-spin" />
+            ) : (
+              <SvgIcon src={playIconUrl} className="w-5 h-5 text-slate-400 hover:text-white" />
+            )}
+          </button>
+        </div>
+      </div>
+      <div className="text-xs font-mono text-slate-400 space-y-1">
+        <p className="mb-2">
+          <strong>입력:</strong>
+          <textarea
+            className="mt-1 bg-slate-800 text-white rounded px-1 py-0.5 w-full min-h-8 resize-none overflow-hidden"
+            value={input}
+            onChange={(e) => onInputChange(e.target.value)}
+            ref={inputRef}
+            rows={1}
+          />
+        </p>
+        <p className="mb-2">
+          <strong>예상 출력:</strong>
+          <textarea
+            className="mt-1 bg-slate-800 text-white rounded px-1 py-0.5 w-full min-h-8 resize-none overflow-hidden"
+            value={expectedOutput}
+            onChange={(e) => onExpectedChange(e.target.value)}
+            ref={expectedRef}
+            rows={1}
+          />
+        </p>
+        {(testOutput !== null || testError !== null) && (
+          <>
+            <p className="mb-2">
+              <strong>실제 출력:</strong>
+              <textarea
+                className="mt-1 bg-slate-800 text-white rounded px-1 py-0.5 w-full min-h-8 resize-none overflow-hidden"
+                value={testOutput ?? ''}
+                readOnly
+                ref={outputRef}
+                rows={1}
+              />
+              {testOutput !== null && !testError && (
+                <span className={`${isCorrect ? 'text-green-400' : 'text-red-400'} ml-2`}>
+                  {isCorrect ? '정답' : '오답'}
+                </span>
+              )}
+            </p>
+            {testError && (
+              <p className="text-red-400">
+                <strong>에러:</strong> {testError}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // --- 메인 컴포넌트 ---
 const StudentProblemDetailView: React.FC<StudentProblemDetailViewProps> = ({
   problem,
@@ -162,7 +318,6 @@ const StudentProblemDetailView: React.FC<StudentProblemDetailViewProps> = ({
   userCode,
 }) => {
   const { isSubmitting } = useSubmissionStore();
-  // workerError를 가져오던 부분을 삭제합니다.
   const [activeTab, setActiveTab] = useState<'problem' | 'test'>('problem');
 
   // 받아온 문제의 exampleTc를 id/input/expectedOutput 형태로 변환합니다.
@@ -205,6 +360,21 @@ const StudentProblemDetailView: React.FC<StudentProblemDetailViewProps> = ({
     }
   }, [problem]);
 
+  // 커스텀 테스트 케이스 상태 및 핸들러 추가
+  const [customTestCases, setCustomTestCases] = useState<
+    { input: string; expectedOutput: string }[]
+  >([]);
+  const handleAddCustomTestCase = () =>
+    setCustomTestCases([...customTestCases, { input: '', expectedOutput: '' }]);
+  const handleRemoveCustomTestCase = (idx: number) =>
+    setCustomTestCases(customTestCases.filter((_, i) => i !== idx));
+  const handleCustomInputChange = (idx: number, v: string) =>
+    setCustomTestCases(customTestCases.map((tc, i) => (i === idx ? { ...tc, input: v } : tc)));
+  const handleCustomExpectedChange = (idx: number, v: string) =>
+    setCustomTestCases(
+      customTestCases.map((tc, i) => (i === idx ? { ...tc, expectedOutput: v } : tc)),
+    );
+
   return (
     <div className="h-full flex flex-col p-4 bg-slate-800">
       <header className="flex items-center mb-4">
@@ -217,11 +387,31 @@ const StudentProblemDetailView: React.FC<StudentProblemDetailViewProps> = ({
       <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <main className="flex-grow my-4 overflow-y-auto pr-2">
-        {/* 불필요한 전역 에러 표시부 삭제 */}
         {activeTab === 'problem' ? (
           <ProblemDescription problem={problem} />
         ) : (
-          <TestCaseViewer testCases={formatted} userCode={userCode} />
+          <div className="space-y-4">
+            <TestCaseViewer testCases={formatted} userCode={userCode} />
+            {customTestCases.map((tc, idx) => (
+              <CustomTestCaseItem
+                key={idx}
+                idx={idx}
+                input={tc.input}
+                expectedOutput={tc.expectedOutput}
+                onInputChange={(v) => handleCustomInputChange(idx, v)}
+                onExpectedChange={(v) => handleCustomExpectedChange(idx, v)}
+                onRemove={() => handleRemoveCustomTestCase(idx)}
+                userCode={userCode}
+              />
+            ))}
+            <button
+              onClick={handleAddCustomTestCase}
+              className="w-full py-2 bg-slate-600 text-white rounded-md hover:bg-slate-500 text-sm font-medium"
+              type="button"
+            >
+              + 테스트 케이스 추가
+            </button>
+          </div>
         )}
       </main>
 

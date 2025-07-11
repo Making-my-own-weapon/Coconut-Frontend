@@ -1,8 +1,9 @@
 //src/components/teacher-class/ProblemImportForm.tsx
 import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Check } from 'lucide-react';
-import { useProblemStore } from '../../store/problemStore';
+import { Check, Search } from 'lucide-react';
+import { useProblemStore } from '../../../store/problemStore';
+import ProblemDetailModal from './ProblemDetailModal';
 
 interface ProblemImportFormProps {
   onClose?: () => void;
@@ -40,6 +41,11 @@ export default function ProblemImportForm({ onClose }: ProblemImportFormProps) {
     '분할 정복·이진 탐색',
     '백트래킹·완전 탐색',
   ];
+
+  const [detailModal, setDetailModal] = useState<{ open: boolean; problem: any | null }>({
+    open: false,
+    problem: null,
+  });
 
   // 3. 컴포넌트가 처음 보일 때, 스토어 액션을 호출해 전체 문제 목록을 불러옵니다.
   useEffect(() => {
@@ -159,7 +165,6 @@ export default function ProblemImportForm({ onClose }: ProblemImportFormProps) {
           paginatedList.map((p) => (
             <div
               key={p.problemId}
-              // 5. 'toggleSelect' 대신 스토어의 'toggleProblemSelection' 호출
               onClick={() => toggleProblemSelection(p.problemId)}
               className="relative bg-gray-700 border border-gray-600 rounded p-4 hover:bg-gray-600 cursor-pointer"
             >
@@ -179,6 +184,18 @@ export default function ProblemImportForm({ onClose }: ProblemImportFormProps) {
               >
                 {p.source === 'My' ? '내 문제' : '백준'}
               </span>
+              {/* 돋보기 아이콘 (상세) */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDetailModal({ open: true, problem: p });
+                }}
+                className="absolute top-2 right-16 p-1 text-gray-300 hover:text-blue-400"
+                title="문제 상세정보 보기"
+              >
+                <Search size={18} />
+              </button>
               {/* 6. 'selectedIds.includes' 대신 스토어의 Set 객체 'selectedIds.has' 사용 */}
               {selectedIds.has(p.problemId) && (
                 <Check className="absolute bottom-2 right-2 text-green-500 bg-gray-800 rounded-full p-1" />
@@ -226,6 +243,14 @@ export default function ProblemImportForm({ onClose }: ProblemImportFormProps) {
           다음
         </button>
       </div>
+
+      {/* 상세 모달 */}
+      {detailModal.open && detailModal.problem && (
+        <ProblemDetailModal
+          problem={detailModal.problem}
+          onClose={() => setDetailModal({ open: false, problem: null })}
+        />
+      )}
     </div>
   );
 }

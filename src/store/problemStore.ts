@@ -20,6 +20,7 @@ interface ProblemState {
   toggleProblemSelection: (id: number) => void;
   assignSelectedProblems: (roomId: number) => Promise<void>;
   createAndAssignProblem: (dto: CreateProblemDto, roomId: number) => Promise<void>;
+  removeProblemFromRoom: (roomId: number, problemId: number) => Promise<void>; // 추가
 }
 
 export const useProblemStore = create<ProblemState>((set, get) => ({
@@ -89,6 +90,20 @@ export const useProblemStore = create<ProblemState>((set, get) => ({
       console.error(err);
       set({ error: '문제 생성 또는 할당에 실패했습니다.' });
       throw err; // 에러를 다시 던져서 컴포넌트에서 인지할 수 있게 합니다.
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+  // 방에서 문제를 삭제하는 액션
+  removeProblemFromRoom: async (roomId, problemId) => {
+    set({ isLoading: true, error: null });
+    try {
+      await problemApi.deleteProblemFromRoomAPI(roomId, problemId);
+      // 삭제 후 방 정보 갱신
+      await useTeacherStore.getState().fetchRoomDetails(String(roomId));
+    } catch (err) {
+      set({ error: '문제 삭제에 실패했습니다.' });
+      throw err;
     } finally {
       set({ isLoading: false });
     }
