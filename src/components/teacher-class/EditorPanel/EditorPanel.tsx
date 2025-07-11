@@ -78,15 +78,19 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
                 : `${studentName || selectedStudentId} 에디터`}
             </span>
           </div>
-          {/* 그림판 토글 버튼: 항상 보이게 */}
-          <button
-            className={`px-3 py-1 rounded transition ${showOverlay ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-200 hover:bg-slate-600'}`}
-            onClick={() => setShowOverlay((v) => !v)}
-          >
-            {showOverlay ? '그림판 끄기' : '그림판 켜기'}
-          </button>
+          
+          <div className="flex items-center gap-2">
+            {/* 그림판 토글 버튼: 항상 보이게 */}
+            <button
+              className={`px-3 py-1 rounded transition ${showOverlay ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-200 hover:bg-slate-600'}`}
+              onClick={() => setShowOverlay((v) => !v)}
+            >
+              {showOverlay ? '그림판 끄기' : '그림판 켜기'}
+            </button>
+          </div>
         </div>
       </div>
+      
       {/* Monaco Editor + SvgOverlay */}
       <div className="flex-grow relative">
         {isConnecting ? (
