@@ -26,7 +26,7 @@ RUN npm run build
 FROM nginx:alpine
 
 # 빌드된 정적 파일 복사
-COPY dist/ /usr/share/nginx/html/
+COPY /app/dist /usr/share/nginx/html
 
 # nginx 설정 템플릿 복사
 COPY nginx/coconut.conf.template /etc/nginx/templates/coconut.conf.template
