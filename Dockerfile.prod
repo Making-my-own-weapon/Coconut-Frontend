@@ -25,8 +25,15 @@ RUN npm run build
 # 실행 단계
 FROM nginx:alpine
 
-# 빌드된 파일 복사
-COPY --from=builder /app/dist /usr/share/nginx/html
+# 빌드된 정적 파일 복사
+COPY dist/ /usr/share/nginx/html/
+
+# nginx 설정 템플릿 복사
+COPY nginx/coconut.conf.template /etc/nginx/templates/coconut.conf.template
+
+# 환경변수 기본값 설정
+ENV BACKEND_HOST=172.31.14.197
+ENV BACKEND_PORT=3001
 
 # 포트 노출
 EXPOSE 80
