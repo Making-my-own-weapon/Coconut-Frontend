@@ -39,7 +39,7 @@ export const useStudentStore = create<StudentState>((set) => ({
 
       if (problems.length > 0) {
         initialCodes = problems.reduce((acc: Record<string, string>, p: Problem) => {
-          acc[p.problemId] = `# 문제 ${p.problemId}번\n# 여기에 코드를 입력하세요.`;
+          acc[p.problemId] = `# ${p.title}\n# 여기에 코드를 입력하세요.`;
           return acc;
         }, {});
       }
