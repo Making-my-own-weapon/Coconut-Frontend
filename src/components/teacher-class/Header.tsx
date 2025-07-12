@@ -11,6 +11,7 @@ interface TeacherHeaderProps {
   isClassStarted: boolean;
   onToggleClass: () => void;
   title?: string; // 수업 제목만 남김
+  onVoiceChatToggle?: () => void; // 음성채팅 토글 함수 추가
 }
 
 const TeacherHeader: React.FC<TeacherHeaderProps> = ({
@@ -20,10 +21,15 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   isClassStarted,
   onToggleClass,
   title,
+  onVoiceChatToggle, // 추가
 }) => {
   // 마이크/설정 버튼 핸들러 (학생과 동일)
   const handleMicrophone = () => {
-    alert('마이크 버튼 클릭! (나중에 로직 추가)');
+    if (onVoiceChatToggle) {
+      onVoiceChatToggle();
+    } else {
+      alert('마이크 버튼 클릭!');
+    }
   };
   const handleSettings = () => {
     alert('설정 버튼 클릭! (나중에 로직 추가)');

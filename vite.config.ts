@@ -10,4 +10,12 @@ export default defineConfig({
       plugins: [tailwindcss()], // 여기에 Tailwind CSS 플러그인을 추가합니다.
     },
   },
+  define: {
+    global: 'globalThis',
+  },
+  resolve: {
+    alias: {
+      'simple-peer': 'simple-peer/simplepeer.min.js',
+    },
+  },
 });

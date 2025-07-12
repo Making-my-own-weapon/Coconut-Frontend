@@ -8,6 +8,8 @@ import { Header } from '../components/student-class/Header';
 import ProblemPanel from '../components/student-class/ProblemPanel/ProblemPanel';
 import EditorPanel from '../components/student-class/EditorPanel/EditorPanel';
 import AnalysisPanel from '../components/student-class/AnalysisPanel';
+import VoiceChatModal from '../components/common/VoiceChatModal';
+import { useVoiceChat } from '../hooks/useVoiceChat';
 import socket from '../lib/socket';
 
 interface SVGLine {
@@ -77,6 +79,19 @@ const StudentClassPage: React.FC = () => {
   // SVG 상태 관리
   const [svgLines, setSvgLines] = useState<SVGLine[]>([]);
 
+  // 음성채팅 팝업 상태
+  const [isVoiceChatOpen, setIsVoiceChatOpen] = useState(false);
+  const [isRoomJoined, setIsRoomJoined] = useState(false);
+
+  // 음성채팅 훅 사용
+  const voiceChat = useVoiceChat({
+    roomId: roomId!,
+    userId: user?.id?.toString() || '',
+    userName: user?.name || '',
+    userRole: 'student',
+    isConnected: isRoomJoined, // 방 입장 완료 후에만 true
+  });
+
   useEffect(() => {
     if (roomId) {
       fetchRoomDetails(roomId);
@@ -97,6 +112,8 @@ const StudentClassPage: React.FC = () => {
 
       socket.on('room:joined', (data) => {
         setIsJoiningRoom(false);
+        setIsRoomJoined(true); // 방 입장 완료 시 상태 업데이트
+        console.log('[Student] 방 입장 성공:', data.roomId, data.inviteCode);
       });
       socket.on('room:full', () => {
         setIsJoiningRoom(false);
@@ -263,6 +280,23 @@ const StudentClassPage: React.FC = () => {
         title={currentRoom?.title || '수업 제목'}
         isClassStarted={currentRoom?.status === 'IN_PROGRESS'}
         onLeave={handleLeaveClass}
+        onVoiceChatToggle={() => setIsVoiceChatOpen(!isVoiceChatOpen)}
+      />
+
+      {/* 음성채팅 팝업 */}
+      <VoiceChatModal
+        isOpen={isVoiceChatOpen}
+        onClose={() => setIsVoiceChatOpen(false)}
+        isMuted={voiceChat.isMuted}
+        onToggleMute={voiceChat.toggleMute}
+        isEnabled={voiceChat.isEnabled}
+        onToggleEnabled={voiceChat.toggleEnabled}
+        volume={voiceChat.volume}
+        onVolumeChange={voiceChat.handleVolumeChange}
+        participants={voiceChat.participants}
+        onToggleParticipantMute={voiceChat.toggleParticipantMute}
+        onParticipantVolumeChange={voiceChat.handleParticipantVolumeChange}
+        userId={String(myId || '')}
       />
       <main className="flex flex-grow overflow-hidden">
         <ProblemPanel
@@ -281,7 +315,7 @@ const StudentClassPage: React.FC = () => {
             otherCursor={otherCursor}
             onCursorChange={handleCursorChange}
             roomId={roomId}
-            userId={user?.id ? String(user.id) : undefined}
+            userId={String(myId || '')}
             role="student"
             svgLines={svgLines}
             onAddSVGLine={handleAddSVGLine}
