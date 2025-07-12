@@ -9,6 +9,7 @@ interface HeaderProps {
   title?: string;
   isClassStarted?: boolean;
   onLeave?: () => void; // 추가
+  onVoiceChatToggle?: () => void; // 음성채팅 토글 함수 추가
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,6 +17,7 @@ export const Header: React.FC<HeaderProps> = ({
   isConnecting = false,
   title,
   onLeave, // 추가
+  onVoiceChatToggle, // 추가
 }) => {
   const handleConnect = () => {
     alert('세션 연결하기 버튼 클릭!');
@@ -24,7 +26,11 @@ export const Header: React.FC<HeaderProps> = ({
   // 기존 handleManage 삭제 또는 미사용
 
   const handleMicrophone = () => {
-    alert('마이크 버튼 클릭! (나중에 로직 추가)');
+    if (onVoiceChatToggle) {
+      onVoiceChatToggle();
+    } else {
+      alert('마이크 버튼 클릭!');
+    }
   };
 
   const handleSettings = () => {

@@ -9,6 +9,8 @@ import TeacherProblemPanel from '../components/teacher-class/ProblemPanel/Teache
 import TeacherEditorPanel from '../components/teacher-class/EditorPanel/EditorPanel';
 import TeacherAnalysisPanel from '../components/teacher-class/AnalysisPanel';
 import StudentGridView from '../components/teacher-class/grid/StudentGridView';
+import VoiceChatModal from '../components/common/VoiceChatModal';
+import { useVoiceChat } from '../hooks/useVoiceChat';
 import { useAuthStore } from '../store/authStore';
 
 interface SVGLine {
@@ -42,6 +44,10 @@ const TeacherClassPage: React.FC = () => {
   const [svgLines, setSvgLines] = useState<SVGLine[]>([]);
   const [studentSvgLines, setStudentSvgLines] = useState<Map<number, SVGLine[]>>(new Map());
 
+  // 음성채팅 팝업 상태
+  const [isVoiceChatOpen, setIsVoiceChatOpen] = useState(false);
+  const [isRoomJoined, setIsRoomJoined] = useState(false);
+
   const {
     currentRoom,
     classStatus,
@@ -65,6 +71,15 @@ const TeacherClassPage: React.FC = () => {
   const [mode, setMode] = useState<'grid' | 'editor'>('grid');
   const { user } = useAuthStore();
 
+  // 음성채팅 훅 사용
+  const voiceChat = useVoiceChat({
+    roomId: roomId!,
+    userId: user?.id?.toString() || '',
+    userName: user?.name || '',
+    userRole: 'teacher',
+    isConnected: isRoomJoined, // 방 입장 완료 후에만 true
+  });
+
   // 즉시 반영되는 수업 상태 (UI용)
   const [localClassStarted, setLocalClassStarted] = useState(classStatus === 'IN_PROGRESS');
   useEffect(() => {
@@ -81,7 +96,11 @@ const TeacherClassPage: React.FC = () => {
   useEffect(() => {
     socket.connect();
 
-    socket.on('room:joined', (data) => console.log('[Teacher] room:joined', data));
+    socket.on('room:joined', (data) => {
+      console.log('[Teacher] room:joined', data);
+      setIsRoomJoined(true); // 방 입장 완료 시 상태 업데이트
+      setIsVoiceChatOpen(true); // 방 입장 완료 시 음성채팅 팝업 열기
+    });
     socket.on('room:full', () => console.log('[Teacher] room:full'));
     socket.on('room:notfound', () => console.log('[Teacher] room:notfound'));
 
@@ -410,6 +429,23 @@ const TeacherClassPage: React.FC = () => {
         isClassStarted={localClassStarted}
         onToggleClass={handleToggleClass}
         title={currentRoom?.title || '수업 제목'}
+        onVoiceChatToggle={() => setIsVoiceChatOpen(!isVoiceChatOpen)}
+      />
+
+      {/* 음성채팅 팝업 */}
+      <VoiceChatModal
+        isOpen={isVoiceChatOpen}
+        onClose={() => setIsVoiceChatOpen(false)}
+        isMuted={voiceChat.isMuted}
+        onToggleMute={voiceChat.toggleMute}
+        isEnabled={voiceChat.isEnabled}
+        onToggleEnabled={voiceChat.toggleEnabled}
+        volume={voiceChat.volume}
+        onVolumeChange={voiceChat.handleVolumeChange}
+        participants={voiceChat.participants}
+        onToggleParticipantMute={voiceChat.toggleParticipantMute}
+        onParticipantVolumeChange={voiceChat.handleParticipantVolumeChange}
+        userId={String(teacherId)}
       />
       <main className="flex flex-grow overflow-hidden">
         <TeacherProblemPanel
