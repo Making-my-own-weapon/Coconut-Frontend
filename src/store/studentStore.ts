@@ -11,9 +11,11 @@ interface StudentState {
   problems: Problem[];
   codes: Record<string, string>;
   selectedProblemId: number | null;
+  otherCursor: { lineNumber: number; column: number } | null;
   fetchRoomDetails: (roomId: string) => Promise<void>;
   selectProblem: (problemId: number | null) => void;
   updateCode: (payload: { problemId: number; code: string }) => void;
+  setOtherCursor: (cursor: { lineNumber: number; column: number } | null) => void;
 }
 
 export const useStudentStore = create<StudentState>((set) => ({
@@ -25,6 +27,7 @@ export const useStudentStore = create<StudentState>((set) => ({
   problems: [],
   codes: {},
   selectedProblemId: null,
+  otherCursor: null,
 
   // --- 액션 ---
   fetchRoomDetails: async (roomId: string) => {
@@ -36,7 +39,7 @@ export const useStudentStore = create<StudentState>((set) => ({
 
       if (problems.length > 0) {
         initialCodes = problems.reduce((acc: Record<string, string>, p: Problem) => {
-          acc[p.problemId] = `# 문제 ${p.problemId}번\n# 여기에 코드를 입력하세요.`;
+          acc[p.problemId] = `# ${p.title}\n# 여기에 코드를 입력하세요.`;
           return acc;
         }, {});
       }
@@ -67,4 +70,5 @@ export const useStudentStore = create<StudentState>((set) => ({
       },
     }));
   },
+  setOtherCursor: (cursor) => set({ otherCursor: cursor }),
 }));

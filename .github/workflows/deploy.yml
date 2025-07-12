@@ -3,7 +3,7 @@
 name: Deploy Frontend to ECS (Rolling Update)
  
 on:
-  push: 
+  push:
     branches:
       - release
       - deploy-test
@@ -45,6 +45,7 @@ jobs:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
         run: |
           docker build --build-arg VITE_API_BASE_URL="${VITE_API_BASE_URL}" -f Dockerfile.prod -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       # 5️⃣ ECS Task Definition 갱신

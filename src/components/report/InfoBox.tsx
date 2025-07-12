@@ -9,12 +9,15 @@ export interface InfoBoxProps {
 
 const InfoBox: React.FC<InfoBoxProps> = ({ title, icon, children, className = '' }) => {
   return (
-    <div className={`bg-slate-800 rounded-lg p-4 ${className}`}>
-      <div className="flex items-center text-white font-bold mb-3">
-        {icon}
-        <h3 className="text-md ml-2">{title}</h3>
+    <div className={`bg-slate-800 rounded-lg p-4 h-[122.5px] flex items-center ${className}`}>
+      <div className="flex items-center justify-between w-full">
+        <div className="flex items-center text-white">
+          {icon}
+          <h3 className="text-xl ml-2 font-bold">{title}</h3>
+        </div>
+
+        <div>{children}</div>
       </div>
-      {children}
     </div>
   );
 };

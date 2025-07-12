@@ -2,7 +2,7 @@ import React from 'react';
 
 export interface MetricCardProps {
   title: string;
-  value: string;
+  value?: string;
   subtitle?: string;
   additionalInfo?: string;
   bgGradient: string;
@@ -20,45 +20,24 @@ const MetricCard: React.FC<MetricCardProps> = ({
   bgGradient,
   shadowColor,
   icon,
-  iconBg = 'bg-white',
+  // iconBg = 'bg-white',
   className = '',
 }) => {
   return (
-    <div className={`w-72 h-[120px] flex-shrink-0 relative ${className}`}>
-      <div
-        className={`w-full h-full flex-shrink-0 rounded-2xl ${bgGradient} ${shadowColor} absolute left-0 top-0`}
-      ></div>
+    // 1. 카드의 가장 바깥 div를 flex 컨테이너로 만들고, 아이템들을 세로 중앙 정렬(items-center)합니다.
+    <div
+      className={`p-4 rounded-lg flex items-center h-28 gap-4 ${bgGradient} ${shadowColor} ${className}`}
+    >
+      {/* 2. 아이콘을 표시하는 부분입니다. */}
+      <div className="flex-shrink-0">{icon}</div>
 
-      {/* Icon container */}
-      <div
-        className={`w-[60px] h-[60px] xl:w-12 xl:h-12 flex-shrink-0 rounded-xl ${iconBg} absolute left-[23px] top-[35px] xl:left-4 xl:top-6 flex items-center justify-center`}
-      >
-        {icon}
+      {/* 3. 모든 텍스트를 flex-col 컨테이너로 묶어 세로로 정렬합니다. */}
+      <div className="flex flex-col">
+        <span className="text-sm text-white/80">{title}</span>
+        {value && <span className="text-2xl font-bold text-white">{value}</span>}
+        {subtitle && <span className="text-lg font-semibold text-white">{subtitle}</span>}
+        {additionalInfo && <span className="text-xs text-white/70">{additionalInfo}</span>}
       </div>
-
-      {/* Main value */}
-      <div className="text-white font-inter text-[32px] xl:text-2xl font-bold leading-12 absolute left-[92px] top-[29px] xl:left-20 xl:top-6">
-        {value}
-      </div>
-
-      {/* Title */}
-      <div className="text-white font-inter text-base xl:text-sm font-semibold leading-6 absolute left-[92px] top-[71px] xl:left-20 xl:bottom-2">
-        {title}
-      </div>
-
-      {/* Subtitle */}
-      {subtitle && (
-        <div className="text-white font-inter text-sm xl:text-xs font-bold leading-[10px] absolute left-[92px] top-[52px] xl:left-20 xl:top-10">
-          {subtitle}
-        </div>
-      )}
-
-      {/* Additional info */}
-      {additionalInfo && (
-        <div className="text-white font-inter text-xs xl:text-[10px] font-normal leading-[10px] absolute left-[92px] top-[74px] xl:left-20 xl:top-14">
-          {additionalInfo}
-        </div>
-      )}
     </div>
   );
 };
