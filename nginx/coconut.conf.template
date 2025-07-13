@@ -30,6 +30,16 @@ server {
         proxy_send_timeout 30s;
         proxy_read_timeout 30s;
     }
+
+    # websocket의 초기 http handshake를 백엔드로 전달
+    location /socket.io/ {
+    proxy_pass http://backend:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;        # WebSocket 업그레이드
+    proxy_set_header Connection "upgrade";         # 연결 업그레이드
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+}
     
     # 프론트엔드 정적 파일
     location / {
