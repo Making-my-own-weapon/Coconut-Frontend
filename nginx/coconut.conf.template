@@ -8,7 +8,7 @@ server {
     
     # 모든 API 요청을 /api/v1/ prefix를 추가하여 백엔드로 프록시
     # 정규식 ^/(auth|room|db)/를 사용해서 이 세 가지 경로 패턴에 대해서만 /api/v1 prefix를 추가하고, $uri 변수를 사용해서 원본 경로를 그대로 유지
-    location ~ ^/(auth|room|rooms|db)/ {
+    location ~ ^/(auth|rooms|db)/ {
         proxy_pass http://backend/api/v1$uri;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
