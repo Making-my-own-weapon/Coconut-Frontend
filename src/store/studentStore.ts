@@ -17,6 +17,8 @@ interface StudentState {
   selectProblem: (problemId: number | null) => void;
   updateCode: (payload: { problemId: number; code: string }) => void;
   setOtherCursor: (cursor: { lineNumber: number; column: number } | null) => void;
+  resetStore: () => void;
+  removeCode: (problemId: number) => void;
 }
 
 export const useStudentStore = create<StudentState>()(
@@ -38,13 +40,21 @@ export const useStudentStore = create<StudentState>()(
         try {
           const response = await getRoomDetailsAPI(roomId);
           const problems = response.data.problems || [];
+          const newProblemIds = problems.map((p) => p.problemId);
 
           // 기존 코드를 유지하면서 새로운 문제에 대해서만 초기 코드 설정
           set((state) => {
             const existingCodes = state.codes || {};
             const newCodes = { ...existingCodes };
 
-            // 새로운 문제들에 대해서만 초기 코드 설정 (기존 코드가 없는 경우)
+            // 1. 더 이상 존재하지 않는 문제의 코드를 삭제
+            Object.keys(newCodes).forEach((pid) => {
+              if (!newProblemIds.includes(Number(pid))) {
+                delete newCodes[pid];
+              }
+            });
+
+            // 2. 새로운 문제들에 대해서만 초기 코드 설정 (기존 코드가 없는 경우)
             problems.forEach((p: Problem) => {
               if (!newCodes[p.problemId]) {
                 newCodes[p.problemId] = `# ${p.title}\n# 여기에 코드를 입력하세요.`;
@@ -79,6 +89,24 @@ export const useStudentStore = create<StudentState>()(
         }));
       },
       setOtherCursor: (cursor) => set({ otherCursor: cursor }),
+
+      resetStore: () =>
+        set({
+          codes: {},
+          selectedProblemId: null,
+          otherCursor: null,
+          currentRoom: null,
+          students: [],
+          problems: [],
+          isLoading: false,
+          error: null,
+        }),
+      removeCode: (problemId: number) =>
+        set((state) => {
+          const newCodes = { ...state.codes };
+          delete newCodes[problemId];
+          return { codes: newCodes };
+        }),
     }),
     {
       name: 'student-storage',

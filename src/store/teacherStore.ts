@@ -60,6 +60,7 @@ interface TeacherState {
   setTeacherCode: (code: string) => void;
   deleteRoom: (roomId: string) => Promise<void>;
   setOtherCursor: (cursor: { lineNumber: number; column: number } | null) => void;
+  resetStore: () => void;
 }
 
 // --- 스토어 생성 ---
@@ -174,6 +175,14 @@ export const useTeacherStore = create<TeacherState>()(
         }
       },
       setOtherCursor: (cursor) => set({ otherCursor: cursor }),
+      resetStore: () =>
+        set({
+          teacherCode: '',
+          studentCodes: {},
+          selectedStudentId: null,
+          selectedProblemId: null,
+          // 필요에 따라 다른 상태도 초기화 가능
+        }),
     }),
     {
       name: 'teacher-storage',
