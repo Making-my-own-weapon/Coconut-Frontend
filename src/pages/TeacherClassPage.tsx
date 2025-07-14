@@ -173,7 +173,10 @@ const TeacherClassPage: React.FC = () => {
 
   // 최초 진입 시 한 번만 fetchRoomDetails 호출
   useEffect(() => {
-    if (roomId) fetchRoomDetails(roomId);
+    if (roomId) {
+      useTeacherStore.getState().resetStore(); // 방 입장 시 상태 초기화
+      fetchRoomDetails(roomId);
+    }
   }, [roomId, fetchRoomDetails]);
 
   // room:join emit - currentRoom 의존성 제거
@@ -220,6 +223,7 @@ const TeacherClassPage: React.FC = () => {
       if (classStatus === 'IN_PROGRESS') {
         try {
           await updateRoomStatus(roomId);
+          useTeacherStore.getState().resetStore(); // 수업 종료 시 상태 초기화
           navigate(`/room/${roomId}/report`);
         } catch {
           alert('수업 종료에 실패했습니다.');

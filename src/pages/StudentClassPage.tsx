@@ -94,6 +94,7 @@ const StudentClassPage: React.FC = () => {
 
   useEffect(() => {
     if (roomId) {
+      useStudentStore.getState().resetStore(); // 방 입장 시 상태 초기화
       fetchRoomDetails(roomId);
     }
   }, [roomId, fetchRoomDetails]);
@@ -238,6 +239,7 @@ const StudentClassPage: React.FC = () => {
 
   // 1. 수업 나가기 핸들러 추가
   const handleLeaveClass = () => {
+    useStudentStore.getState().resetStore(); // 방 나갈 때 상태 초기화
     if (roomId && myId && inviteCode) {
       socket.emit('room:leave', { roomId, userId: myId, inviteCode });
       window.location.href = '/';
