@@ -71,7 +71,8 @@ const TeacherClassPage: React.FC = () => {
     setOtherCursor,
     setStudentCurrentProblem,
   } = useTeacherStore();
-  const { submitCode, isSubmitting, analysisResult, closeAnalysis } = useSubmissionStore();
+  const { submitCode, isSubmitting, analysisResult, detailedAnalysis, isAnalyzing, closeAnalysis } =
+    useSubmissionStore();
   // userCode, setUserCode 제거
   const [mode, setMode] = useState<'grid' | 'editor'>('grid');
   const { user } = useAuthStore();
@@ -661,7 +662,9 @@ const TeacherClassPage: React.FC = () => {
               {isAnalysisPanelOpen && (
                 <TeacherAnalysisPanel
                   isLoading={isSubmitting}
+                  isAnalyzing={isAnalyzing}
                   result={analysisResult}
+                  detailedAnalysis={detailedAnalysis}
                   onClose={handleCloseAnalysis}
                   code={code} // 에디터 코드 전달
                   isSubmitted={!!analysisResult} // 제출 여부: 결과가 있으면 true
