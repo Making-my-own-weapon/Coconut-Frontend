@@ -99,7 +99,6 @@ const TeacherClassPage: React.FC = () => {
     socket.on('room:joined', (data) => {
       console.log('[Teacher] room:joined', data);
       setIsRoomJoined(true); // 방 입장 완료 시 상태 업데이트
-      setIsVoiceChatOpen(true); // 방 입장 완료 시 음성채팅 팝업 열기
     });
     socket.on('room:full', () => console.log('[Teacher] room:full'));
     socket.on('room:notfound', () => console.log('[Teacher] room:notfound'));
