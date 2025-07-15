@@ -665,6 +665,7 @@ const TeacherClassPage: React.FC = () => {
                   onClose={handleCloseAnalysis}
                   code={code} // 에디터 코드 전달
                   isSubmitted={!!analysisResult} // 제출 여부: 결과가 있으면 true
+                  problemId={selectedProblemId?.toString()} // 선택된 문제 ID 전달
                 />
               )}
             </>
