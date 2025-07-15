@@ -17,6 +17,21 @@ interface SVGLine {
   color: string;
 }
 
+// store 초기화 훅 추가
+function useRoomEntryReset(currentRoomId: string | number | null) {
+  React.useEffect(() => {
+    if (!currentRoomId) return;
+    const lastRoomId = localStorage.getItem('lastRoomId');
+    if (lastRoomId !== String(currentRoomId)) {
+      // 새로운 방 입장(또는 방 생성 후 입장)
+      useStudentStore.getState().resetStore();
+      // 필요하다면 다른 store도 초기화
+      localStorage.setItem('lastRoomId', String(currentRoomId));
+    }
+    // 새로고침이면 아무것도 안 함
+  }, [currentRoomId]);
+}
+
 const StudentClassPage: React.FC = () => {
   const { initialize, terminate } = useWorkerStore();
 
@@ -28,6 +43,7 @@ const StudentClassPage: React.FC = () => {
   }, [initialize, terminate]);
 
   const { roomId } = useParams<{ roomId: string }>();
+  useRoomEntryReset(roomId ? String(roomId) : null);
 
   const {
     currentRoom,
@@ -275,6 +291,7 @@ const StudentClassPage: React.FC = () => {
   // 1. 수업 나가기 핸들러 추가
   const handleLeaveClass = () => {
     useStudentStore.getState().resetStore(); // 방 나갈 때 상태 초기화
+    localStorage.removeItem('lastRoomId'); // 방 나갈 때 roomId도 삭제
     if (roomId && myId && inviteCode) {
       socket.emit('room:leave', { roomId, userId: myId, inviteCode });
       window.location.href = '/';
