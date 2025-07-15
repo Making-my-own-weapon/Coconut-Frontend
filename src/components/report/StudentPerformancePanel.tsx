@@ -56,7 +56,7 @@ const StudentPerformancePanel: React.FC = () => {
 
       {/* Student results */}
       <div className="absolute left-6 top-[81px] space-y-5">
-        {mockStudentData.map((student, index) => (
+        {mockStudentData.map((student) => (
           <div key={student.id} className="w-[549px] h-[114px] flex-shrink-0 relative">
             <div className="w-[549px] h-[114px] flex-shrink-0 rounded-xl bg-slate-600 absolute left-0 top-0"></div>
 
