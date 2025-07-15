@@ -14,6 +14,7 @@ interface TeacherProblemPanelProps {
   onSubmit: () => void;
   selectedProblemId: number | null;
   onSelectProblem: (problemId: number | null) => void;
+  isCollaborating: boolean;
 }
 
 // 간단한 Modal 컴포넌트 정의
@@ -41,6 +42,7 @@ export const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({
   onSubmit,
   selectedProblemId,
   onSelectProblem,
+  isCollaborating,
 }) => {
   const { fetchRoomDetails, currentRoom } = useTeacherStore();
   const { removeProblemFromRoom } = useProblemStore();
@@ -93,6 +95,7 @@ export const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({
             onBackToList={() => onSelectProblem(null)}
             onSubmit={onSubmit}
             userCode={userCode}
+            disabled={isCollaborating}
           />
         ) : (
           <TeacherProblemListView
@@ -101,6 +104,7 @@ export const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({
             onDeleteProblem={handleDeleteProblem}
             onOpenCreateModal={() => setCreateModalOpen(true)}
             onOpenImportModal={() => setImportModalOpen(true)}
+            isCollaborating={isCollaborating}
           />
         )}
       </aside>

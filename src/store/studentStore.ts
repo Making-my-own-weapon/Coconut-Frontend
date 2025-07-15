@@ -40,7 +40,7 @@ export const useStudentStore = create<StudentState>()(
         try {
           const response = await getRoomDetailsAPI(roomId);
           const problems = response.data.problems || [];
-          const newProblemIds = problems.map((p) => p.problemId);
+          const newProblemIds = problems.map((p: { problemId: any }) => p.problemId);
 
           // 기존 코드를 유지하면서 새로운 문제에 대해서만 초기 코드 설정
           set((state) => {

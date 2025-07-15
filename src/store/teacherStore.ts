@@ -47,7 +47,7 @@ interface TeacherState {
   classStatus: 'WAITING' | 'IN_PROGRESS' | 'FINISHED';
   selectedStudentId: number | null;
   selectedProblemId: number | null;
-  studentCodes: Record<number, string>;
+  studentCodes: Record<number, Record<number, string>>;
   teacherCode: string;
   otherCursor: { lineNumber: number; column: number } | null;
   createRoom: (title: string, maxParticipants: number) => Promise<void>;
@@ -56,11 +56,13 @@ interface TeacherState {
   clearCreatedRoom: () => void;
   setSelectedStudentId: (studentId: number | null) => void;
   selectProblem: (problemId: number | null) => void;
-  updateStudentCode: (studentId: number, code: string) => void;
+  updateStudentCode: (studentId: number, problemId: number, code: string) => void;
   setTeacherCode: (code: string) => void;
   deleteRoom: (roomId: string) => Promise<void>;
   setOtherCursor: (cursor: { lineNumber: number; column: number } | null) => void;
   resetStore: () => void;
+  studentCurrentProblems: Record<number, number | null>;
+  setStudentCurrentProblem: (studentId: number, problemId: number | null) => void;
 }
 
 // --- 스토어 생성 ---
@@ -81,6 +83,7 @@ export const useTeacherStore = create<TeacherState>()(
       studentCodes: {},
       teacherCode: '', // 추가: 선생님 고유 코드 초기값
       otherCursor: null,
+      studentCurrentProblems: {},
 
       // --- 액션 ---
       createRoom: async (title: string, maxParticipants: number) => {
@@ -148,11 +151,14 @@ export const useTeacherStore = create<TeacherState>()(
         set({ selectedProblemId: problemId });
       },
 
-      updateStudentCode: (studentId: number, code: string) => {
+      updateStudentCode: (studentId: number, problemId: number, code: string) => {
         set((state) => ({
           studentCodes: {
             ...state.studentCodes,
-            [studentId]: code,
+            [studentId]: {
+              ...(state.studentCodes[studentId] || {}),
+              [problemId]: code,
+            },
           },
         }));
       },
@@ -181,13 +187,25 @@ export const useTeacherStore = create<TeacherState>()(
           studentCodes: {},
           selectedStudentId: null,
           selectedProblemId: null,
+          studentCurrentProblems: {},
           // 필요에 따라 다른 상태도 초기화 가능
         }),
+      setStudentCurrentProblem: (studentId, problemId) => {
+        set((state) => ({
+          studentCurrentProblems: {
+            ...state.studentCurrentProblems,
+            [studentId]: problemId,
+          },
+        }));
+      },
     }),
     {
       name: 'teacher-storage',
       partialize: (state) => ({
         teacherCode: state.teacherCode,
+        studentCodes: state.studentCodes,
+        selectedStudentId: state.selectedStudentId,
+        selectedProblemId: state.selectedProblemId,
       }),
     },
   ),

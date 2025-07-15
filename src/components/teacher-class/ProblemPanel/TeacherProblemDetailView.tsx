@@ -11,6 +11,7 @@ interface TeacherProblemDetailViewProps {
   onBackToList: () => void;
   onSubmit: () => void;
   userCode: string;
+  disabled?: boolean;
 }
 
 const ProblemDescription: React.FC<{ problem: Problem }> = ({ problem }) => {
@@ -309,6 +310,7 @@ const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
   onBackToList,
   onSubmit,
   userCode,
+  disabled,
 }) => {
   const { isSubmitting } = useSubmissionStore();
   const [activeTab, setActiveTab] = useState<'problem' | 'test'>('problem');
@@ -373,9 +375,11 @@ const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
   return (
     <div className="h-full flex flex-col p-4 bg-slate-800">
       <header className="flex items-center mb-4">
-        <button onClick={onBackToList} className="p-1 rounded-full hover:bg-slate-700 mr-3">
-          <img src={backIcon} alt="목록으로" className="w-6 h-6" />
-        </button>
+        {!disabled && (
+          <button onClick={onBackToList} className="p-1 rounded-full hover:bg-slate-700 mr-3">
+            <img src={backIcon} alt="목록으로" className="w-6 h-6" />
+          </button>
+        )}
         <h1 className="text-lg font-bold truncate">{problem.title}</h1>
       </header>
       <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
