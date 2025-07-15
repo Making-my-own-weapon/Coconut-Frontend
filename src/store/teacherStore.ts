@@ -52,7 +52,7 @@ interface TeacherState {
   otherCursor: { lineNumber: number; column: number } | null;
   createRoom: (title: string, maxParticipants: number) => Promise<void>;
   fetchRoomDetails: (roomId: string) => Promise<void>;
-  updateRoomStatus: (roomId: string) => Promise<void>;
+  updateRoomStatus: (roomId: string, endTime?: string) => Promise<void>;
   clearCreatedRoom: () => void;
   setSelectedStudentId: (studentId: number | null) => void;
   selectProblem: (problemId: number | null) => void;
@@ -66,7 +66,6 @@ interface TeacherState {
 }
 
 // --- 스토어 생성 ---
-
 
 export const useTeacherStore = create<TeacherState>()(
   persist(
@@ -129,10 +128,10 @@ export const useTeacherStore = create<TeacherState>()(
         }
       },
 
-      updateRoomStatus: async (roomId: string) => {
+      updateRoomStatus: async (roomId: string, endTime?: string) => {
         const newStatus = get().classStatus === 'IN_PROGRESS' ? 'FINISHED' : 'IN_PROGRESS';
         try {
-          await teacherApi.updateRoomStatusAPI(roomId, newStatus);
+          await teacherApi.updateRoomStatusAPI(roomId, newStatus, endTime);
           await get().fetchRoomDetails(roomId);
         } catch (err) {
           console.error('Failed to update room status', err);

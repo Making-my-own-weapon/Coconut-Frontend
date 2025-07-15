@@ -9,7 +9,7 @@ interface TeacherHeaderProps {
   mode: 'grid' | 'editor';
   onModeChange: (mode: 'grid' | 'editor') => void;
   isClassStarted: boolean;
-  onToggleClass: () => void;
+  onToggleClass: (currentTimer?: string) => void;
   title?: string; // 수업 제목만 남김
   onVoiceChatToggle?: () => void; // 음성채팅 토글 함수 추가
 }
@@ -116,7 +116,7 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
         </button>
         {/* 수업 시작/종료 버튼 */}
         <button
-          onClick={onToggleClass}
+          onClick={() => onToggleClass(formatTime(timer))}
           className={`px-4 py-2 ${isClassStarted ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} rounded-md text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 ${isClassStarted ? 'focus:ring-red-500' : 'focus:ring-green-500'}`}
         >
           {isClassStarted ? '수업 종료' : '수업 시작'}

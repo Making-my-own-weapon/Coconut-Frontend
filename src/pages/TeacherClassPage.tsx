@@ -310,12 +310,13 @@ const TeacherClassPage: React.FC = () => {
 
   console.log('현재 스토어의 currentRoom 상태:', currentRoom);
 
-  const handleToggleClass = async () => {
+  const handleToggleClass = async (currentTimer?: string) => {
     setLocalClassStarted((prev) => !prev);
     if (roomId) {
       if (classStatus === 'IN_PROGRESS') {
         try {
-          await updateRoomStatus(roomId);
+          // 수업 종료 시 타이머 값을 API에 전달
+          await updateRoomStatus(roomId, currentTimer);
           useTeacherStore.getState().resetStore(); // 수업 종료 시 상태 초기화
           navigate(`/room/${roomId}/report`);
         } catch {
