@@ -1,7 +1,7 @@
 //src/components/commoc/HeaderLogout.tsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { logout } from './logoutApi';
+// import { logout } from './logoutApi';
 
 const HeaderLogout: React.FC = () => {
   const navigate = useNavigate();
@@ -9,11 +9,11 @@ const HeaderLogout: React.FC = () => {
   const handleLogout = async () => {
     const accessToken = localStorage.getItem('accessToken');
     if (!accessToken) return;
-    try {
-      await logout(accessToken);
-    } catch (e) {
-      // 에러 무시 (네트워크 등)
-    }
+    // try {
+    //   await logout(accessToken);
+    // } catch (e) {
+    //   // 에러 무시 (네트워크 등)
+    // }
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     navigate('/login');
