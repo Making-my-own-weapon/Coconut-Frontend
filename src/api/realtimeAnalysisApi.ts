@@ -15,7 +15,7 @@ export interface RealtimeAnalysisResponse {
 
 export const realtimeAnalysisApi = {
   async analyze(request: RealtimeAnalysisRequest): Promise<RealtimeAnalysisResponse> {
-    const response = await apiClient.post('analysis/realtime', request);
+    const response = await apiClient.post('/analysis/realtime', request);
     return response.data;
   },
 };
