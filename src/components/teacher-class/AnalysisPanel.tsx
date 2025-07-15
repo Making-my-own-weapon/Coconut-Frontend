@@ -39,6 +39,7 @@ interface TeacherAnalysisPanelProps {
   onClose: () => void;
   code: string; // 추가: 에디터 코드
   isSubmitted: boolean; // 추가: 제출 여부
+  problemId?: string; // 추가: 문제 ID
 }
 
 const InfoCard: React.FC<{ title: string; children: React.ReactNode; icon?: React.ReactNode }> = ({
@@ -102,6 +103,7 @@ export const TeacherAnalysisPanel: React.FC<TeacherAnalysisPanelProps> = ({
   onClose,
   code,
   isSubmitted,
+  problemId,
 }) => {
   const Spinner = () => (
     <svg
@@ -145,7 +147,7 @@ export const TeacherAnalysisPanel: React.FC<TeacherAnalysisPanelProps> = ({
           </div>
         )}
         {!isLoading && isSubmitted && result && <AnalysisContent result={result} />}
-        {!isLoading && !isSubmitted && <StaticAnalysisReport code={code} />}
+        {!isLoading && !isSubmitted && <StaticAnalysisReport code={code} problemId={problemId} />}
         {!isLoading && isSubmitted && !result && (
           <div className="h-full flex items-center justify-center">
             <p className="text-slate-400">제출된 코드가 없습니다.</p>
