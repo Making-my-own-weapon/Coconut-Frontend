@@ -20,6 +20,21 @@ interface SVGLine {
   color: string;
 }
 
+// store 초기화 훅 추가
+function useRoomEntryReset(currentRoomId: string | number | null) {
+  React.useEffect(() => {
+    if (!currentRoomId) return;
+    const lastRoomId = localStorage.getItem('lastRoomId');
+    if (lastRoomId !== String(currentRoomId)) {
+      // 새로운 방 입장(또는 방 생성 후 입장)
+      useTeacherStore.getState().resetStore();
+      // 필요하다면 다른 store도 초기화
+      localStorage.setItem('lastRoomId', String(currentRoomId));
+    }
+    // 새로고침이면 아무것도 안 함
+  }, [currentRoomId]);
+}
+
 const TeacherClassPage: React.FC = () => {
   const { initialize, terminate } = useWorkerStore(); // 2. 워커 함수 가져오기
 
@@ -308,6 +323,9 @@ const TeacherClassPage: React.FC = () => {
     }
   }, [roomId, inviteCode]);
 
+  // store 초기화 훅 호출
+  useRoomEntryReset(roomId ? String(roomId) : null);
+
   console.log('현재 스토어의 currentRoom 상태:', currentRoom);
 
   const handleToggleClass = async () => {
@@ -317,6 +335,7 @@ const TeacherClassPage: React.FC = () => {
         try {
           await updateRoomStatus(roomId);
           useTeacherStore.getState().resetStore(); // 수업 종료 시 상태 초기화
+          localStorage.removeItem('lastRoomId'); // 수업 종료 시 roomId도 삭제
           navigate(`/room/${roomId}/report`);
         } catch {
           alert('수업 종료에 실패했습니다.');
