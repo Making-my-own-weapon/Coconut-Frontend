@@ -129,6 +129,7 @@ export const useTeacherStore = create<TeacherState>((set, get) => ({
     } catch (err) {
       console.error('Failed to update room status', err);
       set({ error: '수업 상태 변경에 실패했습니다.' });
+      throw err;
     }
   },
 
