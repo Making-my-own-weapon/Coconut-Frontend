@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { getRoomDetailsAPI } from '../api/teacherApi';
 import { type RoomInfo as Room, type Student, type Problem } from './teacherStore';
 
@@ -16,59 +17,104 @@ interface StudentState {
   selectProblem: (problemId: number | null) => void;
   updateCode: (payload: { problemId: number; code: string }) => void;
   setOtherCursor: (cursor: { lineNumber: number; column: number } | null) => void;
+  resetStore: () => void;
+  removeCode: (problemId: number) => void;
 }
 
-export const useStudentStore = create<StudentState>((set) => ({
-  // --- 초기 상태 ---
-  isLoading: false,
-  error: null,
-  currentRoom: null,
-  students: [],
-  problems: [],
-  codes: {},
-  selectedProblemId: null,
-  otherCursor: null,
+export const useStudentStore = create<StudentState>()(
+  persist(
+    (set) => ({
+      // --- 초기 상태 ---
+      isLoading: false,
+      error: null,
+      currentRoom: null,
+      students: [],
+      problems: [],
+      codes: {},
+      selectedProblemId: null,
+      otherCursor: null,
 
-  // --- 액션 ---
-  fetchRoomDetails: async (roomId: string) => {
-    set({ isLoading: true, error: null });
-    try {
-      const response = await getRoomDetailsAPI(roomId);
-      const problems = response.data.problems || [];
-      let initialCodes = {};
+      // --- 액션 ---
+      fetchRoomDetails: async (roomId: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await getRoomDetailsAPI(roomId);
+          const problems = response.data.problems || [];
+          const newProblemIds = problems.map((p: { problemId: any }) => p.problemId);
 
-      if (problems.length > 0) {
-        initialCodes = problems.reduce((acc: Record<string, string>, p: Problem) => {
-          acc[p.problemId] = `# ${p.title}\n# 여기에 코드를 입력하세요.`;
-          return acc;
-        }, {});
-      }
+          // 기존 코드를 유지하면서 새로운 문제에 대해서만 초기 코드 설정
+          set((state) => {
+            const existingCodes = state.codes || {};
+            const newCodes = { ...existingCodes };
 
-      set({
-        currentRoom: response.data,
-        students: response.data.participants || [],
-        problems: problems,
-        codes: initialCodes,
-        selectedProblemId: null,
-      });
-    } catch {
-      set({ error: '수업 정보를 불러오는 데 실패했습니다.' });
-    } finally {
-      set({ isLoading: false });
-    }
-  },
+            // 1. 더 이상 존재하지 않는 문제의 코드를 삭제
+            Object.keys(newCodes).forEach((pid) => {
+              if (!newProblemIds.includes(Number(pid))) {
+                delete newCodes[pid];
+              }
+            });
 
-  selectProblem: (problemId: number | null) => {
-    set({ selectedProblemId: problemId });
-  },
+            // 2. 새로운 문제들에 대해서만 초기 코드 설정 (기존 코드가 없는 경우)
+            problems.forEach((p: Problem) => {
+              if (!newCodes[p.problemId]) {
+                newCodes[p.problemId] = `# ${p.title}\n# 여기에 코드를 입력하세요.`;
+              }
+            });
 
-  updateCode: ({ problemId, code }: { problemId: number; code: string }) => {
-    set((state) => ({
-      codes: {
-        ...state.codes,
-        [problemId]: code,
+            return {
+              currentRoom: response.data,
+              students: response.data.participants || [],
+              problems: problems,
+              codes: newCodes,
+              selectedProblemId: state.selectedProblemId, // 기존 선택 유지
+            };
+          });
+        } catch {
+          set({ error: '수업 정보를 불러오는 데 실패했습니다.' });
+        } finally {
+          set({ isLoading: false });
+        }
       },
-    }));
-  },
-  setOtherCursor: (cursor) => set({ otherCursor: cursor }),
-}));
+
+      selectProblem: (problemId: number | null) => {
+        set({ selectedProblemId: problemId });
+      },
+
+      updateCode: ({ problemId, code }: { problemId: number; code: string }) => {
+        set((state) => ({
+          codes: {
+            ...state.codes,
+            [problemId]: code,
+          },
+        }));
+      },
+      setOtherCursor: (cursor) => set({ otherCursor: cursor }),
+
+      resetStore: () =>
+        set({
+          codes: {},
+          selectedProblemId: null,
+          otherCursor: null,
+          currentRoom: null,
+          students: [],
+          problems: [],
+          isLoading: false,
+          error: null,
+        }),
+      removeCode: (problemId: number) =>
+        set((state) => {
+          const newCodes = { ...state.codes };
+          delete newCodes[problemId];
+          return { codes: newCodes };
+        }),
+    }),
+    {
+      name: 'student-storage',
+      partialize: (state) => ({
+        codes: state.codes,
+        selectedProblemId: state.selectedProblemId,
+        otherCursor: state.otherCursor,
+      }),
+    },
+  ),
+);

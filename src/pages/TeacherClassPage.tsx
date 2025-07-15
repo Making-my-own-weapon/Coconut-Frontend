@@ -12,6 +12,8 @@ import StudentGridView from '../components/teacher-class/grid/StudentGridView';
 import VoiceChatModal from '../components/common/VoiceChatModal';
 import { useVoiceChat } from '../hooks/useVoiceChat';
 import { useAuthStore } from '../store/authStore';
+// 안내 메시지 아이콘용 import 추가
+// import { FaQuestionCircle } from 'react-icons/fa'; // react-icons import 제거
 
 interface SVGLine {
   points: [number, number][];
@@ -47,6 +49,8 @@ const TeacherClassPage: React.FC = () => {
   // 음성채팅 팝업 상태
   const [isVoiceChatOpen, setIsVoiceChatOpen] = useState(false);
   const [isRoomJoined, setIsRoomJoined] = useState(false);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const {
     currentRoom,
@@ -65,6 +69,7 @@ const TeacherClassPage: React.FC = () => {
     updateStudentCode,
     otherCursor,
     setOtherCursor,
+    setStudentCurrentProblem,
   } = useTeacherStore();
   const { submitCode, isSubmitting, analysisResult, closeAnalysis } = useSubmissionStore();
   // userCode, setUserCode 제거
@@ -99,7 +104,6 @@ const TeacherClassPage: React.FC = () => {
     socket.on('room:joined', (data) => {
       console.log('[Teacher] room:joined', data);
       setIsRoomJoined(true); // 방 입장 완료 시 상태 업데이트
-      setIsVoiceChatOpen(true); // 방 입장 완료 시 음성채팅 팝업 열기
     });
     socket.on('room:full', () => console.log('[Teacher] room:full'));
     socket.on('room:notfound', () => console.log('[Teacher] room:notfound'));
@@ -110,15 +114,37 @@ const TeacherClassPage: React.FC = () => {
       setIsConnectingToStudent(false); // 협업 시작 완료
     });
 
-    socket.on('code:send', ({ collaborationId, code }) => {
-      console.log('[Teacher] code:send', { collaborationId, code });
-      updateStudentCodeFromCollaborationId(collaborationId, code);
+    socket.on('code:send', ({ collaborationId, problemId, code }) => {
+      const parts = collaborationId.split('_');
+      const studentId = Number(parts[parts.length - 1]);
       setCollaborationId(collaborationId);
+      if (problemId) {
+        // 문제 선택된 경우에만 상태 세팅
+        useTeacherStore.setState({
+          selectedStudentId: studentId,
+          selectedProblemId: problemId,
+        });
+        updateStudentCodeFromCollaborationId(collaborationId, problemId, code);
+        setInfoMessage(null);
+      } else {
+        // 문제 미선택 시 안내 메시지
+        useTeacherStore.setState({
+          selectedStudentId: studentId,
+          selectedProblemId: null,
+        });
+        setInfoMessage('학생이 문제를 선택하면 코드 에디터가 열립니다.');
+      }
     });
 
-    socket.on('code:update', ({ collaborationId, code }) => {
-      console.log('[Teacher] code:update 수신', { collaborationId, code });
-      updateStudentCodeFromCollaborationId(collaborationId, code);
+    socket.on('code:update', ({ collaborationId, problemId, code }) => {
+      const parts = collaborationId.split('_');
+      const studentId = Number(parts[parts.length - 1]);
+      console.log('[Teacher] code:update 수신', { collaborationId, problemId, code, studentId });
+      updateStudentCodeFromCollaborationId(collaborationId, problemId, code);
+      // 협업 중일 때만 문제 패널 자동 전환
+      if (collaborationId && problemId) {
+        selectProblem(problemId);
+      }
     });
 
     socket.on('collab:ended', () => {
@@ -126,6 +152,7 @@ const TeacherClassPage: React.FC = () => {
       setCollaborationId(null);
       setSelectedStudentId(null);
       setIsConnectingToStudent(false); // 협업 종료 시 연결 상태 초기화
+      setMode('grid'); // 협업 종료 시 자동으로 그리드 뷰로 전환
       // 협업 종료 시 현재 학생의 그림 데이터 저장
       if (selectedStudentId) {
         setStudentSvgLines((prev) => new Map(prev.set(selectedStudentId, svgLines)));
@@ -154,6 +181,38 @@ const TeacherClassPage: React.FC = () => {
       setOtherCursor({ lineNumber, column });
     });
 
+    socket.on('problem:selected', ({ collaborationId, problemId }) => {
+      console.log('[Teacher] problem:selected 수신', { collaborationId, problemId });
+      const parts = collaborationId.split('_');
+      const studentId = Number(parts[parts.length - 1]);
+      if (problemId) {
+        selectProblem(problemId);
+        setSelectedStudentId(studentId); // 학생이 문제를 선택하면 해당 학생으로 자동 전환
+        setInfoMessage(null);
+      } else {
+        setInfoMessage('학생이 문제를 선택하면 코드 에디터가 열립니다.');
+      }
+    });
+
+    socket.on('student:problem:selected', ({ roomId, studentId, problemId }) => {
+      // 학생이 문제를 선택할 때마다 실시간으로 store에 반영
+      setStudentCurrentProblem(studentId, problemId);
+    });
+
+    socket.on('collab:edit', ({ collaborationId, problemId, code }) => {
+      const parts = collaborationId.split('_');
+      const studentId = Number(parts[parts.length - 1]);
+      setCollaborationId(collaborationId);
+      if (problemId) {
+        useTeacherStore.setState({
+          selectedStudentId: studentId,
+          selectedProblemId: problemId,
+        });
+        updateStudentCodeFromCollaborationId(collaborationId, problemId, code);
+        setInfoMessage(null);
+      }
+    });
+
     return () => {
       socket.off('room:joined');
       socket.off('room:full');
@@ -166,6 +225,9 @@ const TeacherClassPage: React.FC = () => {
       socket.off('svgData');
       socket.off('svgCleared');
       socket.off('disconnect');
+      socket.off('problem:selected');
+      socket.off('student:problem:selected');
+      socket.off('collab:edit');
 
       // void만 리턴 (아무것도 리턴하지 않음)
     };
@@ -173,7 +235,9 @@ const TeacherClassPage: React.FC = () => {
 
   // 최초 진입 시 한 번만 fetchRoomDetails 호출
   useEffect(() => {
-    if (roomId) fetchRoomDetails(roomId);
+    if (roomId) {
+      fetchRoomDetails(roomId);
+    }
   }, [roomId, fetchRoomDetails]);
 
   // room:join emit - currentRoom 의존성 제거
@@ -212,6 +276,37 @@ const TeacherClassPage: React.FC = () => {
     // setTimer(`${mm}:${ss}`); // 타이머 상태 제거
   }, [seconds]);
 
+  // 협업 상태를 localStorage에 저장
+  useEffect(() => {
+    if (selectedStudentId !== null && selectedProblemId !== null && roomId && inviteCode) {
+      localStorage.setItem(
+        'lastCollab',
+        JSON.stringify({
+          roomId,
+          inviteCode,
+          studentId: selectedStudentId,
+          problemId: selectedProblemId,
+        }),
+      );
+    } else {
+      localStorage.removeItem('lastCollab');
+    }
+  }, [selectedStudentId, selectedProblemId, roomId, inviteCode]);
+
+  // 페이지 로드 시 자동 collab:start 복구
+  useEffect(() => {
+    const lastCollab = localStorage.getItem('lastCollab');
+    if (lastCollab) {
+      try {
+        const { roomId, inviteCode, studentId } = JSON.parse(lastCollab);
+        if (roomId && inviteCode && studentId) {
+          socket.emit('collab:start', { roomId, inviteCode, studentId });
+          setSelectedStudentId(studentId);
+        }
+      } catch {}
+    }
+  }, [roomId, inviteCode]);
+
   console.log('현재 스토어의 currentRoom 상태:', currentRoom);
 
   const handleToggleClass = async () => {
@@ -220,6 +315,7 @@ const TeacherClassPage: React.FC = () => {
       if (classStatus === 'IN_PROGRESS') {
         try {
           await updateRoomStatus(roomId);
+          useTeacherStore.getState().resetStore(); // 수업 종료 시 상태 초기화
           navigate(`/room/${roomId}/report`);
         } catch {
           alert('수업 종료에 실패했습니다.');
@@ -235,15 +331,23 @@ const TeacherClassPage: React.FC = () => {
   };
 
   // 에디터에 표시할 코드
-  const code = selectedStudentId !== null ? studentCodes[selectedStudentId] || '' : teacherCode;
+  const code =
+    mode === 'editor' && selectedStudentId === null
+      ? teacherCode
+      : selectedStudentId !== null && selectedProblemId !== null
+        ? studentCodes[selectedStudentId]?.[selectedProblemId] || ''
+        : teacherCode;
 
   // 코드 변경 핸들러
   const handleCodeChange = (code: string | undefined) => {
-    if (selectedStudentId !== null) {
-      updateStudentCode(selectedStudentId, code || '');
-      // 협업 중이면 코드 동기화 emit
+    if (selectedStudentId !== null && selectedProblemId !== null) {
+      updateStudentCode(selectedStudentId, selectedProblemId, code || '');
       if (collaborationId) {
-        socket.emit('collab:edit', { collaborationId, code: code || '' });
+        socket.emit('collab:edit', {
+          collaborationId,
+          problemId: selectedProblemId,
+          code: code || '',
+        });
       }
     } else {
       setTeacherCode(code || '');
@@ -291,11 +395,15 @@ const TeacherClassPage: React.FC = () => {
   console.log('studentsWithoutTeacher:', studentsWithoutTeacher);
 
   // 헬퍼 함수: collaborationId에서 studentId 추출하여 코드 업데이트
-  const updateStudentCodeFromCollaborationId = (collaborationId: string, code: string) => {
+  const updateStudentCodeFromCollaborationId = (
+    collaborationId: string,
+    problemId: number,
+    code: string,
+  ) => {
     const parts = collaborationId.split('_');
     const studentId = Number(parts[parts.length - 1]);
-    if (!isNaN(studentId)) {
-      updateStudentCode(studentId, code);
+    if (!isNaN(studentId) && problemId) {
+      updateStudentCode(studentId, problemId, code);
     }
   };
 
@@ -322,6 +430,8 @@ const TeacherClassPage: React.FC = () => {
     } else if (newMode === 'editor') {
       // 무조건 선생님 에디터로 전환
       setSelectedStudentId(null);
+      selectProblem(null); // 문제 선택도 해제
+      setInfoMessage(null); // 안내 메시지 제거
       setSvgLines([]); // 그림 초기화
     }
     setMode(newMode);
@@ -338,26 +448,18 @@ const TeacherClassPage: React.FC = () => {
     // 2) 이전 선택 지우기
     setSelectedStudentId(null);
 
-    // 3) 새 학생 선택
+    // 3) 새 학생 선택 및 협업 시작 요청
     if (studentId !== null && inviteCode) {
-      setSelectedStudentId(studentId);
+      setSelectedStudentId(studentId); // 학생 ID만 설정
       setMode('editor');
-      setIsConnectingToStudent(true); // 학생 연결 시작
+      setIsConnectingToStudent(true); // "연결 중..." 상태
+      setInfoMessage(null); // 이전 안내 메시지 제거
 
-      // 4) 해당 학생의 저장된 그림 데이터 불러오기
-      const savedSvgLines = studentSvgLines.get(studentId) || [];
-      setSvgLines(savedSvgLines);
-
+      // 학생 상태 추측/세팅 로직 모두 제거
+      // 서버로 협업 시작 요청만 보냄
       if (socket.connected) {
-        console.log('collab:start emit (immediate)', {
-          roomId,
-          inviteCode,
-          studentId,
-          connected: socket.connected,
-        });
         socket.emit('collab:start', { roomId, inviteCode, studentId });
       } else {
-        console.log('collab:start emit (delayed until connect)', { roomId, inviteCode, studentId });
         socket.once('connect', () => {
           socket.emit('collab:start', { roomId, inviteCode, studentId });
         });
@@ -376,6 +478,7 @@ const TeacherClassPage: React.FC = () => {
       setStudentSvgLines((prev) => new Map(prev.set(selectedStudentId, svgLines)));
     }
     setSelectedStudentId(null);
+    selectProblem(null); // 내 코드 보기 시 문제 선택도 해제
     setCollaborationId(null);
     setIsConnectingToStudent(false); // 연결 상태 초기화
     setPreviousEditorState('teacher'); // 선생님 에디터 상태로 기록
@@ -448,13 +551,16 @@ const TeacherClassPage: React.FC = () => {
         userId={String(teacherId)}
       />
       <main className="flex flex-grow overflow-hidden">
-        <TeacherProblemPanel
-          problems={currentRoom?.problems || []}
-          userCode={code}
-          onSubmit={handleSubmit}
-          selectedProblemId={selectedProblemId}
-          onSelectProblem={handleSelectProblem}
-        />
+        {selectedStudentId !== null && selectedProblemId === null ? null : (
+          <TeacherProblemPanel
+            problems={currentRoom?.problems || []}
+            userCode={code}
+            onSubmit={handleSubmit}
+            selectedProblemId={selectedProblemId}
+            onSelectProblem={handleSelectProblem}
+            isCollaborating={selectedStudentId !== null || isConnectingToStudent}
+          />
+        )}
         <div className="flex flex-grow">
           {mode === 'grid' ? (
             <StudentGridView
@@ -466,23 +572,79 @@ const TeacherClassPage: React.FC = () => {
           ) : (
             <>
               <div className="flex-grow">
-                <TeacherEditorPanel
-                  code={code}
-                  onCodeChange={handleCodeChange}
-                  selectedStudentId={selectedStudentId}
-                  studentName={studentName}
-                  onClickReturnToTeacher={handleReturnToTeacher}
-                  isConnecting={isConnectingToStudent}
-                  otherCursor={otherCursor}
-                  onCursorChange={handleCursorChange}
-                  roomId={roomId}
-                  userId={String(teacherId)}
-                  role="teacher"
-                  svgLines={svgLines}
-                  onAddSVGLine={handleAddSVGLine}
-                  onClearSVGLines={handleClearSVGLines}
-                  onSetSVGLines={handleSetSVGLines}
-                />
+                {selectedStudentId === null ? (
+                  <TeacherEditorPanel
+                    code={code}
+                    onCodeChange={handleCodeChange}
+                    selectedStudentId={null}
+                    studentName={teacherName}
+                    onClickReturnToTeacher={undefined}
+                    isConnecting={false}
+                    otherCursor={null}
+                    onCursorChange={handleCursorChange}
+                    roomId={roomId}
+                    userId={String(teacherId)}
+                    role="teacher"
+                    svgLines={svgLines}
+                    onAddSVGLine={handleAddSVGLine}
+                    onClearSVGLines={handleClearSVGLines}
+                    onSetSVGLines={handleSetSVGLines}
+                  />
+                ) : isConnectingToStudent ? (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mx-auto mb-3"></div>
+                    <p className="text-sm">학생과 연결 중...</p>
+                    <p className="text-xs text-slate-500 mt-1">잠시만 기다려주세요</p>
+                  </div>
+                ) : selectedStudentId !== null && selectedProblemId !== null ? (
+                  <TeacherEditorPanel
+                    code={code}
+                    onCodeChange={handleCodeChange}
+                    selectedStudentId={selectedStudentId}
+                    studentName={studentName}
+                    onClickReturnToTeacher={handleReturnToTeacher}
+                    isConnecting={isConnectingToStudent}
+                    otherCursor={otherCursor}
+                    onCursorChange={handleCursorChange}
+                    roomId={roomId}
+                    userId={String(teacherId)}
+                    role="teacher"
+                    svgLines={svgLines}
+                    onAddSVGLine={handleAddSVGLine}
+                    onClearSVGLines={handleClearSVGLines}
+                    onSetSVGLines={handleSetSVGLines}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full bg-slate-900 bg-opacity-80">
+                    <svg
+                      className="mb-4 animate-bounce"
+                      width="72"
+                      height="72"
+                      viewBox="0 0 72 72"
+                      fill="none"
+                    >
+                      <text
+                        x="36"
+                        y="56"
+                        textAnchor="middle"
+                        fontSize="60"
+                        fontWeight="bold"
+                        fill="#38bdf8"
+                        fontFamily="Arial, sans-serif"
+                      >
+                        ?
+                      </text>
+                    </svg>
+                    <p className="text-2xl font-bold text-blue-300 mb-2 text-center">
+                      학생이 문제를 선택하지 않았습니다.
+                    </p>
+                    <p className="text-base text-slate-400 text-center">
+                      학생이 문제를 선택하면
+                      <br />
+                      코드 에디터가 열립니다.
+                    </p>
+                  </div>
+                )}
               </div>
               {/* 분석 패널 열기 버튼: 패널이 닫혔을 때만 보임 */}
               {!isAnalysisPanelOpen && (

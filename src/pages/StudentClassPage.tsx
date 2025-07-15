@@ -68,10 +68,10 @@ const StudentClassPage: React.FC = () => {
     }
   }, [selectedProblemId, codes, userCode]);
 
-  const storeRef = useRef({ selectedProblemId, updateCode });
+  const storeRef = useRef({ selectedProblemId, codes });
   useEffect(() => {
-    storeRef.current = { selectedProblemId, updateCode };
-  }, [selectedProblemId, updateCode]);
+    storeRef.current = { selectedProblemId, codes };
+  }, [selectedProblemId, codes]);
 
   const [roomError, setRoomError] = useState<string | null>(null);
   const [isCollabLoading, setIsCollabLoading] = useState(false);
@@ -131,15 +131,22 @@ const StudentClassPage: React.FC = () => {
       socket.on('code:request', ({ collaborationId, teacherSocketId }) => {
         setCollaborationId(collaborationId);
         setIsCollabLoading(true);
-        socket.emit('code:send', { collaborationId, code: currentCodeRef.current });
+
+        // Zustand store에서 최신 상태를 직접 가져옴
+        const { selectedProblemId, codes } = useStudentStore.getState();
+        const currentCode = selectedProblemId ? codes[selectedProblemId] || '' : '';
+
+        socket.emit('code:send', {
+          collaborationId,
+          problemId: selectedProblemId,
+          code: currentCode,
+        });
       });
-      socket.on('code:update', ({ code }) => {
-        isRemoteUpdate.current = true;
-        setUserCode(code);
+      socket.on('code:update', ({ problemId, code }) => {
+        setUserCode(code); // 에디터에 코드 반영
         currentCodeRef.current = code;
-        const currentProblemId = storeRef.current.selectedProblemId;
-        if (currentProblemId) {
-          storeRef.current.updateCode({ problemId: currentProblemId, code });
+        if (problemId) {
+          updateCode({ problemId: problemId, code }); // 상태에도 반영
         }
       });
       socket.on('collab:ended', () => {
@@ -195,10 +202,34 @@ const StudentClassPage: React.FC = () => {
   }, [roomId, fetchRoomDetails]);
 
   const handleSelectProblem = (problemId: number | null) => {
-    selectProblem(problemId);
+    selectProblem(problemId); // 로컬 상태 업데이트
+
+    // 항상 교사에게 현재 선택 문제를 브로드캐스트
+    if (roomId && myId && problemId) {
+      socket.emit('student:problem:selected', { roomId, studentId: myId, problemId });
+    }
+
+    if (collaborationId && problemId) {
+      // 1. 기존처럼 문제 선택 이벤트를 보냄
+      socket.emit('problem:selected', { collaborationId, problemId });
+      console.log('[Student] emit problem:selected', { collaborationId, problemId });
+
+      // 2. 해당 문제의 현재 코드도 함께 전송 (추가)
+      const newCode = storeRef.current.codes[problemId] || '';
+      socket.emit('collab:edit', {
+        collaborationId,
+        problemId: problemId,
+        code: newCode,
+      });
+      console.log('[Student] emit collab:edit on problem select');
+    }
   };
 
   const handleCodeChange = (code: string | undefined) => {
+    if (!selectedProblemId) {
+      alert('문제를 먼저 선택해 주세요!');
+      return;
+    }
     const newCode = code || '';
     if (isRemoteUpdate.current) {
       isRemoteUpdate.current = false;
@@ -211,7 +242,12 @@ const StudentClassPage: React.FC = () => {
       updateCode({ problemId: selectedProblemId, code: newCode });
     }
     if (collaborationId) {
-      socket.emit('collab:edit', { collaborationId, code: newCode });
+      console.log('[Student] emit collab:edit', {
+        collaborationId,
+        problemId: selectedProblemId,
+        code: newCode,
+      });
+      socket.emit('collab:edit', { collaborationId, problemId: selectedProblemId, code: newCode });
     }
   };
 
@@ -238,6 +274,7 @@ const StudentClassPage: React.FC = () => {
 
   // 1. 수업 나가기 핸들러 추가
   const handleLeaveClass = () => {
+    useStudentStore.getState().resetStore(); // 방 나갈 때 상태 초기화
     if (roomId && myId && inviteCode) {
       socket.emit('room:leave', { roomId, userId: myId, inviteCode });
       window.location.href = '/';
@@ -306,22 +343,53 @@ const StudentClassPage: React.FC = () => {
           selectedProblemId={selectedProblemId}
           onSelectProblem={handleSelectProblem}
         />
+        {/* 에디터 영역 렌더링 조건 */}
         <div className="flex-grow flex-shrink min-w-0">
-          <EditorPanel
-            code={userCode}
-            onCodeChange={handleCodeChange}
-            studentName={user?.name}
-            disabled={isCollabLoading}
-            otherCursor={otherCursor}
-            onCursorChange={handleCursorChange}
-            roomId={roomId}
-            userId={String(myId || '')}
-            role="student"
-            svgLines={svgLines}
-            onAddSVGLine={handleAddSVGLine}
-            onClearSVGLines={handleClearSVGLines}
-            onSetSVGLines={handleSetSVGLines}
-          />
+          {selectedProblemId == null ? (
+            <div className="h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
+              <div className="flex flex-col items-center">
+                <svg
+                  width="64"
+                  height="64"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  className="text-blue-400 mb-4 animate-bounce"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                <div className="text-2xl font-bold text-blue-300 mb-2 text-center">
+                  문제를 선택해 주세요
+                </div>
+                <div className="text-base text-slate-400 text-center">
+                  왼쪽에서 풀고 싶은 문제를 클릭하면
+                  <br />
+                  코드 에디터가 열립니다.
+                </div>
+              </div>
+            </div>
+          ) : (
+            <EditorPanel
+              code={userCode}
+              onCodeChange={handleCodeChange}
+              studentName={user?.name}
+              disabled={isCollabLoading}
+              otherCursor={otherCursor}
+              onCursorChange={handleCursorChange}
+              roomId={roomId}
+              userId={String(myId || '')}
+              role="student"
+              svgLines={svgLines}
+              onAddSVGLine={handleAddSVGLine}
+              onClearSVGLines={handleClearSVGLines}
+              onSetSVGLines={handleSetSVGLines}
+            />
+          )}
         </div>
         {isAnalysisPanelOpen && (
           <div className="flex-shrink-0">

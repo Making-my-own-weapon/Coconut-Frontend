@@ -1,6 +1,12 @@
 # 빌드 단계 
 FROM node:20-alpine AS builder 
 
+# 1. 빌드 인자(ARG) 선언
+ARG VITE_API_BASE_URL
+
+# ✨ 디버깅용 ✨
+RUN echo "The VITE_API_BASE_URL inside Docker build is: [${VITE_API_BASE_URL}]"
+
 WORKDIR /app
 
 # 패키지 설치
@@ -9,13 +15,25 @@ RUN npm ci
 
 # 소스 코드 복사 및 빌드
 COPY . .
+
+# 2. vite가 읽게 .env.production 파일 생성
+RUN echo "VITE_API_BASE_URL=${VITE_API_BASE_URL}" > .env.production
+
+# 3. 빌드
 RUN npm run build
 
 # 실행 단계
 FROM nginx:alpine
 
-# 빌드된 파일 복사
+# 빌드된 정적 파일 복사
 COPY --from=builder /app/dist /usr/share/nginx/html
+
+# nginx 설정 템플릿 복사
+COPY nginx/coconut.conf.template /etc/nginx/templates/coconut.conf.template
+
+# 환경변수 기본값 설정
+ENV BACKEND_HOST=172.31.14.197
+ENV BACKEND_PORT=3001
 
 # 포트 노출
 EXPOSE 80

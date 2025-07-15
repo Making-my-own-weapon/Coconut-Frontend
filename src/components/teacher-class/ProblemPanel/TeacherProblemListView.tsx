@@ -7,7 +7,8 @@ const ProblemListItem: React.FC<{
   problem: Problem;
   onSelect: (id: number) => void;
   onDelete: (id: number) => void;
-}> = ({ problem, onSelect, onDelete }) => {
+  isCollaborating: boolean;
+}> = ({ problem, onSelect, onDelete, isCollaborating }) => {
   const statusClasses = {
     pass: 'bg-green-600 text-green-100',
     fail: 'bg-red-600 text-red-100',
@@ -18,6 +19,7 @@ const ProblemListItem: React.FC<{
       <button
         // 2. onSelect에 problemId(number)를 전달합니다.
         onClick={() => onSelect(problem.problemId)}
+        disabled={isCollaborating}
         className="flex-1 text-left"
       >
         <span className="font-medium text-sm text-white">{problem.title}</span>
@@ -33,6 +35,7 @@ const ProblemListItem: React.FC<{
             e.stopPropagation();
             onDelete(problem.problemId);
           }}
+          disabled={isCollaborating}
           className="p-1 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded"
           title="방에서 문제 제거"
         >
@@ -58,7 +61,15 @@ export const TeacherProblemListView: React.FC<{
   onDeleteProblem: (id: number) => void;
   onOpenCreateModal: () => void;
   onOpenImportModal: () => void;
-}> = ({ problems, onSelectProblem, onDeleteProblem, onOpenCreateModal, onOpenImportModal }) => {
+  isCollaborating: boolean;
+}> = ({
+  problems,
+  onSelectProblem,
+  onDeleteProblem,
+  onOpenCreateModal,
+  onOpenImportModal,
+  isCollaborating,
+}) => {
   return (
     <div className="p-4 h-full flex flex-col">
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
@@ -66,12 +77,14 @@ export const TeacherProblemListView: React.FC<{
         <div className="flex gap-2">
           <button
             onClick={onOpenCreateModal}
+            disabled={isCollaborating}
             className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium"
           >
             문제 추가
           </button>
           <button
             onClick={onOpenImportModal}
+            disabled={isCollaborating}
             className="px-3 py-1 bg-slate-600 text-white rounded hover:bg-slate-700 text-sm font-medium"
           >
             문제 가져오기
@@ -84,8 +97,9 @@ export const TeacherProblemListView: React.FC<{
           <ProblemListItem
             key={problem.problemId}
             problem={problem}
-            onSelect={onSelectProblem}
-            onDelete={onDeleteProblem}
+            onSelect={isCollaborating ? () => {} : onSelectProblem}
+            onDelete={isCollaborating ? () => {} : onDeleteProblem}
+            isCollaborating={isCollaborating}
           />
         ))}
       </div>

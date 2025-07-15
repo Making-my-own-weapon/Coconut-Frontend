@@ -24,8 +24,12 @@
           "value": "production"
         },
         {
-          "name": "VITE_API_URL",
-          "value": "http://3.39.237.25:3001"
+          "name": "BACKEND_HOST",
+          "value": "172.31.14.197"
+        },
+        {
+          "name": "BACKEND_PORT",
+          "value": "3001"
         }
       ],
       "logConfiguration": {
@@ -35,7 +39,7 @@
           "awslogs-region": "ap-northeast-2",
           "awslogs-stream-prefix": "ecs"
         }
-      },
+      }, 
       "healthCheck": {
         "command": [
           "CMD-SHELL",

@@ -77,7 +77,16 @@ export const useVoiceChat = ({
     } else {
       // 마이크 활성화 + 음성채팅 참가
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true, // 에코(울림) 제거
+            noiseSuppression: true, // 배경 잡음 제거
+            autoGainControl: true, // 자동 볼륨 조절
+            channelCount: 2, // 2: 스테레오, 1: 모노
+            sampleRate: 48000, // 샘플레이트(Hz), 48000이 고음질 표준
+            sampleSize: 16, // 샘플 비트수(16비트가 일반적)
+          },
+        });
         localStream.current = stream;
         setIsEnabled(true);
 
@@ -155,6 +164,10 @@ export const useVoiceChat = ({
 
   // 참여자 추가
   const addParticipant = useCallback((participant: Participant) => {
+    if (!participant.id || participant.id === 'undefined') {
+      console.warn('잘못된 participantId로 참가자 추가 시도, 스킵:', participant.id);
+      return (prev: any[]) => prev;
+    }
     setParticipants((prev) => {
       // 중복 체크
       const existing = prev.find((p) => p.id === participant.id);
@@ -221,6 +234,10 @@ export const useVoiceChat = ({
   // 새로운 피어 연결 생성
   const createPeer = useCallback(
     (participantId: string) => {
+      if (!participantId || participantId === 'undefined') {
+        console.warn('잘못된 participantId로 피어 생성 시도, 스킵:', participantId);
+        return;
+      }
       // 이미 피어가 있으면 생성하지 않음
       if (peers.current.has(participantId)) {
         console.log('이미 피어가 존재 (생성 스킵):', participantId);
@@ -325,12 +342,16 @@ export const useVoiceChat = ({
       // 내 정보는 제외
       if (String(newUserId) !== userId) {
         const participantId = String(newUserId);
+        if (!participantId || participantId === 'undefined') {
+          console.warn('잘못된 participantId로 handleVoiceUserJoined, 스킵:', participantId);
+          return;
+        }
         const peer = peers.current.get(participantId);
         // 중복 체크 강화: 피어가 있거나, 스트림이 있거나, 피어가 연결된 상태면 스킵
         if (
           peer ||
           participantStreams[participantId] ||
-          (peer && ((peer as any).connected || (peer as any)._connected))
+          (peer ? (peer as any).connected || (peer as any)._connected : false)
         ) {
           console.log('이미 피어/스트림/연결된 참가자 (스킵):', participantId);
           return;
@@ -355,11 +376,13 @@ export const useVoiceChat = ({
         peer = createPeer(fromId);
       }
       // 이미 연결된 피어면 signal 처리하지 않음
-      if (peer.destroyed || peer.connected) {
+      if (peer && (peer.destroyed || peer.connected)) {
         console.log('이미 연결된 피어 signal 무시:', fromId);
         return;
       }
-      peer.signal(signal);
+      if (peer) {
+        peer.signal(signal);
+      }
     };
 
     // 참가자 퇴장
@@ -382,6 +405,13 @@ export const useVoiceChat = ({
         // 내 정보는 제외
         if (String(participant.userId) !== userId) {
           const participantId = String(participant.userId);
+          if (!participantId || participantId === 'undefined') {
+            console.warn(
+              '잘못된 participantId로 handleVoiceExistingParticipants, 스킵:',
+              participantId,
+            );
+            return;
+          }
           const peer = peers.current.get(participantId);
           // 중복 체크 강화: 피어가 있거나, 스트림이 있거나, 피어가 연결된 상태면 스킵
           if (
