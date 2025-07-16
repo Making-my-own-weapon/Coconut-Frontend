@@ -154,12 +154,25 @@ const ReportPage: React.FC = () => {
     </>
   );
 
-  const studentMockData = [
-    { studentName: '김대원', correctAnswers: 8, submissions: [] },
-    { studentName: '배재준', correctAnswers: 10, submissions: [] },
-    { studentName: '정소영', correctAnswers: 5, submissions: [] },
-    { studentName: '주의재', correctAnswers: 9, submissions: [] },
-  ];
+  // DB에서 받은 리포트 데이터만 사용 (스토어 의존성 제거)
+  const studentData = useMemo(() => {
+    if (!reportData) return [];
+
+    const studentSubmissions = reportData.studentSubmissions || [];
+    const totalProblems = reportData.totalProblems || 1;
+
+    // studentSubmissions에서 직접 학생 데이터 생성 (백엔드에서 이미 학생만 필터링됨)
+    return studentSubmissions.map((submission) => {
+      // 정답률을 정답 개수로 변환 (전체 문제 수 * 정답률 / 100)
+      const correctAnswers = Math.round((submission.successRate * totalProblems) / 100);
+
+      return {
+        studentName: submission.name,
+        correctAnswers: correctAnswers,
+        submissions: [],
+      };
+    });
+  }, [reportData]);
 
   return (
     <ReportLayout actions={actionButtons} tabs={tabs} roomTitle={reportData?.roomTitle}>
@@ -175,7 +188,12 @@ const ReportPage: React.FC = () => {
       )}
       {activeView === 'problem' && <ProblemReportView />}
 
-      {activeView === 'student' && <StudentReportView studentResults={studentMockData} />}
+      {activeView === 'student' && (
+        <StudentReportView
+          studentResults={studentData}
+          totalProblems={reportData?.totalProblems || 0}
+        />
+      )}
     </ReportLayout>
   );
 };
