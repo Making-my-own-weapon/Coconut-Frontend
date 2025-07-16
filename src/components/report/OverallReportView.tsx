@@ -81,7 +81,7 @@ const OverallReportView: React.FC<OverallReportViewProps> = ({
           className="w-full"
         >
           <div className="flex items-center justify-center gap-1">
-            <span className="text-2xl font-bold">03:45:17</span>
+            <span className="text-2xl font-bold">{reportData?.classTime || '00:00:00'}</span>
           </div>
         </InfoBox>
         <InfoBox

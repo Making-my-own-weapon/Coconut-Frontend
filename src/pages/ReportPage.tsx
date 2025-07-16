@@ -39,8 +39,27 @@ const ReportPage: React.FC = () => {
     plugins: {
       legend: { display: false },
       title: { display: true, text: '문제별 정답률', color: 'white', font: { size: 20 } },
+      tooltip: {
+        callbacks: {
+          label: function (context: any) {
+            return `정답률: ${context.parsed.y}%`;
+          },
+        },
+      },
     },
-    scales: { x: { ticks: { color: 'white' } }, y: { ticks: { color: 'white' } } },
+    scales: {
+      x: { ticks: { color: 'white' } },
+      y: {
+        ticks: {
+          color: 'white',
+          callback: function (value: any) {
+            return value + '%';
+          },
+        },
+        min: 0,
+        max: 100,
+      },
+    },
   };
 
   const problemChartData = useMemo(
@@ -49,7 +68,7 @@ const ReportPage: React.FC = () => {
       datasets: [
         {
           label: '정답률 (%)',
-          data: reportData?.problemAnalysis?.map((p: any) => p.successRate) || [],
+          data: reportData?.problemAnalysis?.map((p: any) => Math.max(p.successRate, 1)) || [], // 0% 데이터도 최소 1로 설정해서 작게라도 표시
           backgroundColor: 'rgba(239, 68, 68, 0.6)',
         },
       ],
@@ -64,8 +83,27 @@ const ReportPage: React.FC = () => {
     plugins: {
       legend: { display: false },
       title: { display: true, text: '학생별 정답률', color: 'white', font: { size: 20 } },
+      tooltip: {
+        callbacks: {
+          label: function (context: any) {
+            return `정답률: ${context.parsed.x}%`;
+          },
+        },
+      },
     },
-    scales: { x: { ticks: { color: 'white' } }, y: { ticks: { color: 'white' } } },
+    scales: {
+      x: {
+        ticks: {
+          color: 'white',
+          callback: function (value: any) {
+            return value + '%';
+          },
+        },
+        min: 0,
+        max: 100,
+      },
+      y: { ticks: { color: 'white' } },
+    },
   };
 
   const studentChartData = useMemo(
@@ -74,7 +112,7 @@ const ReportPage: React.FC = () => {
       datasets: [
         {
           label: '정답률 (%)',
-          data: reportData?.studentSubmissions?.map((s: any) => s.successRate) || [],
+          data: reportData?.studentSubmissions?.map((s: any) => Math.max(s.successRate, 1)) || [], // 0% 데이터도 최소 1로 설정해서 작게라도 표시
           backgroundColor: 'rgba(234, 179, 8, 0.6)',
         },
       ],
@@ -124,7 +162,7 @@ const ReportPage: React.FC = () => {
   ];
 
   return (
-    <ReportLayout actions={actionButtons} tabs={tabs}>
+    <ReportLayout actions={actionButtons} tabs={tabs} roomTitle={reportData?.roomTitle}>
       {activeView === 'overall' && (
         // --- 2. OverallReportView에 모든 props를 전달합니다. ---
         <OverallReportView
