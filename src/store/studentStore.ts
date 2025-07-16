@@ -12,11 +12,13 @@ interface StudentState {
   problems: Problem[];
   codes: Record<string, string>;
   selectedProblemId: number | null;
-  otherCursor: { lineNumber: number; column: number } | null;
+  otherCursor: { lineNumber: number; column: number; problemId: number | null } | null;
   fetchRoomDetails: (roomId: string) => Promise<void>;
   selectProblem: (problemId: number | null) => void;
   updateCode: (payload: { problemId: number; code: string }) => void;
-  setOtherCursor: (cursor: { lineNumber: number; column: number } | null) => void;
+  setOtherCursor: (
+    cursor: { lineNumber: number; column: number; problemId: number | null } | null,
+  ) => void;
   resetStore: () => void;
   removeCode: (problemId: number) => void;
 }

@@ -20,7 +20,11 @@ interface EditorPanelProps {
   studentName?: string;
   disabled?: boolean;
   otherCursor?: { lineNumber: number; column: number } | null;
-  onCursorChange?: (position: { lineNumber: number; column: number }) => void;
+  onCursorChange?: (position: {
+    lineNumber: number;
+    column: number;
+    problemId: number | null;
+  }) => void;
   roomId?: string;
   userId?: string;
   role?: 'teacher' | 'student';
@@ -28,6 +32,7 @@ interface EditorPanelProps {
   onAddSVGLine: (line: SVGLine) => void;
   onClearSVGLines: () => void;
   onSetSVGLines: (lines: SVGLine[]) => void;
+  problemId: number | null; // ← 추가
 }
 
 export const EditorPanel: React.FC<EditorPanelProps> = ({
@@ -44,6 +49,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   onAddSVGLine,
   onClearSVGLines,
   onSetSVGLines,
+  problemId, // ← 추가
 }) => {
   const editorRef = useRef<any>(null);
   const decorationIds = useRef<string[]>([]);
@@ -66,6 +72,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         onCursorChange({
           lineNumber: e.position.lineNumber,
           column: e.position.column,
+          problemId, // ← 반드시 포함
         });
       });
     }
@@ -74,30 +81,26 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   // 커서 동기화(Decoration, 라벨)
   useEffect(() => {
     if (!editorRef.current || !monacoRef.current) return;
+    // 문제 ID가 다르면 커서 표시 X
+    if (!otherCursor || otherCursor.problemId !== problemId) return;
     try {
-      decorationIds.current = editorRef.current.deltaDecorations(
-        decorationIds.current,
-        otherCursor
-          ? [
-              {
-                range: new monacoRef.current.Range(
-                  otherCursor.lineNumber,
-                  otherCursor.column,
-                  otherCursor.lineNumber,
-                  otherCursor.column + 1,
-                ),
-                options: {
-                  className: 'remote-cursor',
-                  stickiness: 1,
-                },
-              },
-            ]
-          : [],
-      );
+      decorationIds.current = editorRef.current.deltaDecorations(decorationIds.current, [
+        {
+          range: new monacoRef.current.Range(
+            otherCursor.lineNumber,
+            otherCursor.column,
+            otherCursor.lineNumber,
+            otherCursor.column + 1,
+          ),
+          options: {
+            className: 'remote-cursor',
+            stickiness: 1,
+          },
+        },
+      ]);
     } catch (e) {
       console.error(e);
     }
-    if (!otherCursor) return;
     const widgetId = 'remote-cursor-label-widget';
     const labelDom = document.createElement('div');
     labelDom.className = 'remote-cursor-label';
@@ -117,7 +120,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
     return () => {
       editorRef.current.removeContentWidget(widget);
     };
-  }, [otherCursor, monacoRef, studentName]);
+  }, [otherCursor, monacoRef, studentName, problemId]);
 
   // 그림판 핸들러
   const handleSetLines = (newLines: Array<{ points: [number, number][]; color: string }>) => {
