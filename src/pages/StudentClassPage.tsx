@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom'; // useNavigate 추가했다.『안채호』
 import { useStudentStore } from '../store/studentStore';
 import { useSubmissionStore } from '../store/submissionStore';
 import { useAuthStore } from '../store/authStore';
@@ -43,6 +43,7 @@ const StudentClassPage: React.FC = () => {
   }, [initialize, terminate]);
 
   const { roomId } = useParams<{ roomId: string }>();
+  const navigate = useNavigate(); // 학생 리포트 페이지로 가게 하기위해 유즈네비게이트 호출한거다. 『안채호』
   useRoomEntryReset(roomId ? String(roomId) : null);
 
   const {
@@ -144,7 +145,9 @@ const StudentClassPage: React.FC = () => {
         collabIdRef.current = collaborationId;
         setIsCollabLoading(false);
       });
-      socket.on('code:request', ({ collaborationId, teacherSocketId }) => {
+      socket.on('code:request', ({ collaborationId }) => {
+        //teacherSocketId 사용하지 않아서 지웠다. 『안채호』
+
         setCollaborationId(collaborationId);
         setIsCollabLoading(true);
 
@@ -158,6 +161,12 @@ const StudentClassPage: React.FC = () => {
           code: currentCode,
         });
       });
+      // 👇 '수업 종료' 이벤트를 수신하는 리스너를 추가합니다.
+      const handleClassEnded = () => {
+        alert('수업이 종료되었습니다. 리포트 페이지로 이동합니다.');
+        navigate(`/class/${roomId}/report`);
+      };
+      socket.on('class:ended', handleClassEnded);
       socket.on('code:update', ({ problemId, code }) => {
         setUserCode(code); // 에디터에 코드 반영
         currentCodeRef.current = code;
@@ -201,10 +210,11 @@ const StudentClassPage: React.FC = () => {
         socket.off('cursor:update');
         socket.off('svgData');
         socket.off('svgCleared');
+        socket.off('class:ended', handleClassEnded);
         socket.off('disconnect');
       };
     }
-  }, [roomId, inviteCode, myId, myName]);
+  }, [roomId, inviteCode, myId, myName, navigate, updateCode, setOtherCursor]); //navigate는 페이지 이동을 위해, updateCode, setOtherCursor 이 두 함수는 사용중인데 포함이 안되어 있어서 의존성 문제 생기기전에 넣었다. 『안채호』
 
   useEffect(() => {
     if (!roomId) return;
@@ -299,8 +309,8 @@ const StudentClassPage: React.FC = () => {
       window.location.href = '/';
     }
   };
-  // SVG 관련 핸들러 함수들 (학생은 읽기 전용)
-  const handleAddSVGLine = (line: SVGLine) => {
+  // SVG 관련 핸들러 함수들 (학생은 읽기 전용), line 앞에 _(언더스코어) 붙혀서 린터한데 일부로 안쓰는 거라고 알려줬다.『안채호』
+  const handleAddSVGLine = (_line: SVGLine) => {
     // 학생은 그림을 그릴 수 없음 (읽기 전용)
   };
 

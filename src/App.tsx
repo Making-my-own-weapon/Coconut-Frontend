@@ -11,6 +11,8 @@ import TeacherClassPage from './pages/TeacherClassPage';
 import StudentClassPage from './pages/StudentClassPage';
 import MyPage from './pages/MyPage';
 import ReportPage from './pages/ReportPage';
+import StudentReportPage from './pages/StudentReportPage';
+
 // --- 컴포넌트 import ---
 import PrivateRoute from './components/PrivateRoute';
 
@@ -99,6 +101,15 @@ function App() {
           element={
             <PrivateRoute>
               <ReportPage />
+            </PrivateRoute>
+          }
+        />
+        {/* 학생이 수업 종료 당하면 학생에게 보여질 학생 리포트 페이지 */}
+        <Route
+          path="/class/:roomId/report"
+          element={
+            <PrivateRoute>
+              <StudentReportPage />
             </PrivateRoute>
           }
         />
