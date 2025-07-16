@@ -346,13 +346,14 @@ const TeacherClassPage: React.FC = () => {
 
   console.log('현재 스토어의 currentRoom 상태:', currentRoom);
 
-  const handleToggleClass = async () => {
+  const handleToggleClass = async (currentTimer?: string) => {
     setLocalClassStarted((prev) => !prev);
     if (roomId) {
       if (classStatus === 'IN_PROGRESS') {
         try {
-          await updateRoomStatus(roomId);
+          await updateRoomStatus(roomId, currentTimer);
           useTeacherStore.getState().resetStore(); // 수업 종료 시 상태 초기화
+          localStorage.removeItem('lastRoomId'); // 수업 종료 시 roomId도 삭제
           navigate(`/room/${roomId}/report`);
         } catch {
           alert('수업 종료에 실패했습니다.');
