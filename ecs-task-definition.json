@@ -9,7 +9,7 @@
   "containerDefinitions": [
     {
       "name": "coconut-frontend-container",
-      "image": "928747727316.dkr.ecr.ap-northeast-2.amazonaws.com/coconut-frontend:latest",
+      "image": "928747727316.dkr.ecr.ap-northeast-2.amazonaws.com/coconut-frontend",
       "essential": true,
       "portMappings": [
         {
