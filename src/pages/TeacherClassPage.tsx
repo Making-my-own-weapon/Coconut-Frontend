@@ -20,21 +20,6 @@ interface SVGLine {
   color: string;
 }
 
-// store 초기화 훅 추가
-function useRoomEntryReset(currentRoomId: string | number | null) {
-  React.useEffect(() => {
-    if (!currentRoomId) return;
-    const lastRoomId = localStorage.getItem('lastRoomId');
-    if (lastRoomId !== String(currentRoomId)) {
-      // 새로운 방 입장(또는 방 생성 후 입장)
-      useTeacherStore.getState().resetStore();
-      // 필요하다면 다른 store도 초기화
-      localStorage.setItem('lastRoomId', String(currentRoomId));
-    }
-    // 새로고침이면 아무것도 안 함
-  }, [currentRoomId]);
-}
-
 const TeacherClassPage: React.FC = () => {
   const { initialize, terminate } = useWorkerStore(); // 2. 워커 함수 가져오기
 
@@ -86,11 +71,16 @@ const TeacherClassPage: React.FC = () => {
     setOtherCursor,
     setStudentCurrentProblem,
   } = useTeacherStore();
-  const { submitCode, isSubmitting, analysisResult, detailedAnalysis, isAnalyzing, closeAnalysis } =
-    useSubmissionStore();
+  const { submitCode, isSubmitting, analysisResult, closeAnalysis } = useSubmissionStore();
   // userCode, setUserCode 제거
   const [mode, setMode] = useState<'grid' | 'editor'>('grid');
   const { user } = useAuthStore();
+
+  // 현재 보고 있는 문제 id를 항상 최신으로 유지
+  const currentProblemIdRef = useRef<number | null>(selectedProblemId);
+  useEffect(() => {
+    currentProblemIdRef.current = selectedProblemId;
+  }, [selectedProblemId]);
 
   // 음성채팅 훅 사용
   const voiceChat = useVoiceChat({
@@ -120,14 +110,19 @@ const TeacherClassPage: React.FC = () => {
     socket.on('room:joined', (data) => {
       console.log('[Teacher] room:joined', data);
       setIsRoomJoined(true); // 방 입장 완료 시 상태 업데이트
+      setIsVoiceChatOpen(true); // 방 입장 완료 시 음성채팅 팝업 열기
     });
     socket.on('room:full', () => console.log('[Teacher] room:full'));
     socket.on('room:notfound', () => console.log('[Teacher] room:notfound'));
 
-    socket.on('collab:started', ({ collaborationId }) => {
+    socket.on('collab:started', ({ collaborationId, problemId }) => {
       console.log('[Teacher] collab:started', collaborationId);
       setCollaborationId(collaborationId);
       setIsConnectingToStudent(false); // 협업 시작 완료
+      // 협업 시작 시에만 문제 자동 이동
+      if (problemId) {
+        selectProblem(problemId);
+      }
     });
 
     socket.on('code:send', ({ collaborationId, problemId, code }) => {
@@ -135,7 +130,6 @@ const TeacherClassPage: React.FC = () => {
       const studentId = Number(parts[parts.length - 1]);
       setCollaborationId(collaborationId);
       if (problemId) {
-        // 문제 선택된 경우에만 상태 세팅
         useTeacherStore.setState({
           selectedStudentId: studentId,
           selectedProblemId: problemId,
@@ -143,7 +137,6 @@ const TeacherClassPage: React.FC = () => {
         updateStudentCodeFromCollaborationId(collaborationId, problemId, code);
         setInfoMessage(null);
       } else {
-        // 문제 미선택 시 안내 메시지
         useTeacherStore.setState({
           selectedStudentId: studentId,
           selectedProblemId: null,
@@ -157,10 +150,10 @@ const TeacherClassPage: React.FC = () => {
       const studentId = Number(parts[parts.length - 1]);
       console.log('[Teacher] code:update 수신', { collaborationId, problemId, code, studentId });
       updateStudentCodeFromCollaborationId(collaborationId, problemId, code);
-      // 협업 중일 때만 문제 패널 자동 전환
-      if (collaborationId && problemId) {
-        selectProblem(problemId);
-      }
+      // 문제 자동 전환 제거: 학생이 코드를 입력해도 선생님 화면이 자동 이동하지 않음
+      // if (collaborationId && problemId) {
+      //   selectProblem(problemId);
+      // }
     });
 
     socket.on('collab:ended', () => {
@@ -193,8 +186,19 @@ const TeacherClassPage: React.FC = () => {
       setSvgLines([]);
     });
 
-    socket.on('cursor:update', ({ lineNumber, column }) => {
-      setOtherCursor({ lineNumber, column });
+    socket.on('cursor:update', ({ lineNumber, column, problemId }) => {
+      const currentProblemId = currentProblemIdRef.current;
+      console.log('[Teacher] cursor:update 수신', {
+        lineNumber,
+        column,
+        problemId,
+        currentProblemId,
+      });
+      if (problemId === currentProblemId) {
+        setOtherCursor({ lineNumber, column, problemId });
+      } else {
+        setOtherCursor(null);
+      }
     });
 
     socket.on('problem:selected', ({ collaborationId, problemId }) => {
@@ -323,20 +327,32 @@ const TeacherClassPage: React.FC = () => {
     }
   }, [roomId, inviteCode]);
 
-  // store 초기화 훅 호출
-  useRoomEntryReset(roomId ? String(roomId) : null);
+  // 문제 전환 시 커서 상태 초기화
+  useEffect(() => {
+    setOtherCursor(null);
+  }, [selectedProblemId]);
+
+  // 학생이 코드를 보내면 해당 문제의 코드를 업데이트하는 리스너 추가
+  useEffect(() => {
+    socket.on('student:sendCode', ({ problemId, code }) => {
+      if (problemId != null && selectedStudentId != null) {
+        updateStudentCode(selectedStudentId, problemId, code);
+      }
+    });
+    return () => {
+      socket.off('student:sendCode');
+    };
+  }, [selectedStudentId]);
 
   console.log('현재 스토어의 currentRoom 상태:', currentRoom);
 
-  const handleToggleClass = async (currentTimer?: string) => {
+  const handleToggleClass = async () => {
     setLocalClassStarted((prev) => !prev);
     if (roomId) {
       if (classStatus === 'IN_PROGRESS') {
         try {
-          // 수업 종료 시 타이머 값을 API에 전달
-          await updateRoomStatus(roomId, currentTimer);
+          await updateRoomStatus(roomId);
           useTeacherStore.getState().resetStore(); // 수업 종료 시 상태 초기화
-          localStorage.removeItem('lastRoomId'); // 수업 종료 시 roomId도 삭제
           navigate(`/room/${roomId}/report`);
         } catch {
           alert('수업 종료에 실패했습니다.');
@@ -349,6 +365,9 @@ const TeacherClassPage: React.FC = () => {
 
   const handleSelectProblem = (problemId: number | null) => {
     selectProblem(problemId);
+    if (collaborationId && problemId != null) {
+      socket.emit('teacher:requestStudentCode', { collaborationId, problemId });
+    }
   };
 
   // 에디터에 표시할 코드
@@ -379,7 +398,12 @@ const TeacherClassPage: React.FC = () => {
   const handleCursorChange = (position: { lineNumber: number; column: number }) => {
     if (collaborationId) {
       console.log('[Teacher] cursor 위치 변경 → 서버로 emit', position);
-      socket.emit('cursor:update', { collaborationId, ...position });
+      socket.emit('cursor:update', {
+        collaborationId,
+        lineNumber: position.lineNumber,
+        column: position.column,
+        problemId: selectedProblemId, // ← 반드시 포함
+      });
     }
   };
 
@@ -572,16 +596,13 @@ const TeacherClassPage: React.FC = () => {
         userId={String(teacherId)}
       />
       <main className="flex flex-grow overflow-hidden">
-        {selectedStudentId !== null && selectedProblemId === null ? null : (
-          <TeacherProblemPanel
-            problems={currentRoom?.problems || []}
-            userCode={code}
-            onSubmit={handleSubmit}
-            selectedProblemId={selectedProblemId}
-            onSelectProblem={handleSelectProblem}
-            isCollaborating={selectedStudentId !== null || isConnectingToStudent}
-          />
-        )}
+        <TeacherProblemPanel
+          problems={currentRoom?.problems || []}
+          userCode={code}
+          onSubmit={handleSubmit}
+          selectedProblemId={selectedProblemId}
+          onSelectProblem={handleSelectProblem}
+        />
         <div className="flex flex-grow">
           {mode === 'grid' ? (
             <StudentGridView
@@ -610,6 +631,7 @@ const TeacherClassPage: React.FC = () => {
                     onAddSVGLine={handleAddSVGLine}
                     onClearSVGLines={handleClearSVGLines}
                     onSetSVGLines={handleSetSVGLines}
+                    problemId={selectedProblemId} // ← 추가
                   />
                 ) : isConnectingToStudent ? (
                   <div className="flex flex-col items-center justify-center h-full text-slate-400">
@@ -634,6 +656,7 @@ const TeacherClassPage: React.FC = () => {
                     onAddSVGLine={handleAddSVGLine}
                     onClearSVGLines={handleClearSVGLines}
                     onSetSVGLines={handleSetSVGLines}
+                    problemId={selectedProblemId} // ← 추가
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full bg-slate-900 bg-opacity-80">
@@ -657,12 +680,12 @@ const TeacherClassPage: React.FC = () => {
                       </text>
                     </svg>
                     <p className="text-2xl font-bold text-blue-300 mb-2 text-center">
-                      학생이 문제를 선택하지 않았습니다.
+                      문제를 선택해 주세요
                     </p>
                     <p className="text-base text-slate-400 text-center">
-                      학생이 문제를 선택하면
+                      왼쪽에서 문제를 선택하면
                       <br />
-                      코드 에디터가 열립니다.
+                      학생의 코드 에디터가 열립니다.
                     </p>
                   </div>
                 )}
@@ -682,13 +705,10 @@ const TeacherClassPage: React.FC = () => {
               {isAnalysisPanelOpen && (
                 <TeacherAnalysisPanel
                   isLoading={isSubmitting}
-                  isAnalyzing={isAnalyzing}
                   result={analysisResult}
-                  detailedAnalysis={detailedAnalysis}
                   onClose={handleCloseAnalysis}
                   code={code} // 에디터 코드 전달
                   isSubmitted={!!analysisResult} // 제출 여부: 결과가 있으면 true
-                  problemId={selectedProblemId?.toString()} // 선택된 문제 ID 전달
                 />
               )}
             </>

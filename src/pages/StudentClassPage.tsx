@@ -58,6 +58,17 @@ const StudentClassPage: React.FC = () => {
     setOtherCursor,
   } = useStudentStore();
 
+  // 현재 보고 있는 문제 id를 항상 최신으로 유지
+  const currentProblemIdRef = useRef<number | null>(selectedProblemId);
+  useEffect(() => {
+    currentProblemIdRef.current = selectedProblemId;
+  }, [selectedProblemId]);
+
+  // 문제 전환 시 커서 상태 초기화
+  useEffect(() => {
+    setOtherCursor(null);
+  }, [selectedProblemId]);
+
   const { submitCode, closeAnalysis } = useSubmissionStore();
   const { user } = useAuthStore();
   const myId = user?.id;
@@ -170,8 +181,19 @@ const StudentClassPage: React.FC = () => {
         collabIdRef.current = null;
         setOtherCursor(null);
       });
-      socket.on('cursor:update', ({ lineNumber, column }) => {
-        setOtherCursor({ lineNumber, column });
+      socket.on('cursor:update', ({ lineNumber, column, problemId }) => {
+        const currentProblemId = currentProblemIdRef.current;
+        console.log('[Student] cursor:update received', {
+          lineNumber,
+          column,
+          problemId,
+          currentProblemId,
+        });
+        if (problemId === currentProblemId) {
+          setOtherCursor({ lineNumber, column, problemId });
+        } else {
+          setOtherCursor(null);
+        }
       });
       // SVG 관련 이벤트 리스너
       socket.on('svgData', (data: { lines: SVGLine[] }) => {
@@ -216,6 +238,16 @@ const StudentClassPage: React.FC = () => {
       socket.off('problem:updated', handleProblemUpdated);
     };
   }, [roomId, fetchRoomDetails]);
+
+  useEffect(() => {
+    socket.on('teacher:requestStudentCode', ({ collaborationId, problemId }) => {
+      const code = codes[problemId] || '';
+      socket.emit('student:sendCode', { collaborationId, problemId, code });
+    });
+    return () => {
+      socket.off('teacher:requestStudentCode');
+    };
+  }, [codes]);
 
   const handleSelectProblem = (problemId: number | null) => {
     selectProblem(problemId); // 로컬 상태 업데이트
@@ -274,7 +306,12 @@ const StudentClassPage: React.FC = () => {
       return;
     }
     console.log('[Student] cursor 위치 변경 → 서버로 emit', position);
-    socket.emit('cursor:update', { collaborationId: collabIdRef.current, ...position });
+    socket.emit('cursor:update', {
+      collaborationId: collabIdRef.current,
+      lineNumber: position.lineNumber,
+      column: position.column,
+      problemId: selectedProblemId, // ← 반드시 포함
+    });
   };
 
   const handleSubmit = () => {
@@ -405,6 +442,7 @@ const StudentClassPage: React.FC = () => {
               onAddSVGLine={handleAddSVGLine}
               onClearSVGLines={handleClearSVGLines}
               onSetSVGLines={handleSetSVGLines}
+              problemId={selectedProblemId}
             />
           )}
         </div>

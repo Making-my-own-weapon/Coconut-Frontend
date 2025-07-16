@@ -49,7 +49,7 @@ interface TeacherState {
   selectedProblemId: number | null;
   studentCodes: Record<number, Record<number, string>>;
   teacherCode: string;
-  otherCursor: { lineNumber: number; column: number } | null;
+  otherCursor: { lineNumber: number; column: number; problemId: number | null } | null;
   createRoom: (title: string, maxParticipants: number) => Promise<void>;
   fetchRoomDetails: (roomId: string) => Promise<void>;
   updateRoomStatus: (roomId: string, endTime?: string) => Promise<void>;
@@ -59,7 +59,9 @@ interface TeacherState {
   updateStudentCode: (studentId: number, problemId: number, code: string) => void;
   setTeacherCode: (code: string) => void;
   deleteRoom: (roomId: string) => Promise<void>;
-  setOtherCursor: (cursor: { lineNumber: number; column: number } | null) => void;
+  setOtherCursor: (
+    cursor: { lineNumber: number; column: number; problemId: number | null } | null,
+  ) => void;
   resetStore: () => void;
   studentCurrentProblems: Record<number, number | null>;
   setStudentCurrentProblem: (studentId: number, problemId: number | null) => void;
