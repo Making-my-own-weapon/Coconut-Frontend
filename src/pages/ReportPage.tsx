@@ -39,8 +39,27 @@ const ReportPage: React.FC = () => {
     plugins: {
       legend: { display: false },
       title: { display: true, text: '문제별 정답률', color: 'white', font: { size: 20 } },
+      tooltip: {
+        callbacks: {
+          label: function (context: any) {
+            return `정답률: ${context.parsed.y}%`;
+          },
+        },
+      },
     },
-    scales: { x: { ticks: { color: 'white' } }, y: { ticks: { color: 'white' } } },
+    scales: {
+      x: { ticks: { color: 'white' } },
+      y: {
+        ticks: {
+          color: 'white',
+          callback: function (value: any) {
+            return value + '%';
+          },
+        },
+        min: 0,
+        max: 100,
+      },
+    },
   };
 
   const problemChartData = useMemo(
@@ -49,7 +68,7 @@ const ReportPage: React.FC = () => {
       datasets: [
         {
           label: '정답률 (%)',
-          data: reportData?.problemAnalysis?.map((p: any) => p.successRate) || [],
+          data: reportData?.problemAnalysis?.map((p: any) => Math.max(p.successRate, 1)) || [], // 0% 데이터도 최소 1로 설정해서 작게라도 표시
           backgroundColor: 'rgba(239, 68, 68, 0.6)',
         },
       ],
@@ -64,8 +83,27 @@ const ReportPage: React.FC = () => {
     plugins: {
       legend: { display: false },
       title: { display: true, text: '학생별 정답률', color: 'white', font: { size: 20 } },
+      tooltip: {
+        callbacks: {
+          label: function (context: any) {
+            return `정답률: ${context.parsed.x}%`;
+          },
+        },
+      },
     },
-    scales: { x: { ticks: { color: 'white' } }, y: { ticks: { color: 'white' } } },
+    scales: {
+      x: {
+        ticks: {
+          color: 'white',
+          callback: function (value: any) {
+            return value + '%';
+          },
+        },
+        min: 0,
+        max: 100,
+      },
+      y: { ticks: { color: 'white' } },
+    },
   };
 
   const studentChartData = useMemo(
@@ -74,7 +112,7 @@ const ReportPage: React.FC = () => {
       datasets: [
         {
           label: '정답률 (%)',
-          data: reportData?.studentSubmissions?.map((s: any) => s.successRate) || [],
+          data: reportData?.studentSubmissions?.map((s: any) => Math.max(s.successRate, 1)) || [], // 0% 데이터도 최소 1로 설정해서 작게라도 표시
           backgroundColor: 'rgba(234, 179, 8, 0.6)',
         },
       ],
@@ -116,15 +154,28 @@ const ReportPage: React.FC = () => {
     </>
   );
 
-  const studentMockData = [
-    { studentName: '김대원', correctAnswers: 8, submissions: [] },
-    { studentName: '배재준', correctAnswers: 10, submissions: [] },
-    { studentName: '정소영', correctAnswers: 5, submissions: [] },
-    { studentName: '주의재', correctAnswers: 9, submissions: [] },
-  ];
+  // DB에서 받은 리포트 데이터만 사용 (스토어 의존성 제거)
+  const studentData = useMemo(() => {
+    if (!reportData) return [];
+
+    const studentSubmissions = reportData.studentSubmissions || [];
+    const totalProblems = reportData.totalProblems || 1;
+
+    // studentSubmissions에서 직접 학생 데이터 생성 (백엔드에서 이미 학생만 필터링됨)
+    return studentSubmissions.map((submission) => {
+      // 정답률을 정답 개수로 변환 (전체 문제 수 * 정답률 / 100)
+      const correctAnswers = Math.round((submission.successRate * totalProblems) / 100);
+
+      return {
+        studentName: submission.name,
+        correctAnswers: correctAnswers,
+        submissions: [],
+      };
+    });
+  }, [reportData]);
 
   return (
-    <ReportLayout actions={actionButtons} tabs={tabs}>
+    <ReportLayout actions={actionButtons} tabs={tabs} roomTitle={reportData?.roomTitle}>
       {activeView === 'overall' && (
         // --- 2. OverallReportView에 모든 props를 전달합니다. ---
         <OverallReportView
@@ -137,7 +188,12 @@ const ReportPage: React.FC = () => {
       )}
       {activeView === 'problem' && <ProblemReportView />}
 
-      {activeView === 'student' && <StudentReportView studentResults={studentMockData} />}
+      {activeView === 'student' && (
+        <StudentReportView
+          studentResults={studentData}
+          totalProblems={reportData?.totalProblems || 0}
+        />
+      )}
     </ReportLayout>
   );
 };

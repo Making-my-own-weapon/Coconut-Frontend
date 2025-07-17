@@ -16,7 +16,11 @@ interface TeacherEditorPanelProps {
   onClickReturnToTeacher?: () => void;
   isConnecting?: boolean;
   otherCursor?: { lineNumber: number; column: number } | null;
-  onCursorChange?: (position: { lineNumber: number; column: number }) => void;
+  onCursorChange?: (position: {
+    lineNumber: number;
+    column: number;
+    problemId: number | null;
+  }) => void;
   roomId?: string;
   userId?: string;
   role?: 'teacher' | 'student';
@@ -24,6 +28,7 @@ interface TeacherEditorPanelProps {
   onAddSVGLine: (line: SVGLine) => void;
   onClearSVGLines: () => void;
   onSetSVGLines: (lines: SVGLine[]) => void;
+  problemId: number | null; // ← 추가
 }
 
 const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
@@ -42,6 +47,7 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
   onAddSVGLine,
   onClearSVGLines,
   onSetSVGLines,
+  problemId, // ← 추가
 }) => {
   const editorRef = useRef<any>(null);
   const decorationIds = useRef<string[]>([]);
@@ -64,6 +70,7 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
         onCursorChange({
           lineNumber: e.position.lineNumber,
           column: e.position.column,
+          problemId, // ← 반드시 포함
         });
       });
     }

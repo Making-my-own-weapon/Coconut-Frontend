@@ -3,12 +3,14 @@ import React from 'react';
 export interface CardReportStudentProps {
   studentName: string;
   correctAnswers: number;
+  totalProblems: number;
   className?: string;
 }
 
 const CardReportStudent: React.FC<CardReportStudentProps> = ({
   studentName,
   correctAnswers,
+  totalProblems,
   className = '',
 }) => {
   return (
@@ -54,10 +56,10 @@ const CardReportStudent: React.FC<CardReportStudentProps> = ({
 
       {/* Correct answers number */}
       <div
-        className="absolute left-[191px] top-[406px] w-[24px] h-[40px] text-white text-4xl font-normal leading-10"
+        className="absolute left-[191px] top-[406px] w-[60px] h-[40px] text-white text-4xl font-normal leading-10"
         style={{ fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif' }}
       >
-        {correctAnswers}
+        {correctAnswers}/{totalProblems}
       </div>
     </div>
   );

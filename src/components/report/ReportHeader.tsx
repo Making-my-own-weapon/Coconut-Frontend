@@ -1,16 +1,26 @@
 import React from 'react';
+import { useTeacherStore } from '../../store/teacherStore';
 
-const ReportHeader: React.FC = () => {
+interface ReportHeaderProps {
+  roomTitle?: string;
+}
+
+// 방 제목을 전달하게 수정
+const ReportHeader: React.FC<ReportHeaderProps> = ({ roomTitle }) => {
   return (
     <div className="w-full h-[73px] flex-shrink-0 absolute left-0 top-0">
       <div className="w-full h-[73px] flex-shrink-0 border-0 border-slate-600 bg-slate-800/50 backdrop-blur-[2px] absolute left-0 top-0"></div>
 
       {/* Room Info Badge */}
-      <div className="w-[115px] h-[22px] flex-shrink-0 absolute left-48 top-[25px]">
-        <div className="w-[115px] h-[22px] flex-shrink-0 rounded-full border border-slate-00 absolute left-0 top-0"></div>
-        <div className="flex items-center gap-1 absolute left-[9px] top-[3px]">
-          <div className="text-slate-300 font-inter text-xs font-semibold">수업:</div>
-          <div className="text-slate-300 font-inter text-xs font-semibold">83rg8fvecjp</div>
+      <div className="min-w-[115px] max-w-[300px] h-[22px] flex-shrink-0 absolute left-48 top-[25px]">
+        <div className="w-full h-[22px] flex-shrink-0 rounded-full border border-slate-00 absolute left-0 top-0"></div>
+        <div className="flex items-center gap-1 absolute left-[9px] top-[3px] right-[9px] overflow-hidden">
+          <div className="text-slate-300 font-inter text-xs font-semibold whitespace-nowrap">
+            수업:
+          </div>
+          <div className="text-slate-300 font-inter text-xs font-semibold truncate">
+            {roomTitle || '수업명 로딩중...'}
+          </div>
         </div>
       </div>
 

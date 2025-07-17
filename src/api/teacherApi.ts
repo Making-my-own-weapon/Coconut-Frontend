@@ -18,8 +18,16 @@ export const getRoomDetailsAPI = (roomId: string) => {
   return apiClient.get(`/rooms/${roomId}`);
 };
 
-export const updateRoomStatusAPI = (roomId: string, status: 'IN_PROGRESS' | 'FINISHED') => {
-  return apiClient.patch(`/rooms/${roomId}`, { status });
+export const updateRoomStatusAPI = (
+  roomId: string,
+  status: 'IN_PROGRESS' | 'FINISHED',
+  endTime?: string,
+) => {
+  const payload: { status: string; endTime?: string } = { status };
+  if (endTime) {
+    payload.endTime = endTime;
+  }
+  return apiClient.patch(`/rooms/${roomId}`, payload);
 };
 
 // 방 폭파

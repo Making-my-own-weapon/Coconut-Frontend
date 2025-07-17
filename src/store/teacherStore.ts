@@ -49,24 +49,25 @@ interface TeacherState {
   selectedProblemId: number | null;
   studentCodes: Record<number, Record<number, string>>;
   teacherCode: string;
-  otherCursor: { lineNumber: number; column: number } | null;
+  otherCursor: { lineNumber: number; column: number; problemId: number | null } | null;
   createRoom: (title: string, maxParticipants: number) => Promise<void>;
   fetchRoomDetails: (roomId: string) => Promise<void>;
-  updateRoomStatus: (roomId: string) => Promise<void>;
+  updateRoomStatus: (roomId: string, endTime?: string) => Promise<void>;
   clearCreatedRoom: () => void;
   setSelectedStudentId: (studentId: number | null) => void;
   selectProblem: (problemId: number | null) => void;
   updateStudentCode: (studentId: number, problemId: number, code: string) => void;
   setTeacherCode: (code: string) => void;
   deleteRoom: (roomId: string) => Promise<void>;
-  setOtherCursor: (cursor: { lineNumber: number; column: number } | null) => void;
+  setOtherCursor: (
+    cursor: { lineNumber: number; column: number; problemId: number | null } | null,
+  ) => void;
   resetStore: () => void;
   studentCurrentProblems: Record<number, number | null>;
   setStudentCurrentProblem: (studentId: number, problemId: number | null) => void;
 }
 
 // --- 스토어 생성 ---
-
 
 export const useTeacherStore = create<TeacherState>()(
   persist(
@@ -129,10 +130,10 @@ export const useTeacherStore = create<TeacherState>()(
         }
       },
 
-      updateRoomStatus: async (roomId: string) => {
+      updateRoomStatus: async (roomId: string, endTime?: string) => {
         const newStatus = get().classStatus === 'IN_PROGRESS' ? 'FINISHED' : 'IN_PROGRESS';
         try {
-          await teacherApi.updateRoomStatusAPI(roomId, newStatus);
+          await teacherApi.updateRoomStatusAPI(roomId, newStatus, endTime);
           await get().fetchRoomDetails(roomId);
         } catch (err) {
           console.error('Failed to update room status', err);
