@@ -88,7 +88,7 @@ const SignupCard: React.FC = () => {
               value={formData.email}
               onChange={handleInputChange}
               className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              placeholder="이메일을 입력하자"
+              placeholder="이메일을 입력하세요"
               required
             />
           </div>
