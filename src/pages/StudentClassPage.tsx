@@ -102,10 +102,8 @@ const StudentClassPage: React.FC = () => {
   // 음성채팅 훅 사용
   const voiceChat = useVoiceChat({
     roomId: roomId!,
-    userId: user?.id?.toString() || '',
     userName: user?.name || '',
     userRole: 'student',
-    isConnected: isRoomJoined, // 방 입장 완료 후에만 true
   });
 
   useEffect(() => {
