@@ -108,8 +108,17 @@ const VoiceChatModal: React.FC<VoiceChatModalProps> = ({
 
         // 이벤트 리스너 등록
         Object.entries(listeners).forEach(([event, listener]) => {
-          el.addEventListener(event, listener);
-          eventListenersRef.current[participantId][event] = listener;
+          // 타입 오류 방지를 위해 listener의 시그니처를 맞춰줌
+          const wrappedListener = (e?: Event) => {
+            // error 이벤트만 이벤트 객체를 사용하고, 나머지는 무시
+            if (event === 'error') {
+              (listener as (e: Event) => void)(e as Event);
+            } else {
+              (listener as () => void)();
+            }
+          };
+          el.addEventListener(event, wrappedListener);
+          eventListenersRef.current[participantId][event] = wrappedListener;
         });
       }
     },
