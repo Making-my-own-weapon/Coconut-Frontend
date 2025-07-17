@@ -48,7 +48,7 @@ export const useRealtimeAnalysis = ({
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       analyzeCode(code, problemId);
-    }, 5000); // 800ms 디바운싱 (AI 호출이므로 조금 더 길게)
+    }, 2500); // 800ms 디바운싱 (AI 호출이므로 조금 더 길게)
 
     return () => clearTimeout(timeoutId);
   }, [code, problemId, analyzeCode]);
