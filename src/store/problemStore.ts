@@ -6,7 +6,7 @@ import { useTeacherStore } from './teacherStore';
 export interface ProblemSummary {
   problemId: number;
   title: string;
-  source: 'My' | 'BOJ';
+  source: 'My' | 'BOJ' | 'CSES';
   categories: string[];
 }
 
