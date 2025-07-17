@@ -120,9 +120,13 @@ const StudentClassPage: React.FC = () => {
 
   useEffect(() => {
     if (roomId) {
-      fetchRoomDetails(roomId);
+      fetchRoomDetails(roomId).catch((err: any) => {
+        if (err?.response?.status === 403 || err?.response?.status === 404) {
+          navigate('/not-found');
+        }
+      });
     }
-  }, [roomId, fetchRoomDetails]);
+  }, [roomId, fetchRoomDetails, navigate]);
 
   useEffect(() => {
     if (roomId && inviteCode && myId && myName) {
