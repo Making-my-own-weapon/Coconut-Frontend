@@ -252,10 +252,13 @@ const TeacherClassPage: React.FC = () => {
 
   // 최초 진입 시 한 번만 fetchRoomDetails 호출
   useEffect(() => {
-    if (roomId) {
-      fetchRoomDetails(roomId);
-    }
-  }, [roomId, fetchRoomDetails]);
+    if (!roomId) return;
+    fetchRoomDetails(roomId).catch((err: any) => {
+      if (err?.response?.status === 403 || err?.response?.status === 404) {
+        navigate('/not-found');
+      }
+    });
+  }, [roomId, fetchRoomDetails, navigate]);
 
   // room:join emit - currentRoom 의존성 제거
   useEffect(() => {
