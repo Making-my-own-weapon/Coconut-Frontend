@@ -25,12 +25,12 @@ export default function ProblemImportForm({ onClose }: ProblemImportFormProps) {
 
   // 2. UI 필터링을 위한 상태는 컴포넌트에 그대로 둡니다.
   const [search, setSearch] = useState('');
-  const [sourceFilter, setSourceFilter] = useState<'All' | 'My' | 'BOJ'>('All');
+  const [sourceFilter, setSourceFilter] = useState<'All' | 'My' | 'BOJ' | 'CSES'>('All');
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  const sources = ['All', 'My', 'BOJ'] as const;
+  const sources = ['All', 'My', 'BOJ', 'CSES'] as const;
   const categories = [
     '그래프',
     '동적 계획법',
@@ -41,6 +41,31 @@ export default function ProblemImportForm({ onClose }: ProblemImportFormProps) {
     '분할 정복·이진 탐색',
     '백트래킹·완전 탐색',
   ];
+
+  // 카테고리별 색상 매핑
+  const getCategoryColor = (category: string) => {
+    const colorMap: { [key: string]: string } = {
+      그래프: 'bg-blue-600',
+      '동적 계획법': 'bg-purple-600',
+      그리디: 'bg-green-600',
+      '자료 구조': 'bg-yellow-600',
+      수학: 'bg-red-400',
+      문자열: 'bg-indigo-600',
+      '분할 정복·이진 탐색': 'bg-pink-600',
+      '백트래킹·완전 탐색': 'bg-orange-600',
+    };
+    return colorMap[category] || 'bg-gray-600';
+  };
+
+  // 소스별 색상 매핑
+  const getSourceColor = (source: string) => {
+    const colorMap: { [key: string]: string } = {
+      My: 'bg-purple-500',
+      BOJ: 'bg-yellow-500',
+      CSES: 'bg-green-500',
+    };
+    return colorMap[source] || 'bg-gray-500';
+  };
 
   const [detailModal, setDetailModal] = useState<{ open: boolean; problem: any | null }>({
     open: false,
@@ -135,7 +160,7 @@ export default function ProblemImportForm({ onClose }: ProblemImportFormProps) {
         >
           {sources.map((s) => (
             <option key={s} value={s}>
-              {s === 'All' ? '전체' : s === 'My' ? '내 문제' : '백준'}
+              {s === 'All' ? '전체' : s === 'My' ? '내 문제' : s === 'BOJ' ? '백준' : 'CSES'}
             </option>
           ))}
         </select>
@@ -173,16 +198,16 @@ export default function ProblemImportForm({ onClose }: ProblemImportFormProps) {
                 {p.categories.map((cat) => (
                   <span
                     key={cat}
-                    className="inline-block px-2 py-0.5 bg-blue-600 text-white text-xs rounded"
+                    className={`inline-block px-2 py-0.5 text-white text-xs rounded ${getCategoryColor(cat)}`}
                   >
                     {cat}
                   </span>
                 ))}
               </div>
               <span
-                className={`absolute top-2 right-2 px-2 py-0.5 text-xs rounded ${p.source === 'My' ? 'bg-purple-500' : 'bg-yellow-500'}`}
+                className={`absolute top-2 right-2 px-2 py-0.5 text-xs rounded ${getSourceColor(p.source)}`}
               >
-                {p.source === 'My' ? '내 문제' : '백준'}
+                {p.source === 'My' ? '내 문제' : p.source === 'BOJ' ? '백준' : 'CSES'}
               </span>
               {/* 돋보기 아이콘 (상세) */}
               <button

@@ -29,7 +29,7 @@ const TeacherClassPage: React.FC = () => {
     return () => {
       terminate();
     };
-  }, [initialize, terminate]);
+  }, []); // 빈 배열로 변경하여 컴포넌트 마운트/언마운트 시에만 워커 관리
 
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
@@ -70,7 +70,8 @@ const TeacherClassPage: React.FC = () => {
     setOtherCursor,
     setStudentCurrentProblem,
   } = useTeacherStore();
-  const { submitCode, isSubmitting, analysisResult, closeAnalysis } = useSubmissionStore();
+  const { submitCode, isSubmitting, analysisResult, detailedAnalysis, isAnalyzing, closeAnalysis } =
+    useSubmissionStore();
   // userCode, setUserCode 제거
   const [mode, setMode] = useState<'grid' | 'editor'>('grid');
   const { user } = useAuthStore();
@@ -702,6 +703,9 @@ const TeacherClassPage: React.FC = () => {
               {isAnalysisPanelOpen && (
                 <TeacherAnalysisPanel
                   isLoading={isSubmitting}
+                  isAnalyzing={isAnalyzing}
+                  detailedAnalysis={detailedAnalysis}
+                  problemId={selectedProblemId?.toString()}
                   result={analysisResult}
                   onClose={handleCloseAnalysis}
                   code={code} // 에디터 코드 전달

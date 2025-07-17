@@ -40,6 +40,9 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const prevClassStarted = useRef(isClassStarted);
 
+  // 복사 완료 상태 관리
+  const [showCopied, setShowCopied] = useState(false);
+
   // 타이머 포맷 함수
   const formatTime = (seconds: number) => {
     const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
@@ -83,7 +86,47 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
         <div className="h-6 w-px bg-slate-600" aria-hidden="true" />
         <span className="text-lg font-bold text-white">{title}</span>
         <div className="h-6 w-px bg-slate-600" aria-hidden="true" />
-        <span className="text-sm text-slate-400">수업 코드: {classCode}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-slate-400">수업 코드: {classCode}</span>
+          <button
+            onClick={() => {
+              if (classCode) {
+                navigator.clipboard
+                  .writeText(classCode)
+                  .then(() => {
+                    setShowCopied(true);
+                    setTimeout(() => setShowCopied(false), 2000);
+                  })
+                  .catch(() => {
+                    // 복사 실패 시 조용히 처리
+                    console.error('복사에 실패했습니다.');
+                  });
+              }
+            }}
+            className="p-1 hover:bg-slate-700 rounded transition-colors relative"
+            aria-label="수업 코드 복사"
+            title="수업 코드 복사"
+          >
+            <svg
+              className="w-4 h-4 text-slate-400 hover:text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+              />
+            </svg>
+            {showCopied && (
+              <span className="absolute -top-1 left-full ml-2 bg-green-600 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-fade-in">
+                복사 완료
+              </span>
+            )}
+          </button>
+        </div>
       </div>
       {/* 오른쪽: 아이콘 + 버튼 */}
       <div className="flex items-center gap-6">
