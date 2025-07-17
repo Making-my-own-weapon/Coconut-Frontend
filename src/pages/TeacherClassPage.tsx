@@ -29,7 +29,7 @@ const TeacherClassPage: React.FC = () => {
     return () => {
       terminate();
     };
-  }, [initialize, terminate]);
+  }, []); // 빈 배열로 변경하여 컴포넌트 마운트/언마운트 시에만 워커 관리
 
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
@@ -50,7 +50,6 @@ const TeacherClassPage: React.FC = () => {
   const [isVoiceChatOpen, setIsVoiceChatOpen] = useState(false);
   const [isRoomJoined, setIsRoomJoined] = useState(false);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const {
     currentRoom,
@@ -71,7 +70,8 @@ const TeacherClassPage: React.FC = () => {
     setOtherCursor,
     setStudentCurrentProblem,
   } = useTeacherStore();
-  const { submitCode, isSubmitting, analysisResult, closeAnalysis } = useSubmissionStore();
+  const { submitCode, isSubmitting, analysisResult, detailedAnalysis, isAnalyzing, closeAnalysis } =
+    useSubmissionStore();
   // userCode, setUserCode 제거
   const [mode, setMode] = useState<'grid' | 'editor'>('grid');
   const { user } = useAuthStore();
@@ -85,10 +85,8 @@ const TeacherClassPage: React.FC = () => {
   // 음성채팅 훅 사용
   const voiceChat = useVoiceChat({
     roomId: roomId!,
-    userId: user?.id?.toString() || '',
     userName: user?.name || '',
     userRole: 'teacher',
-    isConnected: isRoomJoined, // 방 입장 완료 후에만 true
   });
 
   // 즉시 반영되는 수업 상태 (UI용)
@@ -110,7 +108,6 @@ const TeacherClassPage: React.FC = () => {
     socket.on('room:joined', (data) => {
       console.log('[Teacher] room:joined', data);
       setIsRoomJoined(true); // 방 입장 완료 시 상태 업데이트
-      setIsVoiceChatOpen(true); // 방 입장 완료 시 음성채팅 팝업 열기
     });
     socket.on('room:full', () => console.log('[Teacher] room:full'));
     socket.on('room:notfound', () => console.log('[Teacher] room:notfound'));
@@ -344,7 +341,7 @@ const TeacherClassPage: React.FC = () => {
     };
   }, [selectedStudentId]);
 
-  console.log('현재 스토어의 currentRoom 상태:', currentRoom);
+  //console.log('현재 스토어의 currentRoom 상태:', currentRoom);
 
   const handleToggleClass = async (currentTimer?: string) => {
     setLocalClassStarted((prev) => !prev);
@@ -437,8 +434,8 @@ const TeacherClassPage: React.FC = () => {
     currentRoom?.participants?.filter((p: any) => p.userType !== 'teacher') || [];
 
   // 디버깅용 로그
-  console.log('currentRoom.participants:', currentRoom?.participants);
-  console.log('studentsWithoutTeacher:', studentsWithoutTeacher);
+  //console.log('currentRoom.participants:', currentRoom?.participants);
+  //console.log('studentsWithoutTeacher:', studentsWithoutTeacher);
 
   // 헬퍼 함수: collaborationId에서 studentId 추출하여 코드 업데이트
   const updateStudentCodeFromCollaborationId = (
@@ -706,6 +703,9 @@ const TeacherClassPage: React.FC = () => {
               {isAnalysisPanelOpen && (
                 <TeacherAnalysisPanel
                   isLoading={isSubmitting}
+                  isAnalyzing={isAnalyzing}
+                  detailedAnalysis={detailedAnalysis}
+                  problemId={selectedProblemId?.toString()}
                   result={analysisResult}
                   onClose={handleCloseAnalysis}
                   code={code} // 에디터 코드 전달
