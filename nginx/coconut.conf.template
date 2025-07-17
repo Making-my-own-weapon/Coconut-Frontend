@@ -50,10 +50,12 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 600s;                       # 백엔드로부터 응답이 없을 때 클라이언트와의 연결을 유지할 최대 시간
+        proxy_send_timeout 600s;                       # 클라이언트로부터 데이터가 오지 않을 때 연결을 유지할 시간
     }
 
     location /analysis/ {
-        proxy_pass http://backend/api/v1$uri;         # 쿼리 스트링까지 포함해서 백엔드에 요청
+        rewrite ^/analysis/(.*)$ /api/v1/analysis/$1 break;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;        # WebSocket 업그레이드
         proxy_set_header Connection "upgrade";         # 연결 업그레이드
