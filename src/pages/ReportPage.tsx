@@ -7,6 +7,7 @@ import OverallReportView from '../components/report/OverallReportView';
 import ProblemReportView from '../components/report/ProblemReportView';
 import StudentReportView from '../components/report/StudentReportView';
 import { LogOut, Save } from 'lucide-react';
+import { showConfirm, showToast } from '../utils/sweetAlert';
 
 const ReportPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -22,12 +23,18 @@ const ReportPage: React.FC = () => {
   }, [roomId, fetchReport]);
 
   const handleLeaveRoom = async () => {
-    if (roomId && window.confirm('정말로 수업을 종료하고 방을 삭제하시겠습니까?')) {
-      try {
-        await deleteRoom(roomId);
-        navigate('/join');
-      } catch {
-        alert('방 삭제에 실패했습니다.');
+    if (roomId) {
+      const confirmed = await showConfirm(
+        '수업 종료',
+        '정말로 수업을 종료하고 방을 삭제하시겠습니까?',
+      );
+      if (confirmed) {
+        try {
+          await deleteRoom(roomId);
+          navigate('/join');
+        } catch {
+          showToast('error', '방 삭제에 실패했습니다.');
+        }
       }
     }
   };
