@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-// 1. 결과/에러 상태에 고유 ID를 포함하는 타입 정의
+// 1. 결과/에러 상태에 고유 ID를 포함하는 타입 정의/
 interface WorkerOutput {
   id: number | string | null; // id는 숫자, 문자열, 또는 null일 수 있음
   data: string | null;
@@ -17,7 +17,9 @@ interface WorkerState {
   error: WorkerOutput;
   initialize: () => void;
   // 3. runCode 함수 시그니처에 id 파라미터 추가
-  runCode: (code: string, context?: object, id?: number) => void;
+  runCode: (code: string, context?: object, id?: number | string) => void;
+  // 정적 분석을 위한 별도 함수
+  analyzeCode: (code: string, id?: string) => void;
   terminate: () => void;
   restart: () => void; // 워커 재시작 기능 추가
 }
@@ -46,6 +48,9 @@ export const useWorkerStore = create<WorkerState>((set, get) => ({
       // 5. 메시지 핸들러에서 id를 함께 처리 (안전한 타입 변환)
       const { type, data, id } = event.data;
       const safeId = id != null ? id : null; // id가 undefined나 null이 아닌지 확인
+
+      // id가 문자열이고 "syntax-"로 시작하는지 안전하게 확인
+      const isSyntaxAnalysis = typeof safeId === 'string' && safeId.startsWith('syntax-');
 
       switch (type) {
         case 'ready':
@@ -105,6 +110,30 @@ export const useWorkerStore = create<WorkerState>((set, get) => ({
     // 실행 시 이전 결과/에러 초기화
     set({ output: { id: null, data: null }, error: { id: null, data: null } });
     worker.postMessage({ code, id, ...context });
+  },
+
+  // 정적 분석을 위한 별도 함수 (id를 문자열로 전달)
+  analyzeCode: (code: string, id: string = 'syntax-analysis') => {
+    const state = get();
+    const worker = state.worker;
+
+    if (!worker) {
+      set({ error: { id, data: '워커가 초기화되지 않았습니다. 워커를 먼저 초기화해주세요.' } });
+      return;
+    }
+
+    if (!state.isReady) {
+      if (state.isLoading || state.isInitializing) {
+        set({ error: { id, data: '워커가 아직 초기화 중입니다. 잠시 후 다시 시도해주세요.' } });
+      } else {
+        set({ error: { id, data: '워커가 준비되지 않았습니다. 워커를 재초기화해주세요.' } });
+      }
+      return;
+    }
+
+    // 실행 시 이전 결과/에러 초기화
+    set({ output: { id: null, data: null }, error: { id: null, data: null } });
+    worker.postMessage({ task: 'analyze', code, id });
   },
 
   terminate: () => {
