@@ -4,11 +4,31 @@ let pyodide;
 
 async function initializePyodide() {
   self.postMessage({ type: 'status', data: 'Pyodide 로더 스크립트를 가져오는 중...' });
-  try {
-    importScripts('https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js');
-  } catch (e) {
-    self.postMessage({ type: 'error', data: `Pyodide 스크립트 로드 실패: ${e.message}` });
-    return; // 스크립트 로드 실패 시 함수 종료
+
+  // 재시도 로직 (최대 3회)
+  let retryCount = 0;
+  const maxRetries = 3;
+
+  while (retryCount < maxRetries) {
+    try {
+      importScripts('https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js');
+      break; // 성공 시 루프 종료
+    } catch (e) {
+      retryCount++;
+      if (retryCount >= maxRetries) {
+        self.postMessage({
+          type: 'error',
+          data: `Pyodide 스크립트 로드 실패 (${maxRetries}회 시도): ${e.message}`,
+        });
+        return;
+      }
+      self.postMessage({
+        type: 'status',
+        data: `Pyodide 스크립트 로드 재시도 중... (${retryCount}/${maxRetries})`,
+      });
+      // 1초 대기 후 재시도
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
   }
 
   if (typeof self.loadPyodide !== 'function') {
@@ -22,13 +42,51 @@ async function initializePyodide() {
   self.postMessage({ type: 'status', data: 'Pyodide를 초기화하는 중입니다...' });
   try {
     pyodide = await self.loadPyodide();
-    // 1. Pyflakes 패키지 설치 로직 추가
+    // 1. Pyflakes 패키지 설치 로직 추가 (재시도 포함)
     self.postMessage({ type: 'status', data: '정적 분석 도구를 설치하는 중입니다...' });
-    await pyodide.loadPackage('micropip');
-    await pyodide.runPythonAsync(`
-      import micropip
-      await micropip.install('pyflakes')
-    `);
+
+    // micropip 설치 재시도
+    let micropipRetryCount = 0;
+    while (micropipRetryCount < 3) {
+      try {
+        await pyodide.loadPackage('micropip');
+        break;
+      } catch (e) {
+        micropipRetryCount++;
+        if (micropipRetryCount >= 3) {
+          self.postMessage({ type: 'error', data: `micropip 설치 실패: ${e.message}` });
+          return;
+        }
+        self.postMessage({
+          type: 'status',
+          data: `micropip 설치 재시도 중... (${micropipRetryCount}/3)`,
+        });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
+
+    // pyflakes 설치 재시도
+    let pyflakesRetryCount = 0;
+    while (pyflakesRetryCount < 3) {
+      try {
+        await pyodide.runPythonAsync(`
+          import micropip
+          await micropip.install('pyflakes')
+        `);
+        break;
+      } catch (e) {
+        pyflakesRetryCount++;
+        if (pyflakesRetryCount >= 3) {
+          self.postMessage({ type: 'error', data: `pyflakes 설치 실패: ${e.message}` });
+          return;
+        }
+        self.postMessage({
+          type: 'status',
+          data: `pyflakes 설치 재시도 중... (${pyflakesRetryCount}/3)`,
+        });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
     self.postMessage({ type: 'status', data: 'Pyodide가 준비되었습니다.' });
     self.postMessage({ type: 'ready' });
   } catch (error) {
@@ -39,7 +97,16 @@ async function initializePyodide() {
   }
 }
 
-const pyodideReadyPromise = initializePyodide();
+let pyodideReadyPromise = null;
+
+// 새로고침 시 이전 Promise 정리를 위한 초기화 함수
+function resetPyodide() {
+  pyodide = null;
+  pyodideReadyPromise = initializePyodide();
+}
+
+// 초기 Promise 생성
+pyodideReadyPromise = initializePyodide();
 
 /**
  * Python traceback 문자열에서 가장 의미있는 마지막 에러 라인을 추출합니다.
@@ -80,7 +147,16 @@ function simplifyTraceback(fullTraceback) {
  * When a message is received, it executes the Python code inside it.
  */
 self.onmessage = async (event) => {
-  await pyodideReadyPromise;
+  try {
+    await pyodideReadyPromise;
+  } catch (error) {
+    self.postMessage({
+      type: 'error',
+      data: `Pyodide 초기화 실패: ${error.message}`,
+      id: event.data.id,
+    });
+    return;
+  }
 
   if (!pyodide) {
     self.postMessage({
