@@ -1,12 +1,11 @@
 import React from 'react';
+import { useParams } from 'react-router-dom';
+import { StudentReportDashboardView } from '../components/report';
 
 const StudentReportPage = () => {
-  return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold">꾸애애애애애ㅐ애애앵애애애애앩!!!!!!!!</h1>
-      <p>수업이 종료 됬다.</p>
-    </div>
-  );
+  const { roomId } = useParams<{ roomId: string }>();
+
+  return <StudentReportDashboardView roomTitle={`Room ${roomId} - 학습 리포트`} />;
 };
 
 export default StudentReportPage;
