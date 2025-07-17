@@ -11,6 +11,7 @@ import AnalysisPanel from '../components/student-class/AnalysisPanel';
 import VoiceChatModal from '../components/common/VoiceChatModal';
 import { useVoiceChat } from '../hooks/useVoiceChat';
 import socket from '../lib/socket';
+import { leaveRoomAPI } from '../api/userApi';
 
 interface SVGLine {
   points: [number, number][];
@@ -334,11 +335,17 @@ const StudentClassPage: React.FC = () => {
   };
 
   // 1. 수업 나가기 핸들러 추가
-  const handleLeaveClass = () => {
+  const handleLeaveClass = async () => {
     useStudentStore.getState().resetStore(); // 방 나갈 때 상태 초기화
     localStorage.removeItem('lastRoomId'); // 방 나갈 때 roomId도 삭제
     if (roomId && myId && inviteCode) {
       socket.emit('room:leave', { roomId, userId: myId, inviteCode });
+      try {
+        await leaveRoomAPI();
+      } catch (e) {
+        // 실패해도 무시하고 이동
+        console.error('leaveRoomAPI 실패:', e);
+      }
       window.location.href = '/';
     } else {
       window.location.href = '/';
