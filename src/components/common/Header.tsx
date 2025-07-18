@@ -20,7 +20,7 @@ const Header: React.FC<HeaderProps> = ({ hideButtons = false }) => {
   };
 
   return (
-    <header className="fixed top-0 left-0 z-50 w-full h-[70px] flex-shrink-0">
+    <header className="relative w-full h-[70px] flex-shrink-0">
       <div className="w-full h-full border-b border-gray-200 bg-white/80 shadow-sm backdrop-blur-sm absolute left-0 top-0" />
 
       <div className="relative z-10 w-full h-full flex items-center justify-between px-4 sm:px-8 lg:px-[122px]">

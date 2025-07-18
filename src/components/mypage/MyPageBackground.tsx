@@ -19,7 +19,7 @@ const MyPageBackground: React.FC<MyPageBackgroundProps> = ({ children }) => {
       {/* Content Container */}
       <div className="relative z-0">
         <Header />
-        <main className="pt-[85px]">{children}</main>
+        <main>{children}</main>
       </div>
     </div>
   );
