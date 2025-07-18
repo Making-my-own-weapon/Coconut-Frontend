@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useTeacherStore } from '../../store/teacherStore';
+import { Save, LogOut } from 'lucide-react';
 import ReportLayout from './ReportLayout';
 import { BoxReportStudent } from './index';
 import type { StudentMetric } from './index';
@@ -14,7 +16,7 @@ interface StudentReportDashboardViewProps {
 }
 
 const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
-  roomTitle = '수업 리포트',
+  roomTitle: propRoomTitle,
   studentMetrics,
   categoryData,
   problemAnalysisData,
@@ -22,25 +24,31 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
 
+  // Store에서 현재 수업 정보 가져오기
+  const { currentRoom, createdRoomInfo } = useTeacherStore();
+
+  // 수업 이름 결정
+  const roomTitle = propRoomTitle || currentRoom?.title || createdRoomInfo?.title || '수업 리포트';
+
   // 탭 컴포넌트
   const tabs = (
-    <div className="flex bg-slate-800 rounded-lg p-1">
+    <div className="flex gap-4">
       <button
         onClick={() => setActiveTab('dashboard')}
-        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+        className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
           activeTab === 'dashboard'
             ? 'bg-blue-600 text-white'
-            : 'text-slate-300 hover:text-white hover:bg-slate-700'
+            : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
         }`}
       >
         대시보드
       </button>
       <button
         onClick={() => setActiveTab('detailed')}
-        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+        className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
           activeTab === 'detailed'
             ? 'bg-blue-600 text-white'
-            : 'text-slate-300 hover:text-white hover:bg-slate-700'
+            : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
         }`}
       >
         상세 분석
@@ -50,14 +58,20 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
 
   // 액션 버튼들
   const actions = (
-    <div className="flex gap-3">
-      <button className="px-6 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-medium transition-colors">
-        PDF 다운로드
+    <>
+      <button
+        onClick={() => console.log('리포트 저장')}
+        className="flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-md text-white font-medium"
+      >
+        <Save className="w-5 h-5" /> 리포트 저장
       </button>
-      <button className="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition-colors">
-        공유하기
+      <button
+        onClick={() => console.log('수업 종료')}
+        className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 rounded-md text-white font-medium"
+      >
+        <LogOut className="w-5 h-5" /> 수업 종료
       </button>
-    </div>
+    </>
   );
 
   const handleCategoryClick = () => {
@@ -72,14 +86,10 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
 
   return (
     <div className={className}>
-      <ReportLayout roomTitle={roomTitle} tabs={tabs} actions={actions}>
+      <ReportLayout roomTitle={roomTitle} tabs={tabs} actions={actions} userType="student">
         <div className="space-y-8">
           {/* 학생 성과 메트릭 카드들 */}
           <section>
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-white mb-2">학습 성과 요약</h2>
-              <p className="text-slate-400">학생의 전반적인 학습 성과를 한눈에 확인하세요</p>
-            </div>
             <BoxReportStudent metrics={studentMetrics} className="mb-8" />
           </section>
 
