@@ -6,6 +6,7 @@ import ProblemCreateForm from './ProblemCreateForm';
 import ProblemImportForm from './ProblemImportForm';
 import { type Problem } from '../../../store/teacherStore';
 import { useProblemStore } from '../../../store/problemStore';
+import { showConfirm, showError } from '../../../utils/sweetAlert';
 
 // 이 컴포넌트가 부모로부터 받는 props 타입
 interface TeacherProblemPanelProps {
@@ -66,11 +67,12 @@ export const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({
   const handleDeleteProblem = async (problemId: number) => {
     if (!roomId) return;
 
-    if (
-      window.confirm(
-        '정말로 이 문제를 방에서 제거하시겠습니까?\n\n(문제 자체는 삭제되지 않고 다른 방에서 재사용할 수 있습니다)',
-      )
-    ) {
+    const confirmed = await showConfirm(
+      '문제 제거',
+      '정말로 이 문제를 방에서 제거하시겠습니까?\n\n(문제 자체는 삭제되지 않고 다른 방에서 재사용할 수 있습니다)',
+    );
+
+    if (confirmed) {
       try {
         await removeProblemFromRoom(roomId, problemId);
         // 삭제된 문제가 현재 선택된 문제라면 선택 해제
@@ -79,7 +81,7 @@ export const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({
         }
       } catch (error) {
         console.error('문제 제거 실패:', error);
-        alert('문제 제거에 실패했습니다.');
+        showError('오류', '문제 제거에 실패했습니다.');
       }
     }
   };

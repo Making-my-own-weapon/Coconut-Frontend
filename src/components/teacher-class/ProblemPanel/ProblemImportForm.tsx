@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Check, Search } from 'lucide-react';
 import { useProblemStore } from '../../../store/problemStore';
+import { showToast } from '../../../utils/sweetAlert';
 import ProblemDetailModal from './ProblemDetailModal';
 
 interface ProblemImportFormProps {
@@ -106,9 +107,9 @@ export default function ProblemImportForm({ onClose }: ProblemImportFormProps) {
     if (!roomId) return;
     try {
       await assignSelectedProblems(Number(roomId));
-      // 성공: 에러가 없을 때만 alert
+      // 성공: 에러가 없을 때만 토스트 표시
       if (!error) {
-        alert('선택한 문제가 할당되었습니다.');
+        showToast('success', '선택한 문제가 할당되었습니다.');
         onClose?.();
       }
     } catch {

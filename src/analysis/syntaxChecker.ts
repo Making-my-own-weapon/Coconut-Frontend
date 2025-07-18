@@ -24,8 +24,8 @@ const setupSyntaxHandler = () => {
   store.worker.onmessage = (event: MessageEvent) => {
     const { id, type, data } = event.data;
 
-    // syntax checker 관련 메시지 처리
-    if (id && id.startsWith('syntax-') && pending[id]) {
+    // syntax checker 관련 메시지 처리 (안전한 타입 체크 추가)
+    if (id && typeof id === 'string' && id.startsWith('syntax-') && pending[id]) {
       if (type === 'analyze_result') {
         const pyflakesOutput = data;
         if (!pyflakesOutput || pyflakesOutput.trim() === '') {
