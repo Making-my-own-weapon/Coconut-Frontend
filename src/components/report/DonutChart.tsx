@@ -71,7 +71,7 @@ const DonutChart: React.FC<DonutChartProps> = ({
             const value = context.parsed || 0;
             const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
             const percentage = ((value / total) * 100).toFixed(1);
-            return `${label}: ${value}개 (${percentage}%)`;
+            return `${label}: ${value}% (비율: ${percentage}%)`;
           },
         },
       },
