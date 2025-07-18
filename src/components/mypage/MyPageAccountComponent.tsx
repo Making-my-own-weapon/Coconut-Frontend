@@ -9,8 +9,8 @@ interface MyAccountComponentProps {
 }
 
 const MyAccountComponent: React.FC<MyAccountComponentProps> = ({
-  userName = '울트라리스크',
-  userEmail = 'marin@com.com',
+  userName,
+  userEmail,
   lastPasswordUpdate = '2025-07-12',
   onPasswordChange,
   onAccountDeletion,
