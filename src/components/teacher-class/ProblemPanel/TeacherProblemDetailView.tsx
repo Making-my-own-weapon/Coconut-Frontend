@@ -322,26 +322,45 @@ const TeacherProblemDetailView: React.FC<TeacherProblemDetailViewProps> = ({
   const testCases = problemWithExampleTc.testCases;
   const formattedTestCases = useMemo(() => {
     try {
-      const exampleTcData = exampleTc;
+      // exampleTc 필드를 우선적으로 사용
+      let exampleTcData = null;
 
-      if (!exampleTcData || !Array.isArray(exampleTcData)) {
-        // fallback: 기존 testCases 사용
-        return (
-          testCases?.map(
-            (tc: { input: string; output?: string; expectedOutput?: string }, idx: number) => ({
-              id: idx + 1,
-              input: tc.input,
-              expectedOutput: tc.output || tc.expectedOutput || '',
-            }),
-          ) || []
-        );
+      if (exampleTc) {
+        if (typeof exampleTc === 'string') {
+          try {
+            exampleTcData = JSON.parse(exampleTc);
+          } catch (parseError) {
+            console.error('Failed to parse exampleTc JSON:', parseError);
+          }
+        } else {
+          exampleTcData = exampleTc;
+        }
       }
 
-      return exampleTcData.map((tc: { input: string; output: string }, idx: number) => ({
-        id: idx + 1,
-        input: tc.input,
-        expectedOutput: tc.output,
-      }));
+      // exampleTc가 있으면 그것을 사용
+      if (exampleTcData) {
+        // 단일 객체인 경우 배열로 변환
+        if (!Array.isArray(exampleTcData)) {
+          exampleTcData = [exampleTcData];
+        }
+
+        return exampleTcData.map((tc: { input: string; output: string }, idx: number) => ({
+          id: idx + 1,
+          input: tc.input,
+          expectedOutput: tc.output,
+        }));
+      }
+
+      // fallback: 기존 testCases 사용
+      return (
+        testCases?.map(
+          (tc: { input: string; output?: string; expectedOutput?: string }, idx: number) => ({
+            id: idx + 1,
+            input: tc.input,
+            expectedOutput: tc.output || tc.expectedOutput || '',
+          }),
+        ) || []
+      );
     } catch {
       // fallback: 기존 testCases 사용
       return (

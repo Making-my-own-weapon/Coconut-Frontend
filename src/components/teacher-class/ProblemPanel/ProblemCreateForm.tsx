@@ -3,9 +3,14 @@ import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { useProblemStore } from '../../../store/problemStore';
+import { showToast, showError } from '../../../utils/sweetAlert';
 import type { CreateProblemDto } from '../../../api/problemApi';
 
-export default function ProblemCreateForm({ onClose }: { onClose?: () => void }) {
+interface ProblemCreateFormProps {
+  onClose?: () => void;
+}
+
+export default function ProblemCreateForm({ onClose }: ProblemCreateFormProps) {
   const { roomId } = useParams<{ roomId: string }>();
   const { createAndAssignProblem, isLoading, error } = useProblemStore();
 
@@ -67,7 +72,7 @@ export default function ProblemCreateForm({ onClose }: { onClose?: () => void })
       return;
     }
     if (!roomId) {
-      alert('유효하지 않은 방입니다.');
+      showError('오류', '유효하지 않은 방입니다.');
       return;
     }
 
@@ -89,7 +94,7 @@ export default function ProblemCreateForm({ onClose }: { onClose?: () => void })
     try {
       setErrorMessage(null);
       await createAndAssignProblem(dto, Number(roomId));
-      alert('문제가 성공적으로 생성 및 할당되었습니다.');
+      showToast('success', '문제가 성공적으로 생성 및 할당되었습니다.');
       onClose?.();
     } catch {
       // 에러는 store.error 에서 표시

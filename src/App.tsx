@@ -12,6 +12,7 @@ import StudentClassPage from './pages/StudentClassPage';
 import MyPage from './pages/MyPage';
 import ReportPage from './pages/ReportPage';
 import StudentReportPage from './pages/StudentReportPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 // --- 컴포넌트 import ---
 import PrivateRoute from './components/PrivateRoute';
@@ -113,6 +114,8 @@ function App() {
             </PrivateRoute>
           }
         />
+        {/* NotFoundPage: 위에 해당하지 않는 모든 경로 */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

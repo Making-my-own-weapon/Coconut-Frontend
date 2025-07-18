@@ -25,6 +25,7 @@
     "react-router-dom": "^7.6.3",
     "simple-peer": "^9.11.1",
     "socket.io-client": "^4.8.1",
+    "sweetalert2": "^11.10.6",
     "vite-plugin-svgr": "^4.3.0",
     "zustand": "^5.0.6"
   },
