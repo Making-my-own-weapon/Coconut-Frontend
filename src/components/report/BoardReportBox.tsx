@@ -51,6 +51,7 @@ const problemColors = [
 const BoardReportBox: React.FC<BoardReportBoxProps> = ({
   categoryData,
   problemAnalysisData,
+
   onCategoryClick,
   onProblemClick,
   className = '',

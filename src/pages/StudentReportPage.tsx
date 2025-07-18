@@ -151,5 +151,4 @@ const StudentReportPage = () => {
     />
   );
 };
-
 export default StudentReportPage;
