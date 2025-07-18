@@ -71,8 +71,9 @@ export const useStudentStore = create<StudentState>()(
               selectedProblemId: state.selectedProblemId, // 기존 선택 유지
             };
           });
-        } catch {
+        } catch (err) {
           set({ error: '수업 정보를 불러오는 데 실패했습니다.' });
+          throw err;
         } finally {
           set({ isLoading: false });
         }
