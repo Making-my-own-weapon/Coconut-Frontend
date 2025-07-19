@@ -8,7 +8,7 @@ import * as userApi from '../api/userApi';
 interface AuthState {
   isLoggedIn: boolean;
   accessToken: string | null;
-  user: { id: number; email: string; name: string } | null;
+  user: { id: number; email: string; name: string; roomId: number | null } | null;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;

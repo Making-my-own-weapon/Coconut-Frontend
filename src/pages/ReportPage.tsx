@@ -182,7 +182,12 @@ const ReportPage: React.FC = () => {
   }, [reportData]);
 
   return (
-    <ReportLayout actions={actionButtons} tabs={tabs} roomTitle={reportData?.roomTitle}>
+    <ReportLayout
+      actions={actionButtons}
+      tabs={tabs}
+      roomTitle={reportData?.roomTitle}
+      userType="teacher"
+    >
       {activeView === 'overall' && (
         // --- 2. OverallReportView에 모든 props를 전달합니다. ---
         <OverallReportView

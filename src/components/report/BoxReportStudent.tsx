@@ -132,7 +132,7 @@ const MetricCard: React.FC<{ metric: StudentMetric }> = ({ metric }) => {
   const styles = getCardStyles(metric.type);
 
   return (
-    <div className="relative w-full max-w-[330px] h-[120px] flex-shrink-0">
+    <div className="relative w-full h-[120px] flex-shrink-0">
       {/* Background with gradient and shadow */}
       <div className={`absolute inset-0 rounded-2xl ${styles.gradient} ${styles.shadow}`} />
 
@@ -140,7 +140,7 @@ const MetricCard: React.FC<{ metric: StudentMetric }> = ({ metric }) => {
       <div className="absolute left-4 top-7 flex-shrink-0">{styles.icon}</div>
 
       {/* Text content */}
-      <div className="absolute left-20 top-4 text-white">
+      <div className="absolute left-24 top-4 text-white">
         <div
           className={`${styles.titleSize} font-bold leading-normal mb-1`}
           style={{ fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif' }}
@@ -171,7 +171,7 @@ const BoxReportStudent: React.FC<BoxReportStudentProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full ${className}`}>
+    <div className={`grid grid-cols-2 xl:grid-cols-4 gap-4 xl:gap-6 w-full ${className}`}>
       {metrics.map((metric, index) => (
         <MetricCard key={`${metric.type}-${index}`} metric={metric} />
       ))}
