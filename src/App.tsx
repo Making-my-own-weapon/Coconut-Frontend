@@ -54,13 +54,31 @@ function App() {
           const creator = room.participants.find(
             (p) => p.userId === user.id && p.name === user.name,
           );
-          if (creator && user.id === room.participants[0].userId) {
-            if (window.location.pathname !== `/room/${user.roomId}`) {
-              window.location.replace(`/room/${user.roomId}`);
+
+          // 방이 FINISHED 상태인지 확인
+          if (room.status === 'FINISHED') {
+            // FINISHED 상태면 리포트 페이지로
+            if (creator && user.id === room.participants[0].userId) {
+              // 선생님인 경우
+              if (window.location.pathname !== `/room/${user.roomId}/report`) {
+                window.location.replace(`/room/${user.roomId}/report`);
+              }
+            } else {
+              // 학생인 경우
+              if (window.location.pathname !== `/class/${user.roomId}/report`) {
+                window.location.replace(`/class/${user.roomId}/report`);
+              }
             }
           } else {
-            if (window.location.pathname !== `/class/${user.roomId}`) {
-              window.location.replace(`/class/${user.roomId}`);
+            // 진행 중인 방인 경우 기존 로직
+            if (creator && user.id === room.participants[0].userId) {
+              if (window.location.pathname !== `/room/${user.roomId}`) {
+                window.location.replace(`/room/${user.roomId}`);
+              }
+            } else {
+              if (window.location.pathname !== `/class/${user.roomId}`) {
+                window.location.replace(`/class/${user.roomId}`);
+              }
             }
           }
         }

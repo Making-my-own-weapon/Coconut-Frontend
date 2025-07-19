@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import logo from '../../assets/coconutlogo.png';
 import microphoneIcon from '../../assets/microphone.svg';
-import settingsIcon from '../../assets/settings.svg';
+import { showConfirm } from '../../utils/sweetAlert';
 
 interface TeacherHeaderProps {
   classCode?: string;
@@ -31,8 +31,21 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
       alert('마이크 버튼 클릭!');
     }
   };
-  const handleSettings = () => {
-    alert('설정 버튼 클릭! (나중에 로직 추가)');
+
+  const handleToggleClass = async () => {
+    if (isClassStarted) {
+      // 수업이 진행 중일 때 종료하려면 확인
+      const confirmed = await showConfirm(
+        '수업 종료',
+        '정말로 수업을 종료하고 리포트 페이지로 이동하시겠습니까?',
+      );
+      if (confirmed) {
+        onToggleClass(formatTime(timer));
+      }
+    } else {
+      // 수업 시작은 바로 실행
+      onToggleClass(formatTime(timer));
+    }
   };
 
   // 타이머 상태 및 관리
@@ -142,13 +155,6 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
           >
             <img src={microphoneIcon} alt="Microphone" className="h-6 w-6" />
           </button>
-          <button
-            className="hover:text-white transition-colors"
-            aria-label="Settings"
-            onClick={handleSettings}
-          >
-            <img src={settingsIcon} alt="Settings" className="h-6 w-6" />
-          </button>
         </div>
         {/* 그리드/에디터 전환 버튼 */}
         <button
@@ -159,7 +165,7 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
         </button>
         {/* 수업 시작/종료 버튼 */}
         <button
-          onClick={() => onToggleClass(formatTime(timer))}
+          onClick={handleToggleClass}
           className={`px-4 py-2 ${isClassStarted ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} rounded-md text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 ${isClassStarted ? 'focus:ring-red-500' : 'focus:ring-green-500'}`}
         >
           {isClassStarted ? '수업 종료' : '수업 시작'}
