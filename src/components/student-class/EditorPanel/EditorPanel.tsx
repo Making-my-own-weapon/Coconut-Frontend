@@ -19,7 +19,7 @@ interface EditorPanelProps {
   onCodeChange: (value: string | undefined) => void;
   studentName?: string;
   disabled?: boolean;
-  otherCursor?: { lineNumber: number; column: number } | null;
+  otherCursor?: { lineNumber: number; column: number; problemId: number | null } | null;
   onCursorChange?: (position: {
     lineNumber: number;
     column: number;
@@ -145,7 +145,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
             className={`px-3 py-1 rounded transition ${showOverlay ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-200 hover:bg-slate-600'}`}
             onClick={() => setShowOverlay((v) => !v)}
           >
-            {showOverlay ? '그림판 숨기기' : '그림판 보기'}
+            {showOverlay ? '그림판 끄기' : '그림판 보기'}
           </button>
         </div>
       </div>
