@@ -579,6 +579,7 @@ const TeacherClassPage: React.FC = () => {
         onToggleClass={handleToggleClass}
         title={currentRoom?.title || '수업 제목'}
         onVoiceChatToggle={() => setIsVoiceChatOpen(!isVoiceChatOpen)}
+        roomId={roomId}
       />
 
       {/* 음성채팅 팝업 */}

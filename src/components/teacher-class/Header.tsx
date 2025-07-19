@@ -12,6 +12,7 @@ interface TeacherHeaderProps {
   onToggleClass: (currentTimer?: string) => void;
   title?: string; // 수업 제목만 남김
   onVoiceChatToggle?: () => void; // 음성채팅 토글 함수 추가
+  roomId?: string; // 방 ID 추가
 }
 
 const TeacherHeader: React.FC<TeacherHeaderProps> = ({
@@ -22,6 +23,7 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   onToggleClass,
   title,
   onVoiceChatToggle, // 추가
+  roomId, // 추가
 }) => {
   // 마이크/설정 버튼 핸들러 (학생과 동일)
   const handleMicrophone = () => {
@@ -46,7 +48,7 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
     }
   };
 
-  // 타이머 상태 및 관리
+  // LocalStorage 기반 타이머 상태 및 관리
   const [timer, setTimer] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const prevClassStarted = useRef(isClassStarted);
@@ -62,9 +64,38 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
     return `${h}:${m}:${s}`;
   };
 
+  // LocalStorage에서 타이머 정보 가져오기
+  const getTimerFromStorage = () => {
+    if (!roomId || !isClassStarted) return 0;
+
+    const storageKey = `class_timer_${roomId}`;
+    const startTime = localStorage.getItem(storageKey);
+
+    if (startTime) {
+      const elapsed = Math.floor((Date.now() - parseInt(startTime)) / 1000);
+      return Math.max(0, elapsed);
+    }
+    return 0;
+  };
+
+  // LocalStorage에 시작 시간 저장
+  const saveStartTimeToStorage = () => {
+    if (!roomId) return;
+
+    const storageKey = `class_timer_${roomId}`;
+    localStorage.setItem(storageKey, Date.now().toString());
+  };
+
   useEffect(() => {
-    // 수업 시작 시 타이머 시작
+    // 수업 시작 시 LocalStorage에서 타이머 정보 가져오기
     if (isClassStarted && !prevClassStarted.current) {
+      const elapsedTime = getTimerFromStorage();
+      if (elapsedTime === 0) {
+        // 처음 시작하는 경우 시작 시간 저장
+        saveStartTimeToStorage();
+      }
+      setTimer(elapsedTime);
+      // 그 후 1초마다 증가
       intervalRef.current = setInterval(() => {
         setTimer((t) => t + 1);
       }, 1000);
@@ -76,6 +107,10 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
         intervalRef.current = null;
       }
       setTimer(0);
+      // LocalStorage에서 시작 시간 제거
+      if (roomId) {
+        localStorage.removeItem(`class_timer_${roomId}`);
+      }
     }
     prevClassStarted.current = isClassStarted;
     // 언마운트 시 클린업
@@ -85,7 +120,7 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
         intervalRef.current = null;
       }
     };
-  }, [isClassStarted]);
+  }, [isClassStarted, roomId]);
 
   return (
     <header className="w-full h-16 bg-slate-900 text-white flex items-center justify-between px-6 border-b border-slate-700">
