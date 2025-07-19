@@ -145,6 +145,13 @@ const StudentClassPage: React.FC = () => {
         setIsJoiningRoom(false);
         setIsRoomJoined(true); // 방 입장 완료 시 상태 업데이트
         console.log('[Student] 방 입장 성공:', data.roomId, data.inviteCode);
+        // 방 입장 성공 시 sessionStorage에 inviteCode, userId 저장
+        window.sessionStorage.setItem('inviteCode', data.inviteCode);
+        window.sessionStorage.setItem('userId', String(myId));
+        console.log('[Student] sessionStorage 저장:', {
+          inviteCode: data.inviteCode,
+          userId: myId,
+        });
       });
       socket.on('room:full', () => {
         setIsJoiningRoom(false);

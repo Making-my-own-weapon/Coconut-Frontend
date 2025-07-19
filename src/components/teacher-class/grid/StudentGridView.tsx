@@ -4,6 +4,7 @@ import { useTeacherStore } from '../../../store/teacherStore';
 import GridCard from './GridCard';
 import socket from '../../../lib/socket';
 import { useEffect } from 'react';
+import { useSubmissionResultSocketListener } from '../../../store/teacherStore';
 
 // 1. 컴포넌트가 'students' 배열을 prop으로 받도록 정의합니다.
 interface StudentGridViewProps {
@@ -32,6 +33,8 @@ const StudentGridView: React.FC<StudentGridViewProps> = ({
       socket.off('student:currentProblem', handler);
     };
   }, [setStudentCurrentProblem]);
+
+  useSubmissionResultSocketListener();
 
   return (
     <div className="w-full min-h-0 flex justify-center">

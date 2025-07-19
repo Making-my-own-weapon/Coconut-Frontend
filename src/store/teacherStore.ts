@@ -69,6 +69,8 @@ interface TeacherState {
   setStudentMemo: (studentId: number, memo: string) => void;
   studentWrongProblems: Record<number, number[]>; // 학생별 오답(문제ID 배열)
   setStudentWrongProblems: (studentId: number, wrongProblems: number[]) => void;
+  studentCorrectProblems: Record<number, number[]>; // 학생별 정답(문제ID 배열)
+  setStudentCorrectProblems: (studentId: number, correctProblems: number[]) => void;
 }
 
 // --- 스토어 생성 ---
@@ -92,6 +94,7 @@ export const useTeacherStore = create<TeacherState>()(
       studentCurrentProblems: {},
       studentMemos: {},
       studentWrongProblems: {},
+      studentCorrectProblems: {},
 
       // --- 액션 ---
       createRoom: async (title: string, maxParticipants: number) => {
@@ -199,6 +202,7 @@ export const useTeacherStore = create<TeacherState>()(
           studentCurrentProblems: {},
           studentMemos: {},
           studentWrongProblems: {},
+          studentCorrectProblems: {},
           // 필요에 따라 다른 상태도 초기화 가능
         }),
       setStudentCurrentProblem: (studentId, problemId) => {
@@ -225,6 +229,14 @@ export const useTeacherStore = create<TeacherState>()(
           },
         }));
       },
+      setStudentCorrectProblems: (studentId, correctProblems) => {
+        set((state) => ({
+          studentCorrectProblems: {
+            ...state.studentCorrectProblems,
+            [studentId]: correctProblems,
+          },
+        }));
+      },
     }),
     {
       name: 'teacher-storage',
@@ -234,7 +246,55 @@ export const useTeacherStore = create<TeacherState>()(
         selectedStudentId: state.selectedStudentId,
         selectedProblemId: state.selectedProblemId,
         studentCurrentProblems: state.studentCurrentProblems,
+        studentCorrectProblems: state.studentCorrectProblems,
+        studentWrongProblems: state.studentWrongProblems,
+        studentMemos: state.studentMemos,
       }),
     },
   ),
 );
+
+// --- 소켓 이벤트 리스너: 채점 결과 수신 및 상태 갱신 ---
+import socket from '../lib/socket';
+import { useEffect } from 'react';
+
+export function useSubmissionResultSocketListener() {
+  const setStudentWrongProblems = useTeacherStore((s) => s.setStudentWrongProblems);
+  const setStudentCorrectProblems = useTeacherStore((s) => s.setStudentCorrectProblems);
+  const studentWrongProblems = useTeacherStore((s) => s.studentWrongProblems);
+  const studentCorrectProblems = useTeacherStore((s) => s.studentCorrectProblems);
+
+  useEffect(() => {
+    const handler = (payload: { studentId: number; problemId: number; isCorrect: boolean }) => {
+      const { studentId, problemId, isCorrect } = payload;
+      console.log('[선생님] student:submissionResult 수신', payload);
+      // 정답 처리
+      let correct = studentCorrectProblems[studentId] || [];
+      let wrong = studentWrongProblems[studentId] || [];
+      if (isCorrect) {
+        if (!correct.includes(problemId)) {
+          correct = [...correct, problemId];
+        }
+        // 맞은 문제는 오답에서 제거
+        wrong = wrong.filter((pid) => pid !== problemId);
+      } else {
+        // 오답은 맞은 문제에 없을 때만 추가 (이미 틀린 문제에 있으면 중복 추가 안 함)
+        if (!correct.includes(problemId)) {
+          wrong = [...wrong, problemId];
+        }
+      }
+      console.log('[선생님] 맞은 문제:', correct, '틀린 문제:', wrong);
+      setStudentCorrectProblems(studentId, correct);
+      setStudentWrongProblems(studentId, wrong);
+    };
+    socket.on('student:submissionResult', handler);
+    return () => {
+      socket.off('student:submissionResult', handler);
+    };
+  }, [
+    setStudentWrongProblems,
+    setStudentCorrectProblems,
+    studentWrongProblems,
+    studentCorrectProblems,
+  ]);
+}

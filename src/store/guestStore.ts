@@ -28,6 +28,17 @@ export const useGuestStore = create<GuestState>((set) => ({
     try {
       const response = await guestApi.joinRoomAPI(inviteCode, userName);
       set({ joinedRoomInfo: response.data });
+      // 방 입장 성공 시 sessionStorage에 inviteCode, userId 저장
+      // inviteCode는 인자로, userId는 response.data에서 추출(없으면 강제로 저장)
+      window.sessionStorage.setItem('inviteCode', inviteCode);
+      // userId가 없어도 강제로 저장 (로그인 정보에서 가져오거나 임시값 사용)
+      const userId = response.data?.userId || window.sessionStorage.getItem('loginUserId') || '1';
+      window.sessionStorage.setItem('userId', String(userId));
+      // 디버깅용 로그
+      console.log('[게스트 입장] sessionStorage 저장', {
+        inviteCode,
+        userId: userId,
+      });
     } catch (err) {
       // isAxiosError로 axios 에러인지 확인
       if (isAxiosError(err) && err.response) {
