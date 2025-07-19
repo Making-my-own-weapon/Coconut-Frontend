@@ -24,17 +24,11 @@ const ReportPage: React.FC = () => {
 
   const handleLeaveRoom = async () => {
     if (roomId) {
-      const confirmed = await showConfirm(
-        '수업 종료',
-        '정말로 수업을 종료하고 방을 삭제하시겠습니까?',
-      );
-      if (confirmed) {
-        try {
-          await deleteRoom(roomId);
-          navigate('/join');
-        } catch {
-          showToast('error', '방 삭제에 실패했습니다.');
-        }
+      try {
+        await deleteRoom(roomId);
+        navigate('/join');
+      } catch {
+        showToast('error', '방 삭제에 실패했습니다.');
       }
     }
   };
