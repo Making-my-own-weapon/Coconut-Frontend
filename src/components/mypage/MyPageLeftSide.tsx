@@ -12,9 +12,9 @@ interface MyPageLeftSideProps {
 
 const MyPageLeftSide: React.FC<MyPageLeftSideProps> = ({ onItemClick, activeItem }) => {
   const navItems: NavItem[] = [
+    { label: '계정 관리', key: 'account-management' },
     { label: '리포트', key: 'report' },
     { label: '문제 관리', key: 'problem-management' },
-    { label: '계정 관리', key: 'account-management' },
   ];
 
   const handleItemClick = (key: string) => {

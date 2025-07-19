@@ -1,18 +1,13 @@
 import React from 'react';
+import MyPageReportBox from './MyPageReportBox'; // 👈 1. 컴포넌트 import
 
-const MyPageRightPanel: React.FC = () => {
+const MyPageReportView: React.FC = () => {
   return (
-    <div className="flex-1 h-[900px] rounded-2xl border border-gray-200 bg-white shadow-md px-8 py-6">
-      <h1 className="text-black font-semibold text-[25px] mb-4">선생님 리포트</h1>
-
-      {/* 수업 생성 패널 */}
-      <div className="h-[360px] border rounded-lg bg-gray-50"></div>
-
-      {/* 수업 참여 패널 */}
-      <h2 className="font-semibold text-[25px] text-gray-800 py-4">학생 리포트</h2>
-      <div className="p-6 h-[360px] border rounded-lg bg-gray-50"></div>
+    <div className="flex-1 h-[900px] rounded-2xl border border-gray-200 bg-white shadow-md p-8">
+      {/* 👇 2. 컴포넌트를 여기에 렌더링합니다. */}
+      <MyPageReportBox />
     </div>
   );
 };
 
-export default MyPageRightPanel;
+export default MyPageReportView;
