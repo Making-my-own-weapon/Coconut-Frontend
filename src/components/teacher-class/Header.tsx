@@ -27,8 +27,6 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   const handleMicrophone = () => {
     if (onVoiceChatToggle) {
       onVoiceChatToggle();
-    } else {
-      alert('마이크 버튼 클릭!');
     }
   };
 
