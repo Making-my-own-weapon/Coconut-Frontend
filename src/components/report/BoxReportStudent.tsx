@@ -63,7 +63,7 @@ const SmileIcon: React.FC = () => (
   <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
       d="M24.8 24.8H24.824M39.2 24.8H39.224M56 32C56 45.2548 45.2548 56 32 56C18.7452 56 8 45.2548 8 32C8 18.7452 18.7452 8 32 8C45.2548 8 56 18.7452 56 32ZM46.4 34.4C45.8274 37.7898 44.0609 40.8629 41.4198 43.0638C38.7788 45.2646 35.4375 46.448 32 46.4C28.5625 46.448 25.2212 45.2646 22.5802 43.0638C19.9391 40.8629 18.1726 37.7898 17.6 34.4H46.4Z"
-      stroke="#C7AFFF"
+      stroke="#A7F3D0"
       strokeWidth="4"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -75,7 +75,7 @@ const FrownIcon: React.FC = () => (
   <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
       d="M41.6 41.6C41.6 41.6 38 36.8 32 36.8C26 36.8 22.4 41.6 22.4 41.6M24.8 24.8H24.824M39.2 24.8H39.224M56 32C56 45.2548 45.2548 56 32 56C18.7452 56 8 45.2548 8 32C8 18.7452 18.7452 8 32 8C45.2548 8 56 18.7452 56 32Z"
-      stroke="#F3DEBB"
+      stroke="#FECACA"
       strokeWidth="4"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -104,16 +104,16 @@ const MetricCard: React.FC<{ metric: StudentMetric }> = ({ metric }) => {
         };
       case 'bestCategory':
         return {
-          gradient: 'bg-gradient-to-r from-violet-600 to-violet-500',
-          shadow: 'shadow-[0px_8px_30px_0px_rgba(139,92,246,0.20)]',
+          gradient: 'bg-gradient-to-r from-amber-600 to-amber-500',
+          shadow: 'shadow-[0px_8px_30px_0px_rgba(245,158,11,0.20)]',
           icon: <SmileIcon />,
           titleSize: 'text-base',
           valueSize: 'text-3xl',
         };
       case 'worstCategory':
         return {
-          gradient: 'bg-gradient-to-r from-amber-600 to-amber-500',
-          shadow: 'shadow-[0px_8px_30px_0px_rgba(245,158,11,0.20)]',
+          gradient: 'bg-gradient-to-r from-violet-600 to-violet-500',
+          shadow: 'shadow-[0px_8px_30px_0px_rgba(139,92,246,0.20)]',
           icon: <FrownIcon />,
           titleSize: 'text-base',
           valueSize: 'text-3xl',
@@ -171,9 +171,11 @@ const BoxReportStudent: React.FC<BoxReportStudentProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`grid grid-cols-2 xl:grid-cols-4 gap-4 xl:gap-6 w-full ${className}`}>
+    <div className={`flex flex-wrap gap-4 xl:gap-6 w-full ${className}`}>
       {metrics.map((metric, index) => (
-        <MetricCard key={`${metric.type}-${index}`} metric={metric} />
+        <div key={`${metric.type}-${index}`} className="flex-1 min-w-[250px] max-w-[400px]">
+          <MetricCard metric={metric} />
+        </div>
       ))}
     </div>
   );
