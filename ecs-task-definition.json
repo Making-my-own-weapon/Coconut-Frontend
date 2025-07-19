@@ -22,14 +22,24 @@
         {
           "name": "NODE_ENV",
           "value": "production"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "PORT", 
+          "valueFrom": "arn:aws:ssm:ap-northeast-2:928747727316:parameter/coconut/port"
         },
         {
-          "name": "BACKEND_HOST",
-          "value": "172.31.14.197"
+          "name": "HOST",
+          "valueFrom": "arn:aws:ssm:ap-northeast-2:928747727316:parameter/coconut/host"
         },
         {
-          "name": "BACKEND_PORT",
-          "value": "3001"
+          "name": "VITE_SOCKET_URL",
+          "valueFrom": "arn:aws:ssm:ap-northeast-2:928747727316:parameter/coconut/vite/socket_url"
+        },
+        {
+          "name": "VITE_API_BASE_URL",
+          "valueFrom": "arn:aws:ssm:ap-northeast-2:928747727316:parameter/coconut/vite/api_base_url"
         }
       ],
       "logConfiguration": {
