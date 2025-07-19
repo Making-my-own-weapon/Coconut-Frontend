@@ -88,7 +88,8 @@ const StudentReportPage = () => {
   // 카테고리 데이터
   const categoryData = (reportData as any)?.categoryAnalysis?.map((category: any) => ({
     name: category.name,
-    count: category.successRate, // 카테고리별 정답률
+    count: category.uniqueProblems || 0, // 카테고리별 문제 수
+    successRate: category.successRate, // 정답률은 별도 보관
     passedCount: category.passedSubmissions, // 맞춘 개수
     totalCount: category.totalSubmissions, // 총 제출 개수
     uniqueProblems: category.uniqueProblems, // 고유 문제 수

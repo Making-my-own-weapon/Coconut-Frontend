@@ -38,7 +38,7 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
 
   // 탭 컴포넌트
   const tabs = (
-    <div className="flex gap-4">
+    <div className="flex gap-2">
       <button
         onClick={() => setActiveTab('dashboard')}
         className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -67,9 +67,15 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
     <>
       <button
         onClick={() => console.log('리포트 저장')}
-        className="flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-md text-white font-medium"
+        className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-md text-white font-medium"
       >
         <Save className="w-5 h-5" /> 리포트 저장
+      </button>
+      <button
+        onClick={() => console.log('수업 나가기')}
+        className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 rounded-md text-white font-medium"
+      >
+        <LogOut className="w-5 h-5" /> 수업 나가기
       </button>
     </>
   );

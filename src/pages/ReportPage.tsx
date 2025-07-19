@@ -4,7 +4,6 @@ import { useReportStore } from '../store/reportStore';
 import { useTeacherStore } from '../store/teacherStore';
 import ReportLayout from '../components/report/ReportLayout';
 import OverallReportView from '../components/report/OverallReportView';
-import ProblemReportView from '../components/report/ProblemReportView';
 import StudentReportView from '../components/report/StudentReportView';
 import { LogOut, Save } from 'lucide-react';
 import { showConfirm, showToast } from '../utils/sweetAlert';
@@ -13,7 +12,7 @@ const ReportPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
 
-  const [activeView, setActiveView] = useState<'overall' | 'problem' | 'student'>('overall');
+  const [activeView, setActiveView] = useState<'overall' | 'student'>('overall');
 
   const { deleteRoom, isLoading } = useTeacherStore();
   const { reportData, fetchReport } = useReportStore();
@@ -134,9 +133,6 @@ const ReportPage: React.FC = () => {
       <button onClick={() => setActiveView('student')} className={getButtonClass('student')}>
         학생 리포트
       </button>
-      <button onClick={() => setActiveView('problem')} className={getButtonClass('problem')}>
-        문제 리포트
-      </button>
     </>
   );
 
@@ -192,8 +188,6 @@ const ReportPage: React.FC = () => {
           studentChartData={studentChartData}
         />
       )}
-      {activeView === 'problem' && <ProblemReportView />}
-
       {activeView === 'student' && (
         <StudentReportView
           studentResults={studentData}

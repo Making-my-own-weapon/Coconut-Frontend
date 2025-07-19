@@ -125,11 +125,11 @@ const BoardReportStudent: React.FC<BoardReportStudentProps> = ({
         </div>
       )}
 
-      {/* 학생용 뷰에서는 학생 이름만 표시 */}
+      {/* 학생용 뷰에서는 학생 이름과 통계를 패널로 표시 */}
       {isStudentView && (
-        <div className="mb-5">
+        <div className="mb-5 p-4 bg-slate-700 border border-slate-600 rounded-xl">
           <h2 className="text-white text-xl font-bold">{selectedStudent}</h2>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-white text-sm mt-1">
             해결한 문제: {solvedProblems}/{totalProblems}
           </p>
         </div>
@@ -145,7 +145,7 @@ const BoardReportStudent: React.FC<BoardReportStudentProps> = ({
               onClick={() => onProblemSelect?.(problem)}
               className={`p-4 rounded-xl cursor-pointer transition-all duration-200 ${
                 selectedProblem?.problemId === problem.problemId
-                  ? 'bg-blue-600 border-2 border-blue-400'
+                  ? 'bg-[#221F34] border-4 border-green-300'
                   : 'bg-[#221F34] hover:bg-[#2A2640] border border-slate-600'
               }`}
             >
