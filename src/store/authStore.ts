@@ -8,7 +8,13 @@ import * as userApi from '../api/userApi';
 interface AuthState {
   isLoggedIn: boolean;
   accessToken: string | null;
-  user: { id: number; email: string; name: string; roomId: number | null } | null;
+  user: {
+    id: number;
+    email: string;
+    name: string;
+    roomId: number | null;
+    updatedAt: string;
+  } | null;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -16,6 +22,7 @@ interface AuthState {
   silentRefresh: () => Promise<void>;
   setAccessToken: (token: string) => void;
   deleteAccount: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -90,6 +97,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (err) {
       console.error('계정 삭제 실패:', err);
       throw err; // 에러를 다시 던져서 컴포넌트에서 처리할 수 있도록 함
+    }
+  },
+
+  changePassword: async (currentPassword: string, newPassword: string) => {
+    try {
+      await userApi.changePasswordAPI(currentPassword, newPassword);
+      // 비밀번호 변경 후 사용자 정보 새로고침
+      await get().fetchUser();
+    } catch (err) {
+      console.error('비밀번호 변경 실패:', err);
+      throw err;
     }
   },
 }));

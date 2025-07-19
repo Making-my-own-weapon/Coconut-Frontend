@@ -21,17 +21,9 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   // 복사 완료 상태 관리
   const [showCopied, setShowCopied] = useState(false);
-  const handleConnect = () => {
-    alert('세션 연결하기 버튼 클릭!');
-  };
-
-  // 기존 handleManage 삭제 또는 미사용
-
   const handleMicrophone = () => {
     if (onVoiceChatToggle) {
       onVoiceChatToggle();
-    } else {
-      alert('마이크 버튼 클릭!');
     }
   };
 
