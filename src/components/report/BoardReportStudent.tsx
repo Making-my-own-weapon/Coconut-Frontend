@@ -23,6 +23,7 @@ export interface BoardReportStudentProps {
   selectedProblem?: ProblemSubmission | null;
   totalProblems?: number;
   solvedProblems?: number;
+  isStudentView?: boolean; // 학생용 뷰인지 여부 (드롭다운 숨김용)
 }
 
 const BoardReportStudent: React.FC<BoardReportStudentProps> = ({
@@ -37,6 +38,7 @@ const BoardReportStudent: React.FC<BoardReportStudentProps> = ({
   selectedProblem,
   totalProblems = 0,
   solvedProblems = 0,
+  isStudentView = false,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(studentName || '');
@@ -81,33 +83,57 @@ const BoardReportStudent: React.FC<BoardReportStudentProps> = ({
     <div
       className={`w-full max-w-[470px] h-[656px] bg-slate-800 border border-slate-600 rounded-2xl p-6 flex flex-col ${className}`}
     >
-      {/* 학생 선택 드롭다운 */}
-      <div className="relative w-40 mb-5">
-        <div
-          className="w-full h-10 bg-slate-700 border border-slate-600 rounded-xl grid grid-cols-[1fr_auto] items-center gap-2 px-4 cursor-pointer"
-          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        >
-          <span className="text-white font-medium truncate">{selectedStudent || '학생 선택'}</span>
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-        {isDropdownOpen && (
-          <div className="absolute top-full mt-2 w-full bg-slate-700 border border-slate-600 rounded-xl z-10 max-h-40 overflow-y-auto">
-            {students
-              .filter((student) => student !== selectedStudent) // 현재 선택된 학생 제외
-              .map((student, index) => (
-                <div
-                  key={index}
-                  onClick={() => handleStudentSelect(student)}
-                  className="px-4 py-3 hover:bg-slate-600 cursor-pointer text-white first:rounded-t-xl last:rounded-b-xl"
-                >
-                  {student}
-                </div>
-              ))}
+      {/* 학생 선택 드롭다운 - 학생용 뷰에서는 숨김 */}
+      {!isStudentView && (
+        <div className="relative w-40 mb-5">
+          <div
+            className="w-full h-10 bg-slate-700 border border-slate-600 rounded-xl grid grid-cols-[1fr_auto] items-center gap-2 px-4 cursor-pointer"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          >
+            <span className="text-white font-medium truncate">
+              {selectedStudent || '학생 선택'}
+            </span>
+            <svg
+              className="w-5 h-5 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
           </div>
-        )}
-      </div>
+          {isDropdownOpen && (
+            <div className="absolute top-full mt-2 w-full bg-slate-700 border border-slate-600 rounded-xl z-10 max-h-40 overflow-y-auto">
+              {students
+                .filter((student) => student !== selectedStudent) // 현재 선택된 학생 제외
+                .map((student, index) => (
+                  <div
+                    key={index}
+                    onClick={() => handleStudentSelect(student)}
+                    className="px-4 py-3 hover:bg-slate-600 cursor-pointer text-white first:rounded-t-xl last:rounded-b-xl"
+                  >
+                    {student}
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 학생용 뷰에서는 학생 이름만 표시 */}
+      {isStudentView && (
+        <div className="mb-5">
+          <h2 className="text-white text-xl font-bold">{selectedStudent}</h2>
+          <p className="text-slate-400 text-sm mt-1">
+            해결한 문제: {solvedProblems}/{totalProblems}
+          </p>
+        </div>
+      )}
 
       {/* 문제 목록 */}
       <div className="flex-1 overflow-hidden">
