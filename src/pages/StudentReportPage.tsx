@@ -2,64 +2,27 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { StudentReportDashboardView } from '../components/report';
 import { getRoomDetailsAPI } from '../api/teacherApi';
-import { getReportAPI } from '../api/reportApi';
+import { useAuthStore } from '../store/authStore';
+import { useReportStore } from '../store/reportStore';
 
 interface RoomInfo {
   roomId: number;
   title: string;
   status: string;
-  // 필요한 다른 필드들...
 }
 
-interface ReportData {
-  roomTitle: string;
-  averageSuccessRate: number;
-  totalSubmissions: number;
-  totalProblems: number;
-  totalStudents: number;
-  firstSubmissionPassed: number; // 첫 제출에 통과한 문제 수
-  problemAnalysis: Array<{
-    title: string;
-    successRate: number;
-  }>;
-  studentSubmissions: Array<{
-    name: string;
-    successRate: number;
-  }>;
-  categoryAnalysis: Array<{
-    name: string;
-    successRate: number;
-    totalSubmissions: number;
-    passedSubmissions: number;
-    uniqueProblems: number;
-    problemTitles: string[];
-    participatingStudents: number;
-    studentPerformance: Array<{
-      studentId: number;
-      studentName: string;
-      submissions: number;
-      passed: number;
-      successRate: number;
-    }>;
-    firstSubmissionSuccessRate: number;
-    averageAttemptsPerProblem: number;
-  }>;
-  bestCategory: {
-    name: string;
-    successRate: number;
-  };
-  worstCategory: {
-    name: string;
-    successRate: number;
-  };
-  // 필요한 다른 필드들...
-}
+// ReportData 인터페이스 제거 (reportStore의 타입 사용)
 
 const StudentReportPage = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
-  const [reportData, setReportData] = useState<ReportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // 현재 사용자 정보 가져오기
+  const { user } = useAuthStore();
+
+  // reportStore 사용
+  const { reportData, fetchReport } = useReportStore();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -68,14 +31,12 @@ const StudentReportPage = () => {
       try {
         setIsLoading(true);
 
-        // 병렬로 두 API 호출
-        const [roomResponse, reportResponse] = await Promise.all([
-          getRoomDetailsAPI(roomId),
-          getReportAPI(roomId),
-        ]);
+        // reportStore의 fetchReport 사용
+        await fetchReport(roomId);
 
+        // 룸 정보만 별도로 가져오기
+        const roomResponse = await getRoomDetailsAPI(roomId);
         setRoomInfo(roomResponse.data);
-        setReportData(reportResponse.data);
       } catch (error) {
         console.error('데이터를 가져오는데 실패했습니다:', error);
       } finally {
@@ -84,7 +45,7 @@ const StudentReportPage = () => {
     };
 
     fetchData();
-  }, [roomId]);
+  }, [roomId, fetchReport, user]);
 
   // 로딩 중이면 로딩 표시
   if (isLoading) {
@@ -109,23 +70,23 @@ const StudentReportPage = () => {
         {
           type: 'firstPass' as const,
           title: '첫 제출에 통과한 문제',
-          value: `${reportData.firstSubmissionPassed} 개`,
+          value: `${(reportData as any).firstSubmissionPassed || 0} 개`,
         },
         {
           type: 'bestCategory' as const,
           title: '가장 많이 통과한 카테고리',
-          value: reportData.bestCategory?.name || '데이터 없음',
+          value: (reportData as any).bestCategory?.name || '데이터 없음',
         },
         {
           type: 'worstCategory' as const,
           title: '가장 어려웠던 카테고리',
-          value: reportData.worstCategory?.name || '데이터 없음',
+          value: (reportData as any).worstCategory?.name || '데이터 없음',
         },
       ]
     : undefined;
 
   // 카테고리 데이터
-  const categoryData = reportData?.categoryAnalysis?.map((category) => ({
+  const categoryData = (reportData as any)?.categoryAnalysis?.map((category: any) => ({
     name: category.name,
     count: category.successRate, // 카테고리별 정답률
     passedCount: category.passedSubmissions, // 맞춘 개수
@@ -148,6 +109,8 @@ const StudentReportPage = () => {
       studentMetrics={studentMetrics}
       categoryData={categoryData}
       problemAnalysisData={problemAnalysisData}
+      reportData={reportData}
+      currentStudentName={user?.name}
     />
   );
 };

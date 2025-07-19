@@ -10,3 +10,4 @@ export { default as MyPageBoxClass } from './MyPageBoxClass';
 export { default as MyPageComponentReport } from './MyPageComponentReport';
 export { default as MyPageComponentProblem } from './MyPageComponentProblem';
 export { default as ProblemManagementComponent } from './ProblemManagementComponent';
+export { default as MyPageReportBox } from './MyPageReportBox';

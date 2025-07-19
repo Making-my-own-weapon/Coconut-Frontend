@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import logo from '../../assets/coconutlogo.png';
 import microphoneIcon from '../../assets/microphone.svg';
-import settingsIcon from '../../assets/settings.svg';
+import { showConfirm } from '../../utils/sweetAlert';
 
 interface TeacherHeaderProps {
   classCode?: string;
@@ -12,6 +12,7 @@ interface TeacherHeaderProps {
   onToggleClass: (currentTimer?: string) => void;
   title?: string; // 수업 제목만 남김
   onVoiceChatToggle?: () => void; // 음성채팅 토글 함수 추가
+  roomId?: string; // 방 ID 추가
 }
 
 const TeacherHeader: React.FC<TeacherHeaderProps> = ({
@@ -22,20 +23,32 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   onToggleClass,
   title,
   onVoiceChatToggle, // 추가
+  roomId, // 추가
 }) => {
   // 마이크/설정 버튼 핸들러 (학생과 동일)
   const handleMicrophone = () => {
     if (onVoiceChatToggle) {
       onVoiceChatToggle();
-    } else {
-      alert('마이크 버튼 클릭!');
     }
   };
-  const handleSettings = () => {
-    alert('설정 버튼 클릭! (나중에 로직 추가)');
+
+  const handleToggleClass = async () => {
+    if (isClassStarted) {
+      // 수업이 진행 중일 때 종료하려면 확인
+      const confirmed = await showConfirm(
+        '수업 종료',
+        '정말로 수업을 종료하고 리포트 페이지로 이동하시겠습니까?',
+      );
+      if (confirmed) {
+        onToggleClass(formatTime(timer));
+      }
+    } else {
+      // 수업 시작은 바로 실행
+      onToggleClass(formatTime(timer));
+    }
   };
 
-  // 타이머 상태 및 관리
+  // LocalStorage 기반 타이머 상태 및 관리
   const [timer, setTimer] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const prevClassStarted = useRef(isClassStarted);
@@ -51,9 +64,38 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
     return `${h}:${m}:${s}`;
   };
 
+  // LocalStorage에서 타이머 정보 가져오기
+  const getTimerFromStorage = () => {
+    if (!roomId || !isClassStarted) return 0;
+
+    const storageKey = `class_timer_${roomId}`;
+    const startTime = localStorage.getItem(storageKey);
+
+    if (startTime) {
+      const elapsed = Math.floor((Date.now() - parseInt(startTime)) / 1000);
+      return Math.max(0, elapsed);
+    }
+    return 0;
+  };
+
+  // LocalStorage에 시작 시간 저장
+  const saveStartTimeToStorage = () => {
+    if (!roomId) return;
+
+    const storageKey = `class_timer_${roomId}`;
+    localStorage.setItem(storageKey, Date.now().toString());
+  };
+
   useEffect(() => {
-    // 수업 시작 시 타이머 시작
+    // 수업 시작 시 LocalStorage에서 타이머 정보 가져오기
     if (isClassStarted && !prevClassStarted.current) {
+      const elapsedTime = getTimerFromStorage();
+      if (elapsedTime === 0) {
+        // 처음 시작하는 경우 시작 시간 저장
+        saveStartTimeToStorage();
+      }
+      setTimer(elapsedTime);
+      // 그 후 1초마다 증가
       intervalRef.current = setInterval(() => {
         setTimer((t) => t + 1);
       }, 1000);
@@ -65,6 +107,10 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
         intervalRef.current = null;
       }
       setTimer(0);
+      // LocalStorage에서 시작 시간 제거
+      if (roomId) {
+        localStorage.removeItem(`class_timer_${roomId}`);
+      }
     }
     prevClassStarted.current = isClassStarted;
     // 언마운트 시 클린업
@@ -74,7 +120,7 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
         intervalRef.current = null;
       }
     };
-  }, [isClassStarted]);
+  }, [isClassStarted, roomId]);
 
   return (
     <header className="w-full h-16 bg-slate-900 text-white flex items-center justify-between px-6 border-b border-slate-700">
@@ -142,13 +188,6 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
           >
             <img src={microphoneIcon} alt="Microphone" className="h-6 w-6" />
           </button>
-          <button
-            className="hover:text-white transition-colors"
-            aria-label="Settings"
-            onClick={handleSettings}
-          >
-            <img src={settingsIcon} alt="Settings" className="h-6 w-6" />
-          </button>
         </div>
         {/* 그리드/에디터 전환 버튼 */}
         <button
@@ -159,7 +198,7 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
         </button>
         {/* 수업 시작/종료 버튼 */}
         <button
-          onClick={() => onToggleClass(formatTime(timer))}
+          onClick={handleToggleClass}
           className={`px-4 py-2 ${isClassStarted ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} rounded-md text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 ${isClassStarted ? 'focus:ring-red-500' : 'focus:ring-green-500'}`}
         >
           {isClassStarted ? '수업 종료' : '수업 시작'}

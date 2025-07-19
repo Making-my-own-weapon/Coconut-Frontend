@@ -9,7 +9,7 @@ import { useAuthStore } from '../store/authStore';
 const MyPage: React.FC = () => {
   // 1. 어떤 탭이 활성화되었는지 관리하는 상태 (기본값: 'account-management')
   const [activeTab, setActiveTab] = useState('account-management');
-  const { user, deleteAccount } = useAuthStore();
+  const { user, deleteAccount, changePassword } = useAuthStore();
 
   // 2. 오른쪽 패널에 보여줄 컨텐츠를 결정하는 함수
   const renderRightPanel = () => {
@@ -23,6 +23,10 @@ const MyPage: React.FC = () => {
           <AccountManagementView
             userName={user?.name}
             userEmail={user?.email}
+            lastPasswordUpdate={
+              user?.updatedAt ? new Date(user.updatedAt).toLocaleDateString('ko-KR') : undefined
+            }
+            onPasswordChange={changePassword}
             onAccountDeletion={deleteAccount}
           />
         );

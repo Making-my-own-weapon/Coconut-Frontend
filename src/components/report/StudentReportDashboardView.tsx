@@ -6,6 +6,7 @@ import { BoxReportStudent } from './index';
 import type { StudentMetric } from './index';
 import { BoardReportBox } from './index';
 import type { CategoryData, ProblemAnalysisData } from './index';
+import StudentReportView from './StudentReportView';
 
 interface StudentReportDashboardViewProps {
   roomTitle?: string;
@@ -13,6 +14,9 @@ interface StudentReportDashboardViewProps {
   categoryData?: CategoryData[];
   problemAnalysisData?: ProblemAnalysisData[];
   className?: string;
+  // 상세분석을 위한 추가 props
+  reportData?: any;
+  currentStudentName?: string;
 }
 
 const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
@@ -21,6 +25,8 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
   categoryData,
   problemAnalysisData,
   className = '',
+  reportData,
+  currentStudentName,
 }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
 
@@ -56,7 +62,7 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
     </div>
   );
 
-  // 액션 버튼들
+  // 액션 버튼들 (학생용으로 수정)
   const actions = (
     <>
       <button
@@ -64,12 +70,6 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
         className="flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-md text-white font-medium"
       >
         <Save className="w-5 h-5" /> 리포트 저장
-      </button>
-      <button
-        onClick={() => console.log('수업 종료')}
-        className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 rounded-md text-white font-medium"
-      >
-        <LogOut className="w-5 h-5" /> 수업 종료
       </button>
     </>
   );
@@ -84,29 +84,75 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
     // 문제 분석 클릭 시 처리 로직
   };
 
+  // 상세분석 탭을 위한 학생 데이터 생성
+  const generateStudentDataForDetailedView = () => {
+    if (!reportData || !currentStudentName) {
+      return [];
+    }
+
+    const totalProblems = reportData.totalProblems || 1;
+    const studentSubmission = reportData.studentSubmissions?.find(
+      (submission: any) => submission.name === currentStudentName,
+    );
+
+    if (!studentSubmission) {
+      return [];
+    }
+
+    const correctAnswers = Math.round((studentSubmission.successRate * totalProblems) / 100);
+
+    const result = [
+      {
+        studentName: currentStudentName,
+        correctAnswers: correctAnswers,
+        submissions: [],
+      },
+    ];
+
+    return result;
+  };
+
   return (
     <div className={className}>
       <ReportLayout roomTitle={roomTitle} tabs={tabs} actions={actions} userType="student">
-        <div className="space-y-8">
-          {/* 학생 성과 메트릭 카드들 */}
-          <section>
-            <BoxReportStudent metrics={studentMetrics} className="mb-8" />
-          </section>
+        {activeTab === 'dashboard' ? (
+          <div className="space-y-8">
+            {/* 학생 성과 메트릭 카드들 */}
+            <section>
+              <BoxReportStudent metrics={studentMetrics} className="mb-8" />
+            </section>
 
-          {/* 카테고리 및 문제 분석 보드 */}
-          <section>
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-white mb-2">상세 분석</h2>
-              <p className="text-slate-400">카테고리별 성과와 문제 해결 패턴을 분석합니다</p>
-            </div>
-            <BoardReportBox
-              categoryData={categoryData}
-              problemAnalysisData={problemAnalysisData}
-              onCategoryClick={handleCategoryClick}
-              onProblemClick={handleProblemClick}
-            />
-          </section>
-        </div>
+            {/* 카테고리 및 문제 분석 보드 */}
+            <section>
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-white mb-2">상세 분석</h2>
+                <p className="text-slate-400">카테고리별 성과와 문제 해결 패턴을 분석합니다</p>
+              </div>
+              <BoardReportBox
+                categoryData={categoryData}
+                problemAnalysisData={problemAnalysisData}
+                onCategoryClick={handleCategoryClick}
+                onProblemClick={handleProblemClick}
+              />
+            </section>
+          </div>
+        ) : (
+          // 상세분석 탭 - StudentReportView와 동일한 UI
+          <div className="space-y-8">
+            <section>
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-white mb-2">상세 분석</h2>
+                <p className="text-slate-400">문제별 제출 현황과 상세 분석을 확인합니다</p>
+              </div>
+              <StudentReportView
+                studentResults={generateStudentDataForDetailedView()}
+                totalProblems={reportData?.totalProblems || 0}
+                isStudentView={true}
+                currentStudentName={currentStudentName}
+              />
+            </section>
+          </div>
+        )}
       </ReportLayout>
     </div>
   );

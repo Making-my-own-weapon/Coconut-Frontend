@@ -65,6 +65,10 @@ interface TeacherState {
   resetStore: () => void;
   studentCurrentProblems: Record<number, number | null>;
   setStudentCurrentProblem: (studentId: number, problemId: number | null) => void;
+  studentMemos: Record<number, string>; // 학생별 메모
+  setStudentMemo: (studentId: number, memo: string) => void;
+  studentWrongProblems: Record<number, number[]>; // 학생별 오답(문제ID 배열)
+  setStudentWrongProblems: (studentId: number, wrongProblems: number[]) => void;
 }
 
 // --- 스토어 생성 ---
@@ -86,6 +90,8 @@ export const useTeacherStore = create<TeacherState>()(
       teacherCode: '', // 추가: 선생님 고유 코드 초기값
       otherCursor: null,
       studentCurrentProblems: {},
+      studentMemos: {},
+      studentWrongProblems: {},
 
       // --- 액션 ---
       createRoom: async (title: string, maxParticipants: number) => {
@@ -191,6 +197,8 @@ export const useTeacherStore = create<TeacherState>()(
           selectedStudentId: null,
           selectedProblemId: null,
           studentCurrentProblems: {},
+          studentMemos: {},
+          studentWrongProblems: {},
           // 필요에 따라 다른 상태도 초기화 가능
         }),
       setStudentCurrentProblem: (studentId, problemId) => {
@@ -198,6 +206,22 @@ export const useTeacherStore = create<TeacherState>()(
           studentCurrentProblems: {
             ...state.studentCurrentProblems,
             [studentId]: problemId,
+          },
+        }));
+      },
+      setStudentMemo: (studentId, memo) => {
+        set((state) => ({
+          studentMemos: {
+            ...state.studentMemos,
+            [studentId]: memo,
+          },
+        }));
+      },
+      setStudentWrongProblems: (studentId, wrongProblems) => {
+        set((state) => ({
+          studentWrongProblems: {
+            ...state.studentWrongProblems,
+            [studentId]: wrongProblems,
           },
         }));
       },
@@ -209,6 +233,7 @@ export const useTeacherStore = create<TeacherState>()(
         studentCodes: state.studentCodes,
         selectedStudentId: state.selectedStudentId,
         selectedProblemId: state.selectedProblemId,
+        studentCurrentProblems: state.studentCurrentProblems,
       }),
     },
   ),

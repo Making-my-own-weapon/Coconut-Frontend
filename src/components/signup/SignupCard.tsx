@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { isAxiosError } from 'axios'; //catch(err: any) 해결을 위함
+import Swal from 'sweetalert2';
 
 const SignupCard: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -40,8 +41,16 @@ const SignupCard: React.FC = () => {
     //catch(err: any)해결
     try {
       await signup(formData.name, formData.email, formData.password);
-      alert('회원가입에 성공했습니다! 로그인 페이지로 이동합니다.');
-      navigate('/login');
+      Swal.fire({
+        icon: 'success',
+        title: '회원가입 성공!',
+        text: '회원가입에 성공했습니다! 로그인 페이지로 이동합니다.',
+        background: '#ffffff',
+        color: '#1f2937',
+        confirmButtonText: '확인',
+      }).then(() => {
+        navigate('/login');
+      });
     } catch (err) {
       if (isAxiosError(err) && err.response?.status === 409) {
         setError('이미 사용 중인 이메일입니다.');
