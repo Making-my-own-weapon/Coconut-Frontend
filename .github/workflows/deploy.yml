@@ -15,7 +15,7 @@ env:
   ECS_SERVICE: coconut-frontend-service
   ECS_TASK_DEFINITION: coconut-frontend-task
 
-jobs:
+jobs: 
   deploy:
     runs-on: ubuntu-latest
 
