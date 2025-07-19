@@ -23,27 +23,11 @@ const MyAccountManagementView: React.FC<MyAccountComponentProps> = ({
       </div>
       {/* Container with responsive layout */}
       <div className="relative w-full">
-        {/* Profile Avatar */}
-        <div className="flex justify-center mb-16">
-          <div className="w-32 h-32 sm:w-40 sm:h-40 lg:w-64 lg:h-64 rounded-full bg-gray-300 flex-shrink-0">
-            <svg
-              width="100%"
-              height="100%"
-              viewBox="0 0 257 257"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="rounded-full"
-            >
-              <circle cx="128.5" cy="128.5" r="128.5" fill="#D9D9D9" />
-            </svg>
-          </div>
-        </div>
-
         {/* User Information Section */}
-        <div className="grid grid-cols-2 gap-8 mb-20">
+        <div className="grid grid-cols-2 gap-8 mb-20 mt-10">
           {/* Name Field */}
           <div className="w-full">
-            <label className="block text-gray-700 font-bold text-xl leading-6 mb-2">이름</label>
+            <label className="text-gray-700 font-bold text-xl leading-6 mb-2">이름</label>
             <div className="w-full h-14 rounded-lg border border-gray-200 bg-gray-50 flex items-center px-4">
               <span className="text-black font-normal text-base leading-6">{userName}</span>
             </div>
@@ -51,7 +35,7 @@ const MyAccountManagementView: React.FC<MyAccountComponentProps> = ({
 
           {/* Email Field */}
           <div className="w-full">
-            <label className="block text-gray-700 font-bold text-xl leading-6 mb-2">이메일</label>
+            <label className="text-gray-700 font-bold text-xl leading-6 mb-2">이메일</label>
             <div className="w-full h-14 rounded-lg border border-gray-200 bg-gray-50 flex items-center px-4">
               <span className="text-black font-normal text-base leading-6">{userEmail}</span>
             </div>
