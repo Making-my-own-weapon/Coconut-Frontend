@@ -268,6 +268,15 @@ const StudentClassPage: React.FC = () => {
     // 항상 교사에게 현재 선택 문제를 브로드캐스트
     if (roomId && myId && problemId) {
       socket.emit('student:problem:selected', { roomId, studentId: myId, problemId });
+      // 방 전체에 현재 문제 정보 브로드캐스트 (교사용 실시간 표시)
+      if (inviteCode) {
+        socket.emit('student:currentProblem', {
+          roomId,
+          inviteCode,
+          studentId: myId,
+          problemId,
+        });
+      }
     }
 
     if (collaborationId && problemId) {

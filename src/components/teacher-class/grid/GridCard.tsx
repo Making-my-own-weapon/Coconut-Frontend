@@ -1,6 +1,8 @@
 import React from 'react';
 // '../types/student' 대신 '../contexts/RoomContext' 에서 타입을 가져옵니다.
 import type { Student } from '../../../store/teacherStore';
+import { useTeacherStore } from '../../../store/teacherStore';
+import { useState } from 'react';
 
 const GridCard: React.FC<{
   student: Student;
@@ -15,6 +17,34 @@ const GridCard: React.FC<{
   const allTestsPassed = testsPassed === totalTests;
   const isSelected = selectedStudentId === student.userId;
 
+  const { studentMemos, setStudentMemo, studentWrongProblems, studentCurrentProblems, problems } =
+    useTeacherStore();
+
+  // 메모 입력 상태
+  const [memo, setMemo] = useState(studentMemos[student.userId] || '');
+  const handleMemoChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMemo(e.target.value);
+  };
+  const handleMemoBlur = () => {
+    setStudentMemo(student.userId, memo);
+  };
+
+  // 현재 문제
+  const currentProblemId = studentCurrentProblems[student.userId];
+  const currentProblem = problems.find((p) => p.problemId === currentProblemId);
+  console.log(
+    '[GridCard] userId:',
+    student.userId,
+    'currentProblemId:',
+    currentProblemId,
+    'currentProblem:',
+    currentProblem,
+  );
+
+  // 오답(틀린 문제)
+  const wrongProblems = studentWrongProblems[student.userId] || [];
+  const wrongProblemObjs = problems.filter((p) => wrongProblems.includes(p.problemId));
+
   const handleCardClick = (studentId: number) => {
     console.log('학생 선택:', studentId);
     if (onStudentSelect) {
@@ -24,155 +54,84 @@ const GridCard: React.FC<{
 
   return (
     <div
-      className={`w-full max-w-[312px] h-[230px] rounded-lg border border-slate-600 bg-slate-800 shadow-sm cursor-pointer transition-all hover:border-blue-500 ${
-        isSelected ? 'border-blue-500 bg-slate-700' : ''
+      className={`w-full max-w-[560px] h-[260px] rounded-3xl border-2 border-slate-700 bg-slate-800 shadow-2xl backdrop-blur-md cursor-pointer transition-all duration-200 hover:border-blue-400 hover:shadow-blue-500/30 hover:scale-[1.035] flex flex-row overflow-hidden ring-1 ring-slate-900/40 ${
+        isSelected ? 'border-blue-400 ring-2 ring-blue-400 bg-slate-700/95' : ''
       } ${className}`}
+      style={{ boxShadow: '0 8px 32px 0 rgba(97, 94, 155, 0.25), 0 1.5px 8px 0rgb(0, 0, 0)' }}
       onClick={() => handleCardClick(student.userId)}
     >
-      {/* 헤더 */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-700">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M19 21V19C19 16.8783 17.1217 15 15 15H9C6.87827 15 5 16.8783 5 19V21"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-          <span className="text-white font-semibold text-base">{name}</span>
-          {isConnecting && isSelected && (
-            <span className="ml-2 inline-flex items-center text-yellow-400">
-              <div className="animate-spin rounded-full h-3 w-3 border-b border-yellow-400 mr-1"></div>
-              연결 중...
+      {/* 왼쪽: 이름/온라인/메모 (세로 중앙 정렬) */}
+      <div className="flex flex-col items-center justify-center w-72 bg-slate-900/80 p-6 h-full">
+        <div className="flex flex-col items-center gap-2 w-full">
+          <span className="text-white font-bold text-lg text-center w-full truncate">{name}</span>
+          {isOnline && (
+            <span className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 text-xs font-semibold">
+              ● 온라인
             </span>
           )}
         </div>
-        {isOnline && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/20 text-green-400">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M2 8.82C4.75011 6.36025 8.31034 5.00037 12 5.00037C15.6897 5.00037 19.2499 6.36025 22 8.82"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M5 12.8591C6.86929 11.0268 9.38247 10.0005 12 10.0005C14.6175 10.0005 17.1307 11.0268 19 12.8591"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span className="text-xs font-medium">온라인</span>
-          </div>
-        )}
+        <textarea
+          className="w-[320px] max-w-full h-48 resize-none rounded-md bg-slate-800/80 text-slate-200 p-4 text-base mt-6 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
+          placeholder="메모를 입력하세요"
+          value={memo}
+          onChange={handleMemoChange}
+          onBlur={handleMemoBlur}
+          onClick={(e) => e.stopPropagation()}
+          onFocus={(e) => e.stopPropagation()}
+        />
       </div>
-      {/* 바디 */}
-      <div className="p-4 space-y-4">
-        <div>
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-slate-300 text-sm">진행률</span>
-            <span className="text-white text-sm font-medium">{progress}%</span>
-          </div>
-          <div className="w-full h-2 bg-slate-600 rounded-full">
-            <div className="h-full bg-blue-500 rounded-full" style={{ width: progressBarWidth }} />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-slate-700 p-2 rounded">
-            <div className="flex items-center gap-1.5 text-slate-400 mb-0.5">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M12 6V12L16 14"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span className="text-xs">시간</span>
+      {/* 오른쪽: 문제 정보/진행률 (문제 정보 세로 배열, 이름과 윗라인 맞춤) */}
+      <div className="flex-1 flex flex-col justify-center p-4 gap-4 h-full w-full min-w-0">
+        <div className="flex flex-row items-start gap-12 h-full">
+          <div className="flex flex-col gap-6 min-w-[160px] justify-center h-full">
+            <div>
+              <span className="text-slate-400 text-xs font-medium">풀고 있는 문제</span>
+              <div className="text-white font-semibold text-base mt-1">
+                {currentProblem ? `${currentProblem.title}` : '없음'}
+              </div>
             </div>
-            <span className="text-white font-mono text-xs">{timeComplexity}</span>
-          </div>
-          <div className="bg-slate-700 p-2 rounded">
-            <div className="flex items-center gap-1.5 text-slate-400 mb-0.5">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M12 8C16.9706 8 21 6.65685 21 5C21 3.34315 16.9706 2 12 2C7.02944 2 3 3.34315 3 5C3 6.65685 7.02944 8 12 8Z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M3 5V19C3 19.7956 3.94821 20.5587 5.63604 21.1213C7.32387 21.6839 9.61305 22 12 22C14.3869 22 16.6761 21.6839 18.364 21.1213C20.0518 20.5587 21 19.7956 21 19V5"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M3 12C3 12.7956 3.94821 13.5587 5.63604 14.1213C7.32387 14.6839 9.61305 15 12 15C14.3869 15 16.6761 14.6839 18.364 14.1213C20.0518 13.5587 21 12.7956 21 12"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span className="text-xs">공간</span>
+            <div>
+              <span className="text-slate-400 text-xs font-medium">틀린 문제</span>
+              <div className="flex gap-1 flex-wrap mt-1">
+                {wrongProblemObjs.length === 0 ? (
+                  <span className="text-slate-500 text-xs">없음</span>
+                ) : (
+                  wrongProblemObjs.slice(0, 3).map((p) => (
+                    <span
+                      key={p.problemId}
+                      className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs font-semibold"
+                    >
+                      {p.problemId}번
+                    </span>
+                  ))
+                )}
+                {wrongProblemObjs.length > 3 && (
+                  <span className="px-2 py-0.5 rounded-full bg-slate-600 text-slate-300 text-xs font-semibold">
+                    +{wrongProblemObjs.length - 3}
+                  </span>
+                )}
+              </div>
             </div>
-            <span className="text-white font-mono text-xs">{spaceComplexity}</span>
+            {/* 진행률: 컬러풀한 일자 progress bar + 바 중앙 숫자 오버레이 */}
+            <div className="flex flex-col items-start mt-4 w-full min-w-0">
+              <div className="flex flex-row justify-between items-end w-full mb-1">
+                <span className="text-slate-400 text-xs font-medium">진행률</span>
+                <span className="text-slate-400 text-xs font-medium select-none">
+                  {student.testsPassed} / {problems.length}
+                </span>
+              </div>
+              <div className="relative w-full h-8 bg-slate-700 rounded-full overflow-hidden shadow-inner min-w-0">
+                <div
+                  className="absolute top-0 left-0 h-full rounded-full transition-all"
+                  style={{
+                    width: `${problems.length > 0 ? (student.testsPassed / problems.length) * 100 : 0}%`,
+                    background: 'linear-gradient(90deg, #3b82f6 0%, #06d6a0 50%, #22d3ee 100%)',
+                    boxShadow: '0 0 12px #22d3ee99',
+                  }}
+                />
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="flex justify-between items-center text-sm">
-          <span className="text-slate-400">테스트</span>
-          <span className={`font-medium ${allTestsPassed ? 'text-green-400' : 'text-red-400'}`}>
-            {allTestsPassed ? '✓' : '✗'} {testsPassed} / {totalTests}
-          </span>
         </div>
       </div>
     </div>
