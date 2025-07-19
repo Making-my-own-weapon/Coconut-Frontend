@@ -1,5 +1,5 @@
 upstream backend {
-    server ${BACKEND_HOST}:${BACKEND_PORT};
+    server ${HOST}:${PORT};
 }
 
 server {
