@@ -16,6 +16,7 @@
     "axios": "^1.10.0",
     "chart.js": "^4.5.0",
     "esbuild": "^0.25.6",
+    "lottie-react": "^2.4.1",
     "lucide-react": "^0.525.0",
     "monaco-editor": "^0.43.0",
     "openvidu-browser": "^2.31.0",
