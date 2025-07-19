@@ -10,6 +10,15 @@ export interface ProblemSummary {
   categories: string[];
 }
 
+export interface MyProblemData {
+  problemId: number;
+  title: string;
+  description: string;
+  category: string;
+  createdAt: string;
+  testCaseCount: number;
+}
+
 // 스토어의 상태와 액션 타입을 정의합니다.
 interface ProblemState {
   isLoading: boolean;
@@ -21,6 +30,9 @@ interface ProblemState {
   assignSelectedProblems: (roomId: number) => Promise<void>;
   createAndAssignProblem: (dto: CreateProblemDto, roomId: number) => Promise<void>;
   removeProblemFromRoom: (roomId: number, problemId: number) => Promise<void>; // 추가
+  myProblems: MyProblemData[]; // 👈 '내가 만든 문제' 목록 상태 추가
+  fetchMyProblems: () => Promise<void>; // 👈 액션 타입 추가
+  deleteProblem: (problemId: number) => Promise<void>; // 👈 액션 타입 추가
 }
 
 export const useProblemStore = create<ProblemState>((set, get) => ({
@@ -28,6 +40,34 @@ export const useProblemStore = create<ProblemState>((set, get) => ({
   error: null,
   summaries: [],
   selectedIds: new Set(),
+  myProblems: [],
+
+  fetchMyProblems: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await problemApi.fetchMyProblemsAPI();
+      set({ myProblems: response.data });
+    } catch {
+      set({ error: '내가 만든 문제 목록을 불러오는 데 실패했습니다.' });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  // 👇 문제를 영구적으로 삭제하는 액션
+  deleteProblem: async (problemId: number) => {
+    set({ isLoading: true, error: null });
+    try {
+      await problemApi.deleteProblemAPI(problemId);
+      // 삭제 성공 시, 목록을 다시 불러와 갱신
+      await get().fetchMyProblems();
+    } catch (err) {
+      set({ error: '문제 삭제에 실패했습니다.' });
+      throw err;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
 
   // 모든 문제 요약 목록을 불러오는 액션
   fetchAllSummaries: async () => {

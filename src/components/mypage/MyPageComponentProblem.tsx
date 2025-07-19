@@ -16,8 +16,18 @@ const MyPageComponentProblem: React.FC<MyPageComponentProblemProps> = ({
   onSearch,
   onCategoryChange,
   onSortChange,
-  categories = ['전체', '알고리즘', '데이터구조', '그래프', '동적계획법'],
-  sortOptions = ['최신순', '오래된순', '제목순', '난이도순'],
+  categories = [
+    '전체',
+    '그래프',
+    '동적 계획법',
+    '그리디',
+    '자료 구조',
+    '수학',
+    '문자열',
+    '분할 정복',
+    '백트래킹',
+  ],
+  sortOptions = ['최신순', '오래된순', '제목순'],
   className = '',
 }) => {
   const [searchQuery, setSearchQuery] = useState('');

@@ -36,3 +36,13 @@ export const fetchProblemDetailByIdAPI = (problemId: number) => {
 export const deleteProblemFromRoomAPI = (roomId: number, problemId: number) => {
   return apiClient.delete(`/rooms/${roomId}/problems/${problemId}`);
 };
+
+// 내가 만든 문제 목록을 가져오는 API
+export const fetchMyProblemsAPI = () => {
+  return apiClient.get('db/problems/my');
+};
+
+// DB에서 문제를 영구적으로 삭제하는 API
+export const deleteProblemAPI = (problemId: number) => {
+  return apiClient.delete(`db/problems/${problemId}`);
+};

@@ -7,7 +7,8 @@ import OverallReportView from '../components/report/OverallReportView';
 import ProblemReportView from '../components/report/ProblemReportView';
 import StudentReportView from '../components/report/StudentReportView';
 import { LogOut, Save } from 'lucide-react';
-import { showConfirm, showToast } from '../utils/sweetAlert';
+import { showToast } from '../utils/sweetAlert'; //showConfirm 안 써서 지웠다. 『안채호』
+import LoadingAnimation from '../components/common/LoadingAnimationCat'; //희희 고양이 『안채호』
 
 const ReportPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -15,8 +16,8 @@ const ReportPage: React.FC = () => {
 
   const [activeView, setActiveView] = useState<'overall' | 'problem' | 'student'>('overall');
 
-  const { deleteRoom, isLoading } = useTeacherStore();
-  const { reportData, fetchReport } = useReportStore();
+  const { deleteRoom, isLoading: isTeacherLoading } = useTeacherStore();
+  const { reportData, fetchReport, isLoading: isReportLoading } = useReportStore(); //isLoading이 겹쳐서 별명을 만들어서 구분해주는 구조 분해 할당 문법을 사용했다. 『안채호』
 
   useEffect(() => {
     if (roomId) fetchReport(roomId);
@@ -147,7 +148,7 @@ const ReportPage: React.FC = () => {
       </button>
       <button
         onClick={handleLeaveRoom}
-        disabled={isLoading}
+        disabled={isTeacherLoading} //이거 isLoading 맞다.(티처스토어버전) 『안채호』
         className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 rounded-md text-white font-medium disabled:opacity-50"
       >
         <LogOut className="w-5 h-5" /> 수업 종료
@@ -174,6 +175,11 @@ const ReportPage: React.FC = () => {
       };
     });
   }, [reportData]);
+
+  // 👇 3. isReportLoading 상태를 사용해 로딩 애니메이션을 보여줍니다.
+  if (isReportLoading || !reportData) {
+    return <LoadingAnimation />;
+  }
 
   return (
     <ReportLayout
