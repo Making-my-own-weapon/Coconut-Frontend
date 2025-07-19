@@ -13,12 +13,16 @@ const GridCard: React.FC<{
 }> = ({ student, className = '', selectedStudentId, onStudentSelect, isConnecting = false }) => {
   const { name, progress, timeComplexity, spaceComplexity, testsPassed, totalTests, isOnline } =
     student;
-  const progressBarWidth = `${progress}%`;
-  const allTestsPassed = testsPassed === totalTests;
   const isSelected = selectedStudentId === student.userId;
 
-  const { studentMemos, setStudentMemo, studentWrongProblems, studentCurrentProblems, problems } =
-    useTeacherStore();
+  const {
+    studentMemos,
+    setStudentMemo,
+    studentWrongProblems,
+    studentCorrectProblems,
+    studentCurrentProblems,
+    problems,
+  } = useTeacherStore();
 
   // 메모 입력 상태
   const [memo, setMemo] = useState(studentMemos[student.userId] || '');
@@ -44,6 +48,25 @@ const GridCard: React.FC<{
   // 오답(틀린 문제)
   const wrongProblems = studentWrongProblems[student.userId] || [];
   const wrongProblemObjs = problems.filter((p) => wrongProblems.includes(p.problemId));
+
+  // 맞은 문제
+  const correctProblems = studentCorrectProblems[student.userId] || [];
+
+  // 진행률: 맞은 문제 개수 / 전체 문제 개수
+  const progressCount = correctProblems.length;
+  const progressBarWidth = `${problems.length > 0 ? (progressCount / problems.length) * 100 : 0}%`;
+  console.log(
+    '[GridCard] userId:',
+    student.userId,
+    '맞은 문제:',
+    correctProblems,
+    '틀린 문제:',
+    wrongProblems,
+    '진행률:',
+    progressCount,
+    '/',
+    problems.length,
+  );
 
   const handleCardClick = (studentId: number) => {
     console.log('학생 선택:', studentId);
@@ -101,7 +124,7 @@ const GridCard: React.FC<{
                       key={p.problemId}
                       className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs font-semibold"
                     >
-                      {p.problemId}번
+                      {p.title}
                     </span>
                   ))
                 )}
@@ -117,14 +140,14 @@ const GridCard: React.FC<{
               <div className="flex flex-row justify-between items-end w-full mb-1">
                 <span className="text-slate-400 text-xs font-medium">진행률</span>
                 <span className="text-slate-400 text-xs font-medium select-none">
-                  {student.testsPassed} / {problems.length}
+                  {progressCount} / {problems.length}
                 </span>
               </div>
               <div className="relative w-full h-8 bg-slate-700 rounded-full overflow-hidden shadow-inner min-w-0">
                 <div
                   className="absolute top-0 left-0 h-full rounded-full transition-all"
                   style={{
-                    width: `${problems.length > 0 ? (student.testsPassed / problems.length) * 100 : 0}%`,
+                    width: progressBarWidth,
                     background: 'linear-gradient(90deg, #3b82f6 0%, #06d6a0 50%, #22d3ee 100%)',
                     boxShadow: '0 0 12px #22d3ee99',
                   }}

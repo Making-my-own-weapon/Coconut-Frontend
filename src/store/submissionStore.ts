@@ -3,8 +3,11 @@ import * as submissionApi from '../api/submissionApi';
 import * as detailedAnalysisApi from '../api/detailedAnalysisApi';
 import type { SubmissionResult } from '../api/submissionApi';
 import type { DetailedAnalysisResponse } from '../api/detailedAnalysisApi';
+import socket from '../lib/socket';
 
 interface SubmissionState {
+  performDetailedAnalysisAsync(problemId: string, code: string): any;
+  pollSubmissionResult(submission_id: number): any;
   isSubmitting: boolean;
   isAnalyzing: boolean; // 상세 분석 로딩 상태 추가
   error: string | null;
@@ -48,6 +51,31 @@ export const useSubmissionStore = create<SubmissionState>((set, get) => ({
       // 채점 결과 처리
       if (submissionResult.status === 'fulfilled') {
         set({ analysisResult: submissionResult.value, isSubmitting: false });
+        // 채점 결과를 소켓으로 선생님에게 전송
+        // roomId, inviteCode, studentId는 실제 사용 환경에 맞게 전달 필요
+        const result = submissionResult.value;
+        console.log('[학생] 전체 채점 결과:', result);
+        // iaPazzed 또는 isPassed 필드로 정답 여부 판정
+        const isCorrect = result.iaPazzed || result.isPassed || false;
+        console.log('[학생] isCorrect 판정:', { status: result.status, isCorrect });
+        // 예시: inviteCode, studentId를 어딘가에서 가져와야 함 (context 등)
+        const inviteCode = window.sessionStorage.getItem('inviteCode') || '';
+        const studentId = Number(window.sessionStorage.getItem('userId'));
+        console.log('[학생] sessionStorage에서 가져온 값:', { inviteCode, studentId });
+        console.log('[학생] 채점 결과 emit', {
+          roomId,
+          inviteCode,
+          studentId,
+          problemId,
+          isCorrect,
+        });
+        socket.emit('submission:result', {
+          roomId,
+          inviteCode,
+          studentId,
+          problemId: Number(problemId),
+          isCorrect,
+        });
       } else {
         throw submissionResult.reason;
       }
