@@ -31,7 +31,7 @@ const ProblemManagementView: React.FC = () => {
         <span className="text-gray-500">내가 만든 알고리즘 문제들을 관리할 수 있습니다.</span>
       </div>
 
-      <div className="mt-8 mb-6 flex-shrink-0">
+      <div className="mt-5 mb-6 flex-shrink-0">
         <MyPageComponentProblem totalProblems={myProblems.length} />
       </div>
 

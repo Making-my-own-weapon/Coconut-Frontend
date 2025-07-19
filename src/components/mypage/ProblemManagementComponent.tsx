@@ -1,11 +1,12 @@
 import React from 'react';
 import { Trash2 } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface ProblemData {
   problemId: number;
   title: string;
   description: string;
-  category: string;
+  categories?: string[];
   createdAt: string;
   testCaseCount: number;
 }
@@ -27,6 +28,8 @@ const ProblemManagementComponent: React.FC<ProblemManagementComponentProps> = ({
     }
   };
 
+  const formattedDate = format(new Date(problem.createdAt), 'yyyy-MM-dd HH:mm');
+
   return (
     <div className={`w-full min-h-[122px] relative ${className}`}>
       {/* Main card container */}
@@ -39,16 +42,18 @@ const ProblemManagementComponent: React.FC<ProblemManagementComponentProps> = ({
           >
             {problem.title}
           </h3>
-          <div className="w-fit h-[26px]">
-            <div className="px-3 h-[26px] rounded-[20px] bg-blue-500 flex items-center justify-center">
-              <span
-                className="text-white text-xs font-medium leading-[18px] whitespace-nowrap"
-                style={{ fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif' }}
-              >
-                {problem.category}
-              </span>
+          {problem.categories && problem.categories.length > 0 && (
+            <div className="w-fit h-[26px]">
+              <div className="px-3 h-[26px] rounded-[20px] bg-blue-500 flex items-center justify-center">
+                <span
+                  className="text-white text-xs font-medium leading-[18px] whitespace-nowrap"
+                  style={{ fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif' }}
+                >
+                  {problem.categories[0]}
+                </span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Description and Delete button container */}
@@ -87,12 +92,12 @@ const ProblemManagementComponent: React.FC<ProblemManagementComponentProps> = ({
               className="text-gray-500 text-[13px] font-normal leading-[19.5px]"
               style={{ fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif' }}
             >
-              {problem.createdAt}
+              {formattedDate}
             </span>
           </div>
 
           {/* Test cases */}
-          <div className="flex items-center gap-1">
+          {/* <div className="flex items-center gap-1">
             <span
               className="text-gray-500 text-[13px] font-normal leading-[19.5px]"
               style={{ fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif' }}
@@ -111,7 +116,7 @@ const ProblemManagementComponent: React.FC<ProblemManagementComponentProps> = ({
             >
               개
             </span>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
