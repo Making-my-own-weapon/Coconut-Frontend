@@ -27,7 +27,7 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx/coconut.conf.template /etc/nginx/templates/coconut.conf.template
 
 # nginx에 반영될 환경변수 기본값 설정
-ENV BACKEND_HOST=172.31.14.197
+ENV BACKEND_HOST=172.31.5.219
 ENV BACKEND_PORT=3001
 
 # 포트 노출
