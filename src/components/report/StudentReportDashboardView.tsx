@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTeacherStore } from '../../store/teacherStore';
 import { Save, LogOut } from 'lucide-react';
 import ReportLayout from './ReportLayout';
@@ -7,6 +8,8 @@ import type { StudentMetric } from './index';
 import { BoardReportBox } from './index';
 import type { CategoryData, ProblemAnalysisData } from './index';
 import StudentReportView from './StudentReportView';
+import { saveReport } from '../../api/reportApi';
+import { showToast } from '../../utils/sweetAlert';
 
 interface StudentReportDashboardViewProps {
   roomTitle?: string;
@@ -17,6 +20,7 @@ interface StudentReportDashboardViewProps {
   // 상세분석을 위한 추가 props
   reportData?: any;
   currentStudentName?: string;
+  roomId?: string; // 리포트 저장을 위한 roomId 추가
 }
 
 const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
@@ -27,11 +31,36 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
   className = '',
   reportData,
   currentStudentName,
+  roomId,
 }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const navigate = useNavigate();
 
   // Store에서 현재 수업 정보 가져오기
   const { currentRoom, createdRoomInfo } = useTeacherStore();
+
+  const handleSaveReport = async () => {
+    if (!roomId) {
+      showToast('error', '방 정보를 찾을 수 없습니다.');
+      return;
+    }
+
+    try {
+      const result = await saveReport(roomId);
+      if (result.success) {
+        showToast('success', '리포트가 성공적으로 저장되었습니다!');
+      } else {
+        showToast('error', result.message || '리포트 저장에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('리포트 저장 오류:', error);
+      showToast('error', '리포트 저장 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleLeaveClass = () => {
+    navigate('/');
+  };
 
   // 수업 이름 결정
   const roomTitle = propRoomTitle || currentRoom?.title || createdRoomInfo?.title || '수업 리포트';
@@ -66,14 +95,14 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
   const actions = (
     <>
       <button
-        onClick={() => console.log('리포트 저장')}
-        className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-md text-white font-medium"
+        onClick={handleSaveReport}
+        className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-md text-white font-medium hover:from-emerald-700 hover:to-emerald-800 transition-colors"
       >
         <Save className="w-5 h-5" /> 리포트 저장
       </button>
       <button
-        onClick={() => console.log('수업 나가기')}
-        className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 rounded-md text-white font-medium"
+        onClick={handleLeaveClass}
+        className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 rounded-md text-white font-medium hover:from-red-700 hover:to-red-800 transition-colors"
       >
         <LogOut className="w-5 h-5" /> 수업 나가기
       </button>
