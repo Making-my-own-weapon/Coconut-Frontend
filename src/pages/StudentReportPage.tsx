@@ -171,6 +171,7 @@ const StudentReportPage = () => {
       problemAnalysisData={problemAnalysisData}
       reportData={reportData}
       currentStudentName={user?.name}
+      roomId={roomId}
     />
   );
 };
