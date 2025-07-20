@@ -9,6 +9,7 @@ export interface SubmissionData {
   code?: string;
   passedTestCount?: number;
   totalTestCount?: number;
+  stdout?: string; // stdout 정보 추가
 }
 
 export interface BoardReportStudentSubmissionProps {
@@ -23,6 +24,30 @@ const BoardReportStudentSubmission: React.FC<BoardReportStudentSubmissionProps> 
   className = '',
 }) => {
   const [selectedSubmission, setSelectedSubmission] = useState<SubmissionData | null>(null);
+
+  // 제출 결과의 간단한 표시 메시지
+  const getSimpleStatusMessage = (submission: SubmissionData): string => {
+    if (submission.status === 'passed') return '통과';
+
+    // stdout이 있으면 첫 줄의 앞부분만 사용
+    if (submission.stdout) {
+      const firstLine = submission.stdout.split('\n')[0].trim();
+      if (firstLine.length > 20) {
+        return firstLine.substring(0, 20) + '...';
+      }
+      return firstLine || '실행 오류';
+    }
+
+    // 기본 상태별 메시지
+    switch (submission.status) {
+      case 'runtime_error':
+        return '런타임 에러';
+      case 'failed':
+        return '실행 실패';
+      default:
+        return '실패';
+    }
+  };
 
   const getStatusText = (status: SubmissionData['status']) => {
     switch (status) {
@@ -102,6 +127,47 @@ const BoardReportStudentSubmission: React.FC<BoardReportStudentSubmissionProps> 
             </button>
           </div>
 
+          {/* 제출 결과 정보 */}
+          <div className="mb-4 p-3 bg-slate-700 rounded-lg">
+            <div className="grid grid-cols-4 gap-4 text-center">
+              <div>
+                <p className="text-slate-400 text-sm">결과</p>
+                <p
+                  className="text-lg font-bold"
+                  style={{ color: getStatusColor(selectedSubmission.status) }}
+                >
+                  {getSimpleStatusMessage(selectedSubmission)}
+                </p>
+              </div>
+              <div>
+                <p className="text-slate-400 text-sm">메모리</p>
+                <p className="text-white text-lg font-bold">{selectedSubmission.memory}</p>
+              </div>
+              <div>
+                <p className="text-slate-400 text-sm">시간</p>
+                <p className="text-white text-lg font-bold">{selectedSubmission.executionTime}</p>
+              </div>
+              <div>
+                <p className="text-slate-400 text-sm">테스트 케이스</p>
+                <p className="text-white text-lg font-bold">
+                  {selectedSubmission.passedTestCount || 0}/{selectedSubmission.totalTestCount || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 에러 메시지 (실패한 경우에만) */}
+          {selectedSubmission.status !== 'passed' && selectedSubmission.stdout && (
+            <div className="mb-4">
+              <h3 className="text-white text-lg font-semibold mb-2">에러 메시지</h3>
+              <div className="bg-red-900/20 border border-red-600/30 p-3 rounded-md">
+                <pre className="text-red-300 text-sm whitespace-pre-wrap font-mono overflow-auto max-h-32">
+                  {selectedSubmission.stdout}
+                </pre>
+              </div>
+            </div>
+          )}
+
           {/* 코드 영역 */}
           <div className="flex-1 flex flex-col">
             <h3 className="text-white text-lg font-semibold mb-2">코드</h3>
@@ -158,7 +224,7 @@ const BoardReportStudentSubmission: React.FC<BoardReportStudentSubmissionProps> 
                           className="text-lg font-bold"
                           style={{ color: getStatusColor(submission.status) }}
                         >
-                          {getStatusText(submission.status)}
+                          {getSimpleStatusMessage(submission)}
                         </p>
                       </div>
                       <div>
