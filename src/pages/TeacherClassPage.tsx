@@ -570,7 +570,7 @@ const TeacherClassPage: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-slate-900 text-white">
+    <div className="flex flex-col h-screen bg-slate-900 text-white min-h-[600px]">
       <TeacherHeader
         classCode={currentRoom?.inviteCode || '...'}
         mode={mode}
@@ -597,7 +597,7 @@ const TeacherClassPage: React.FC = () => {
         onParticipantVolumeChange={voiceChat.handleParticipantVolumeChange}
         userId={String(teacherId)}
       />
-      <main className="flex flex-grow overflow-hidden">
+      <main className="flex flex-grow overflow-hidden min-h-[500px]">
         <TeacherProblemPanel
           problems={currentRoom?.problems || []}
           userCode={code}
@@ -605,7 +605,7 @@ const TeacherClassPage: React.FC = () => {
           selectedProblemId={selectedProblemId}
           onSelectProblem={handleSelectProblem}
         />
-        <div className="flex flex-grow">
+        <div className="flex flex-grow min-w-0">
           {mode === 'grid' ? (
             <StudentGridView
               key={JSON.stringify(studentsWithoutTeacher.map((s: any) => s.userId))}
@@ -615,7 +615,7 @@ const TeacherClassPage: React.FC = () => {
             />
           ) : (
             <>
-              <div className="flex-grow">
+              <div className="flex-grow min-w-0 min-h-[400px]">
                 {selectedStudentId === null ? (
                   <TeacherEditorPanel
                     code={code}
@@ -634,6 +634,7 @@ const TeacherClassPage: React.FC = () => {
                     onClearSVGLines={handleClearSVGLines}
                     onSetSVGLines={handleSetSVGLines}
                     problemId={selectedProblemId} // ← 추가
+                    isAnalysisPanelOpen={isAnalysisPanelOpen} // 분석 패널 상태 전달
                   />
                 ) : isConnectingToStudent ? (
                   <div className="flex flex-col items-center justify-center h-full text-slate-400">
@@ -659,6 +660,7 @@ const TeacherClassPage: React.FC = () => {
                     onClearSVGLines={handleClearSVGLines}
                     onSetSVGLines={handleSetSVGLines}
                     problemId={selectedProblemId} // ← 추가
+                    isAnalysisPanelOpen={isAnalysisPanelOpen} // 분석 패널 상태 전달
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full bg-slate-900 bg-opacity-80">
