@@ -12,6 +12,7 @@ import StudentClassPage from './pages/StudentClassPage';
 import MyPage from './pages/MyPage';
 import ReportPage from './pages/ReportPage';
 import StudentReportPage from './pages/StudentReportPage';
+import SavedReportDetailPage from './pages/SavedReportDetailPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 // --- 컴포넌트 import ---
@@ -40,6 +41,12 @@ function App() {
     const autoRoute = async () => {
       if (!user) return;
 
+      // 특정 경로들은 자동 라우팅에서 제외
+      const excludedPaths = ['/mypage', '/saved-report'];
+      const currentPath = window.location.pathname;
+      if (excludedPaths.some((path) => currentPath.startsWith(path))) {
+        return;
+      }
       if (user.roomId == null) {
         // 방이 없으면 무조건 join으로 (마이페이지 제외)
         if (window.location.pathname !== '/join' && window.location.pathname !== '/mypage') {
@@ -170,6 +177,15 @@ function App() {
           element={
             <PrivateRoute>
               <StudentReportPage />
+            </PrivateRoute>
+          }
+        />
+        {/* 저장된 리포트 상세보기 페이지 */}
+        <Route
+          path="/saved-report/:reportId"
+          element={
+            <PrivateRoute>
+              <SavedReportDetailPage />
             </PrivateRoute>
           }
         />
