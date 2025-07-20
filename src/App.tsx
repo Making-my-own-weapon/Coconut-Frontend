@@ -47,10 +47,9 @@ function App() {
       if (excludedPaths.some((path) => currentPath.startsWith(path))) {
         return;
       }
-
       if (user.roomId == null) {
-        // 방이 없으면 무조건 join으로
-        if (window.location.pathname !== '/join') {
+        // 방이 없으면 무조건 join으로 (마이페이지 제외)
+        if (window.location.pathname !== '/join' && window.location.pathname !== '/mypage') {
           window.location.replace('/join');
         }
         return;

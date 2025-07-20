@@ -23,7 +23,7 @@ const Modal: React.FC<{ children: React.ReactNode; onClose: () => void }> = ({
   onClose,
 }) => (
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div className="bg-white rounded-lg shadow-lg p-0 relative min-w-[400px] max-w-[90vw] max-h-[90vh] overflow-auto">
+    <div className="bg-white rounded-lg shadow-lg p-0 relative min-w-[300px] sm:min-w-[400px] max-w-[95vw] sm:max-w-[90vw] max-h-[95vh] sm:max-h-[90vh] overflow-auto">
       <button
         onClick={onClose}
         className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-xl font-bold z-10"
@@ -88,7 +88,7 @@ export const TeacherProblemPanel: React.FC<TeacherProblemPanelProps> = ({
 
   return (
     <>
-      <aside className="w-[360px] h-full bg-slate-800 border-r border-slate-700">
+      <aside className="w-[350px] sm:w-[400px] h-full bg-slate-800 border-r border-slate-700 flex-shrink-0 min-w-[300px] max-w-[450px]">
         {selectedProblem ? (
           <TeacherProblemDetailView
             problem={selectedProblem}

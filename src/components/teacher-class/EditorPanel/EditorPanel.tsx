@@ -15,7 +15,7 @@ interface TeacherEditorPanelProps {
   studentName?: string;
   onClickReturnToTeacher?: () => void;
   isConnecting?: boolean;
-  otherCursor?: { lineNumber: number; column: number } | null;
+  otherCursor?: { lineNumber: number; column: number; problemId: number | null } | null;
   onCursorChange?: (position: {
     lineNumber: number;
     column: number;
@@ -29,6 +29,7 @@ interface TeacherEditorPanelProps {
   onClearSVGLines: () => void;
   onSetSVGLines: (lines: SVGLine[]) => void;
   problemId: number | null; // ← 추가
+  isAnalysisPanelOpen?: boolean; // 분석 패널 열림 상태 추가
 }
 
 const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
@@ -48,6 +49,7 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
   onClearSVGLines,
   onSetSVGLines,
   problemId, // ← 추가
+  isAnalysisPanelOpen = false, // 분석 패널 열림 상태 추가
 }) => {
   const editorRef = useRef<any>(null);
   const decorationIds = useRef<string[]>([]);
@@ -79,30 +81,26 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
   // 커서 동기화(Decoration, 라벨)
   useEffect(() => {
     if (!editorRef.current || !monacoRef.current) return;
+    // 문제 ID가 다르면 커서 표시 X (null 체크 포함)
+    if (!otherCursor || otherCursor.problemId !== problemId || problemId === null) return;
     try {
-      decorationIds.current = editorRef.current.deltaDecorations(
-        decorationIds.current,
-        otherCursor
-          ? [
-              {
-                range: new monacoRef.current.Range(
-                  otherCursor.lineNumber,
-                  otherCursor.column,
-                  otherCursor.lineNumber,
-                  otherCursor.column + 1,
-                ),
-                options: {
-                  className: 'remote-cursor',
-                  stickiness: 1,
-                },
-              },
-            ]
-          : [],
-      );
+      decorationIds.current = editorRef.current.deltaDecorations(decorationIds.current, [
+        {
+          range: new monacoRef.current.Range(
+            otherCursor.lineNumber,
+            otherCursor.column,
+            otherCursor.lineNumber,
+            otherCursor.column + 1,
+          ),
+          options: {
+            className: 'remote-cursor',
+            stickiness: 1,
+          },
+        },
+      ]);
     } catch (e) {
       console.error(e);
     }
-    if (!otherCursor) return;
     const widgetId = 'remote-cursor-label-widget';
     const labelDom = document.createElement('div');
     labelDom.className = 'remote-cursor-label';
@@ -122,7 +120,7 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
     return () => {
       editorRef.current.removeContentWidget(widget);
     };
-  }, [otherCursor, monacoRef, studentName]);
+  }, [otherCursor, monacoRef, studentName, problemId]);
 
   // 그림판 핸들러
   const handleSetLines = (newLines: Array<{ points: [number, number][]; color: string }>) => {
@@ -133,32 +131,38 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
   };
 
   return (
-    <div className="bg-[#1e1e1e] flex flex-col h-full">
+    <div className="bg-[#1e1e1e] flex flex-col h-full min-w-[600px] min-h-[400px]">
       {/* 에디터 상단 정보 바 */}
-      <div className="flex justify-between items-center bg-slate-900 px-4 py-2 text-sm text-slate-400 border-b border-slate-700">
-        <span className="font-mono">&lt; &gt; solution.py</span>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <img src={usersIcon} alt="참가자 수" className="w-4 h-4" />
-            <span>
+      <div className="flex justify-between items-center bg-slate-900 px-4 py-2 text-sm text-slate-400 border-b border-slate-700 min-h-[48px]">
+        <span className="font-mono truncate">&lt; &gt; solution.py</span>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <img src={usersIcon} alt="참가자 수" className="w-4 h-4 flex-shrink-0" />
+            <span className="truncate max-w-[150px] sm:max-w-[200px] lg:max-w-[250px]">
               {selectedStudentId === null || selectedStudentId === undefined
                 ? '내 코드 에디터'
                 : `${studentName || selectedStudentId} 에디터`}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            {/* 그림판 토글 버튼: 항상 보이게 */}
-            <button
-              className={`px-3 py-1 rounded transition ${showOverlay ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-200 hover:bg-slate-600'}`}
-              onClick={() => setShowOverlay((v) => !v)}
-            >
-              {showOverlay ? '그림판 끄기' : '그림판 켜기'}
-            </button>
-          </div>
+          {/* 그림판 토글 버튼: 분석 패널 상태에 따라 적응형 */}
+          <button
+            className={`px-2 sm:px-3 py-1 rounded transition text-xs sm:text-sm whitespace-nowrap ${
+              showOverlay
+                ? 'bg-green-600 text-white'
+                : 'bg-slate-700 text-slate-200 hover:bg-slate-600'
+            }`}
+            onClick={() => setShowOverlay((v) => !v)}
+            style={{
+              marginRight: isAnalysisPanelOpen ? '380px' : '0px',
+              transition: 'margin-right 0.3s ease',
+            }}
+          >
+            {showOverlay ? '그림판 끄기' : '그림판 켜기'}
+          </button>
         </div>
       </div>
       {/* Monaco Editor + SvgOverlay */}
-      <div className="flex-grow relative">
+      <div className="flex-grow relative min-h-[300px]">
         {isConnecting ? (
           <div className="flex items-center justify-center h-full text-slate-400">
             <div className="text-center">
@@ -181,6 +185,13 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
                 padding: { top: 16 },
+                wordWrap: 'on',
+                lineNumbers: 'on',
+                renderWhitespace: 'selection',
+                folding: true,
+                foldingStrategy: 'indentation',
+                showFoldingControls: 'always',
+                automaticLayout: true,
               }}
             />
             <SvgOverlay
@@ -194,6 +205,7 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
               onClear={handleClear}
               editorRef={editorRef}
               scrollTop={scrollTop}
+              isAnalysisPanelOpen={isAnalysisPanelOpen}
             />
           </>
         )}

@@ -81,8 +81,8 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   // 커서 동기화(Decoration, 라벨)
   useEffect(() => {
     if (!editorRef.current || !monacoRef.current) return;
-    // 문제 ID가 다르면 커서 표시 X
-    if (!otherCursor || otherCursor.problemId !== problemId) return;
+    // 문제 ID가 다르면 커서 표시 X (null 체크 포함)
+    if (!otherCursor || otherCursor.problemId !== problemId || problemId === null) return;
     try {
       decorationIds.current = editorRef.current.deltaDecorations(decorationIds.current, [
         {

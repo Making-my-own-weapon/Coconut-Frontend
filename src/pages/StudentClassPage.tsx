@@ -63,11 +63,9 @@ const StudentClassPage: React.FC = () => {
   // 현재 보고 있는 문제 id를 항상 최신으로 유지
   const currentProblemIdRef = useRef<number | null>(selectedProblemId);
   useEffect(() => {
+    console.log('[Student] selectedProblemId 변경:', selectedProblemId);
     currentProblemIdRef.current = selectedProblemId;
-  }, [selectedProblemId]);
-
-  // 문제 전환 시 커서 상태 초기화
-  useEffect(() => {
+    // 문제가 변경되면 다른 사용자의 커서 초기화
     setOtherCursor(null);
   }, [selectedProblemId]);
 
@@ -181,6 +179,22 @@ const StudentClassPage: React.FC = () => {
           problemId: selectedProblemId,
           code: currentCode,
         });
+
+        // 협업 시작 시 현재 문제 정보도 함께 전송하여 그리드에 반영
+        if (roomId && myId && selectedProblemId && inviteCode) {
+          socket.emit('student:currentProblem', {
+            roomId,
+            inviteCode,
+            studentId: myId,
+            problemId: selectedProblemId,
+          });
+          console.log('[Student] 협업 시작 시 현재 문제 정보 전송:', {
+            roomId,
+            inviteCode,
+            studentId: myId,
+            problemId: selectedProblemId,
+          });
+        }
       });
       // 👇 '수업 종료' 이벤트를 수신하는 리스너를 추가합니다.
       const handleClassEnded = () => {
@@ -196,9 +210,13 @@ const StudentClassPage: React.FC = () => {
         }
       });
       socket.on('collab:ended', () => {
+        console.log('[Student] collab:ended 수신 - 협업 세션 종료');
         setCollaborationId(null);
         collabIdRef.current = null;
         setOtherCursor(null);
+        setIsCollabLoading(false); // 협업 로딩 상태도 초기화
+        // 협업 종료 시 SVG 데이터도 초기화
+        setSvgLines([]);
       });
       socket.on('cursor:update', ({ lineNumber, column, problemId }) => {
         const currentProblemId = currentProblemIdRef.current;
@@ -207,10 +225,14 @@ const StudentClassPage: React.FC = () => {
           column,
           problemId,
           currentProblemId,
+          isMatch: problemId === currentProblemId,
         });
-        if (problemId === currentProblemId) {
+        // 현재 보고 있는 문제와 같을 때만 커서 표시
+        if (problemId && currentProblemId && problemId === currentProblemId) {
+          console.log('[Student] 커서 표시:', { lineNumber, column, problemId });
           setOtherCursor({ lineNumber, column, problemId });
         } else {
+          console.log('[Student] 다른 문제를 보고 있어서 커서 숨김');
           setOtherCursor(null);
         }
       });
@@ -283,6 +305,12 @@ const StudentClassPage: React.FC = () => {
           studentId: myId,
           problemId,
         });
+        console.log('[Student] emit student:currentProblem', {
+          roomId,
+          inviteCode,
+          studentId: myId,
+          problemId,
+        });
       }
     }
 
@@ -299,6 +327,22 @@ const StudentClassPage: React.FC = () => {
         code: newCode,
       });
       console.log('[Student] emit collab:edit on problem select');
+
+      // 3. 협업 중에도 그리드에 현재 문제 정보 즉시 반영
+      if (roomId && myId && inviteCode) {
+        socket.emit('student:currentProblem', {
+          roomId,
+          inviteCode,
+          studentId: myId,
+          problemId,
+        });
+        console.log('[Student] 협업 중 문제 변경 시 그리드 반영:', {
+          roomId,
+          inviteCode,
+          studentId: myId,
+          problemId,
+        });
+      }
     }
   };
 
@@ -330,16 +374,26 @@ const StudentClassPage: React.FC = () => {
 
   const handleCursorChange = (position: { lineNumber: number; column: number }) => {
     console.log('[Student] handleCursorChange', { collabId: collabIdRef.current, position });
-    if (!collabIdRef.current) {
-      console.warn('[Student] collaborationId 가 없어 emit 스킵');
+    // 협업 세션이 있고, 문제를 선택했을 때만 커서 동기화
+    if (!collabIdRef.current || !selectedProblemId) {
+      console.warn(
+        '[Student] 커서 전송 스킵 - 협업세션:',
+        !!collabIdRef.current,
+        '문제선택:',
+        !!selectedProblemId,
+      );
       return;
     }
-    console.log('[Student] cursor 위치 변경 → 서버로 emit', position);
+    console.log('[Student] cursor 위치 변경 → 서버로 emit', {
+      position,
+      problemId: selectedProblemId,
+      collaborationId: collabIdRef.current,
+    });
     socket.emit('cursor:update', {
       collaborationId: collabIdRef.current,
       lineNumber: position.lineNumber,
       column: position.column,
-      problemId: selectedProblemId, // ← 반드시 포함
+      problemId: selectedProblemId,
     });
   };
 

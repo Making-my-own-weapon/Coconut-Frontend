@@ -13,6 +13,7 @@ interface SVGOverlayProps {
   onClear?: () => void;
   scrollTop?: number;
   editorRef?: React.RefObject<any>;
+  isAnalysisPanelOpen?: boolean; // 분석 패널 열림 상태 추가
 }
 
 const SvgOverlay: React.FC<SVGOverlayProps> = ({
@@ -26,6 +27,7 @@ const SvgOverlay: React.FC<SVGOverlayProps> = ({
   onClear,
   scrollTop = 0,
   editorRef,
+  isAnalysisPanelOpen = false, // 분석 패널 열림 상태 추가
 }) => {
   const [drawing, setDrawing] = useState(false);
   const [currentLine, setCurrentLine] = useState<{
@@ -36,7 +38,7 @@ const SvgOverlay: React.FC<SVGOverlayProps> = ({
 
   if (!show) return null;
 
-  // 마우스 이벤트 핸들러
+  // 드래그 시작
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
     if (readOnly) return;
     setDrawing(true);
@@ -129,33 +131,75 @@ const SvgOverlay: React.FC<SVGOverlayProps> = ({
         </g>
       </svg>
 
-      {/* 색상 선택 & 지우기 버튼: readOnly가 아니고 show일 때만 (우상단) */}
-
+      {/* 색상 선택 & 지우기 버튼: readOnly가 아니고 show일 때만 (오른쪽 고정 위치) */}
       {!readOnly && setColor && (
         <div
           style={{
             position: 'absolute',
-            top: 10,
-            right: 10,
+            top: 16, // 에디터 헤더 바로 아래
+            right: 16, // 오른쪽에 붙임
             display: 'flex',
             gap: 8,
             pointerEvents: 'auto',
-            zIndex: 20,
+            zIndex: 9999,
+            backgroundColor: 'rgba(30, 30, 30, 0.9)',
+            padding: '8px',
+            borderRadius: '6px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+            userSelect: 'none',
+            transition: 'transform 0.3s ease',
+            transform: isAnalysisPanelOpen ? 'translateX(-380px)' : 'translateX(0)',
           }}
         >
           {COLORS.map((c) => (
             <button
               key={c}
-              onClick={() => setColor(c)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setColor(c);
+              }}
               style={{
                 background: c,
                 width: 24,
                 height: 24,
                 border: color === c ? '2px solid #fff' : '1px solid #ccc',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
               }}
             />
           ))}
-          <button onClick={handleClear} style={{ padding: '0 8px', height: 24 }}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClear();
+            }}
+            style={{
+              padding: '0 8px',
+              height: 24,
+              backgroundColor: '#374151',
+              color: '#ffffff',
+              border: '1px solid #4b5563',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: '500',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#4b5563';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#374151';
+            }}
+          >
             지우기
           </button>
         </div>
