@@ -15,7 +15,7 @@ interface TeacherEditorPanelProps {
   studentName?: string;
   onClickReturnToTeacher?: () => void;
   isConnecting?: boolean;
-  otherCursor?: { lineNumber: number; column: number } | null;
+  otherCursor?: { lineNumber: number; column: number; problemId: number | null } | null;
   onCursorChange?: (position: {
     lineNumber: number;
     column: number;
@@ -81,30 +81,26 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
   // 커서 동기화(Decoration, 라벨)
   useEffect(() => {
     if (!editorRef.current || !monacoRef.current) return;
+    // 문제 ID가 다르면 커서 표시 X (null 체크 포함)
+    if (!otherCursor || otherCursor.problemId !== problemId || problemId === null) return;
     try {
-      decorationIds.current = editorRef.current.deltaDecorations(
-        decorationIds.current,
-        otherCursor
-          ? [
-              {
-                range: new monacoRef.current.Range(
-                  otherCursor.lineNumber,
-                  otherCursor.column,
-                  otherCursor.lineNumber,
-                  otherCursor.column + 1,
-                ),
-                options: {
-                  className: 'remote-cursor',
-                  stickiness: 1,
-                },
-              },
-            ]
-          : [],
-      );
+      decorationIds.current = editorRef.current.deltaDecorations(decorationIds.current, [
+        {
+          range: new monacoRef.current.Range(
+            otherCursor.lineNumber,
+            otherCursor.column,
+            otherCursor.lineNumber,
+            otherCursor.column + 1,
+          ),
+          options: {
+            className: 'remote-cursor',
+            stickiness: 1,
+          },
+        },
+      ]);
     } catch (e) {
       console.error(e);
     }
-    if (!otherCursor) return;
     const widgetId = 'remote-cursor-label-widget';
     const labelDom = document.createElement('div');
     labelDom.className = 'remote-cursor-label';
@@ -124,7 +120,7 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
     return () => {
       editorRef.current.removeContentWidget(widget);
     };
-  }, [otherCursor, monacoRef, studentName]);
+  }, [otherCursor, monacoRef, studentName, problemId]);
 
   // 그림판 핸들러
   const handleSetLines = (newLines: Array<{ points: [number, number][]; color: string }>) => {

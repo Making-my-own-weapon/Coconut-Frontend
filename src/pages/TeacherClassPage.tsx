@@ -45,6 +45,11 @@ const TeacherClassPage: React.FC = () => {
 
   const [svgLines, setSvgLines] = useState<SVGLine[]>([]);
   const [studentSvgLines, setStudentSvgLines] = useState<Map<number, SVGLine[]>>(new Map());
+  // 협업 중에 학생이 문제를 바꾼 정보를 임시 저장 (ref로 관리하여 최신 값 보장)
+  const pendingStudentProblemChangeRef = useRef<{
+    studentId: number;
+    problemId: number;
+  } | null>(null);
 
   // 음성채팅 팝업 상태
   const [isVoiceChatOpen, setIsVoiceChatOpen] = useState(false);
@@ -79,7 +84,10 @@ const TeacherClassPage: React.FC = () => {
   // 현재 보고 있는 문제 id를 항상 최신으로 유지
   const currentProblemIdRef = useRef<number | null>(selectedProblemId);
   useEffect(() => {
+    console.log('[Teacher] selectedProblemId 변경:', selectedProblemId);
     currentProblemIdRef.current = selectedProblemId;
+    // 문제가 변경되면 다른 사용자의 커서 초기화
+    setOtherCursor(null);
   }, [selectedProblemId]);
 
   // 음성채팅 훅 사용
@@ -131,15 +139,17 @@ const TeacherClassPage: React.FC = () => {
       console.log('[Teacher] code:send 수신', { collaborationId, problemId, code, studentId });
 
       // 항상 학생을 선택된 상태로 설정
-      useTeacherStore.setState({
-        selectedStudentId: studentId,
-        selectedProblemId: problemId || null,
-      });
-
+      setSelectedStudentId(studentId);
       if (problemId) {
+        selectProblem(problemId);
         updateStudentCodeFromCollaborationId(collaborationId, problemId, code);
         setInfoMessage(null);
+
+        // 협업 시작 시 현재 문제 정보도 설정
+        setStudentCurrentProblem(studentId, problemId);
+        console.log('[Teacher] code:send에서 현재 문제 정보 설정:', { studentId, problemId });
       } else {
+        selectProblem(null);
         setInfoMessage('학생이 문제를 선택하면 코드 에디터가 열립니다.');
       }
     });
@@ -149,6 +159,13 @@ const TeacherClassPage: React.FC = () => {
       const studentId = Number(parts[parts.length - 1]);
       console.log('[Teacher] code:update 수신', { collaborationId, problemId, code, studentId });
       updateStudentCodeFromCollaborationId(collaborationId, problemId, code);
+
+      // 협업 중 코드 편집 시에도 현재 문제 정보 업데이트
+      if (problemId) {
+        setStudentCurrentProblem(studentId, problemId);
+        console.log('[Teacher] code:update에서 현재 문제 정보 업데이트:', { studentId, problemId });
+      }
+
       // 문제 자동 전환 제거: 학생이 코드를 입력해도 선생님 화면이 자동 이동하지 않음
       // if (collaborationId && problemId) {
       //   selectProblem(problemId);
@@ -157,6 +174,35 @@ const TeacherClassPage: React.FC = () => {
 
     socket.on('collab:ended', () => {
       console.log('[Teacher] collab:ended - 협업 세션 종료');
+
+      // 협업 종료 시 현재 선택된 학생과 문제 정보를 그리드에 확실히 반영
+      if (selectedStudentId && selectedProblemId) {
+        console.log('[Teacher] 협업 종료 시 그리드에 최신 문제 정보 반영:', {
+          selectedStudentId,
+          selectedProblemId,
+        });
+        setStudentCurrentProblem(selectedStudentId, selectedProblemId);
+      } else if (pendingStudentProblemChangeRef.current) {
+        // pendingStudentProblemChangeRef에 저장된 정보로도 업데이트
+        const { studentId, problemId } = pendingStudentProblemChangeRef.current;
+        console.log('[Teacher] 협업 종료 시 pending 정보로 그리드 업데이트:', {
+          studentId,
+          problemId,
+        });
+        setStudentCurrentProblem(studentId, problemId);
+      }
+
+      // 협업 종료 시 학생이 바꾼 문제 정보 확인 (이미 실시간 반영되었으므로 로그만 출력)
+      if (pendingStudentProblemChangeRef.current) {
+        console.log(
+          '[Teacher] 협업 종료 시 학생 문제 변경 확인 (이미 반영됨):',
+          pendingStudentProblemChangeRef.current,
+        );
+        pendingStudentProblemChangeRef.current = null; // 초기화
+      } else {
+        console.log('[Teacher] 협업 종료 시 학생 문제 변경 없음');
+      }
+
       setCollaborationId(null);
       setSelectedStudentId(null);
       setIsConnectingToStudent(false); // 협업 종료 시 연결 상태 초기화
@@ -194,10 +240,14 @@ const TeacherClassPage: React.FC = () => {
         column,
         problemId,
         currentProblemId,
+        isMatch: problemId === currentProblemId,
       });
-      if (problemId === currentProblemId) {
+      // 현재 보고 있는 문제와 같을 때만 커서 표시
+      if (problemId && currentProblemId && problemId === currentProblemId) {
+        console.log('[Teacher] 커서 표시:', { lineNumber, column, problemId });
         setOtherCursor({ lineNumber, column, problemId });
       } else {
+        console.log('[Teacher] 다른 문제를 보고 있어서 커서 숨김');
         setOtherCursor(null);
       }
     });
@@ -216,8 +266,17 @@ const TeacherClassPage: React.FC = () => {
     });
 
     socket.on('student:problem:selected', ({ roomId, studentId, problemId }) => {
-      // 학생이 문제를 선택할 때마다 실시간으로 store에 반영
+      // 협업 중에 학생이 문제를 바꾸면 실시간으로 그리드에 반영 + 임시 저장
+      console.log('[Teacher] 학생 문제 변경 실시간 반영 + 임시 저장:', { studentId, problemId });
+      setStudentCurrentProblem(studentId, problemId); // 실시간 반영
+      pendingStudentProblemChangeRef.current = { studentId, problemId }; // 협업 종료 시 재적용용
+    });
+
+    socket.on('student:currentProblem', ({ roomId, studentId, problemId }) => {
+      // 학생이 현재 풀고 있는 문제 변경 시 그리드에 실시간 반영
+      console.log('[Teacher] student:currentProblem 수신:', { roomId, studentId, problemId });
       setStudentCurrentProblem(studentId, problemId);
+      console.log('[Teacher] studentCurrentProblem 업데이트 완료:', { studentId, problemId });
     });
 
     socket.on('collab:edit', ({ collaborationId, problemId, code }) => {
@@ -225,12 +284,20 @@ const TeacherClassPage: React.FC = () => {
       const studentId = Number(parts[parts.length - 1]);
       setCollaborationId(collaborationId);
       if (problemId) {
-        useTeacherStore.setState({
-          selectedStudentId: studentId,
-          selectedProblemId: problemId,
-        });
+        setSelectedStudentId(studentId);
+        selectProblem(problemId);
         updateStudentCodeFromCollaborationId(collaborationId, problemId, code);
         setInfoMessage(null);
+
+        // 협업 중 문제 변경 시 그리드에도 즉시 반영 (강제 업데이트)
+        setStudentCurrentProblem(studentId, problemId);
+        console.log('[Teacher] collab:edit에서 현재 문제 정보 강제 업데이트:', {
+          studentId,
+          problemId,
+        });
+
+        // 추가: pendingStudentProblemChangeRef에도 저장
+        pendingStudentProblemChangeRef.current = { studentId, problemId };
       }
     });
 
@@ -248,6 +315,7 @@ const TeacherClassPage: React.FC = () => {
       socket.off('disconnect');
       socket.off('problem:selected');
       socket.off('student:problem:selected');
+      socket.off('student:currentProblem');
       socket.off('collab:edit');
 
       // void만 리턴 (아무것도 리턴하지 않음)
@@ -369,6 +437,7 @@ const TeacherClassPage: React.FC = () => {
   };
 
   const handleSelectProblem = (problemId: number | null) => {
+    console.log('[Teacher] handleSelectProblem 호출:', problemId);
     selectProblem(problemId);
     if (collaborationId && problemId != null) {
       socket.emit('teacher:requestStudentCode', { collaborationId, problemId });
@@ -401,14 +470,26 @@ const TeacherClassPage: React.FC = () => {
 
   // 커서 위치 변경 핸들러
   const handleCursorChange = (position: { lineNumber: number; column: number }) => {
-    if (collaborationId) {
-      console.log('[Teacher] cursor 위치 변경 → 서버로 emit', position);
+    // 협업 세션이 있고, 문제를 선택했을 때만 커서 동기화
+    if (collaborationId && selectedProblemId) {
+      console.log('[Teacher] cursor 위치 변경 → 서버로 emit', {
+        position,
+        problemId: selectedProblemId,
+        collaborationId,
+      });
       socket.emit('cursor:update', {
         collaborationId,
         lineNumber: position.lineNumber,
         column: position.column,
-        problemId: selectedProblemId, // ← 반드시 포함
+        problemId: selectedProblemId,
       });
+    } else {
+      console.log(
+        '[Teacher] 커서 전송 스킵 - 협업세션:',
+        !!collaborationId,
+        '문제선택:',
+        !!selectedProblemId,
+      );
     }
   };
 
@@ -472,6 +553,16 @@ const TeacherClassPage: React.FC = () => {
       // 협업 세션이 있으면 종료
       if (collaborationId) {
         console.log('모드 전환: 그리드로 이동하면서 협업 세션 종료', collaborationId);
+
+        // 협업 종료 시 학생이 바꾼 문제 정보 확인 (이미 실시간 반영되었으므로 로그만 출력)
+        if (pendingStudentProblemChangeRef.current) {
+          console.log(
+            '[Teacher] 모드 전환 시 학생 문제 변경 확인 (이미 반영됨):',
+            pendingStudentProblemChangeRef.current,
+          );
+          pendingStudentProblemChangeRef.current = null; // 초기화
+        }
+
         socket.emit('collab:end', { collaborationId });
         setCollaborationId(null);
         setSelectedStudentId(null);
@@ -524,6 +615,15 @@ const TeacherClassPage: React.FC = () => {
 
   // 내 코드로 전환 핸들러: 협업 종료 emit
   const handleReturnToTeacher = () => {
+    // 협업 종료 시 학생이 바꾼 문제 정보 확인 (이미 실시간 반영되었으므로 로그만 출력)
+    if (pendingStudentProblemChangeRef.current) {
+      console.log(
+        '[Teacher] 내 코드로 전환 시 학생 문제 변경 확인 (이미 반영됨):',
+        pendingStudentProblemChangeRef.current,
+      );
+      pendingStudentProblemChangeRef.current = null; // 초기화
+    }
+
     if (collaborationId) {
       socket.emit('collab:end', { collaborationId });
     }
@@ -650,7 +750,7 @@ const TeacherClassPage: React.FC = () => {
                     <p className="text-sm">학생과 연결 중...</p>
                     <p className="text-xs text-slate-500 mt-1">잠시만 기다려주세요</p>
                   </div>
-                ) : selectedStudentId !== null ? (
+                ) : selectedStudentId !== null && selectedProblemId !== null ? (
                   <TeacherEditorPanel
                     code={code}
                     onCodeChange={handleCodeChange}
