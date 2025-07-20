@@ -294,6 +294,12 @@ const StudentClassPage: React.FC = () => {
   const handleSelectProblem = (problemId: number | null) => {
     selectProblem(problemId); // 로컬 상태 업데이트
 
+    // 문제가 변경되면 분석 패널 닫기
+    if (isAnalysisPanelOpen) {
+      setAnalysisPanelOpen(false);
+      closeAnalysis();
+    }
+
     // 항상 교사에게 현재 선택 문제를 브로드캐스트
     if (roomId && myId && problemId) {
       socket.emit('student:problem:selected', { roomId, studentId: myId, problemId });
