@@ -15,6 +15,7 @@ const ReportPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [activeView, setActiveView] = useState<'overall' | 'student'>('overall');
+  const [isReportSaved, setIsReportSaved] = useState(false);
 
   const { deleteRoom, isLoading: isTeacherLoading } = useTeacherStore();
   const { reportData, fetchReport, isLoading: isReportLoading } = useReportStore(); //isLoading이 겹쳐서 별명을 만들어서 구분해주는 구조 분해 할당 문법을 사용했다. 『안채호』
@@ -35,6 +36,11 @@ const ReportPage: React.FC = () => {
   };
 
   const handleSaveReport = async () => {
+    if (isReportSaved) {
+      showToast('info', '이미 저장된 리포트입니다.');
+      return;
+    }
+
     if (!roomId) {
       showToast('error', '방 정보를 찾을 수 없습니다.');
       return;
@@ -44,6 +50,7 @@ const ReportPage: React.FC = () => {
       const result = await saveReport(roomId);
       if (result.success) {
         showToast('success', '리포트가 성공적으로 저장되었습니다!');
+        setIsReportSaved(true);
       } else {
         showToast('error', result.message || '리포트 저장에 실패했습니다.');
       }
@@ -161,9 +168,14 @@ const ReportPage: React.FC = () => {
     <>
       <button
         onClick={handleSaveReport}
-        className="flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-md text-white font-medium hover:from-emerald-700 hover:to-emerald-800 transition-colors"
+        className={`flex items-center justify-center gap-2 px-5 py-3 rounded-md text-white font-medium transition-colors ${
+          isReportSaved
+            ? 'bg-gray-600 hover:bg-gray-700'
+            : 'bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800'
+        }`}
       >
-        <Save className="w-5 h-5" /> 리포트 저장
+        <Save className="w-5 h-5" />
+        {isReportSaved ? '이미 저장됨' : '리포트 저장'}
       </button>
       <button
         onClick={handleLeaveRoom}
