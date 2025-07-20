@@ -1,5 +1,5 @@
 upstream backend {
-    server ${HOST}:${PORT};
+    server ${BACKEND_HOST}:${BACKEND_PORT};
 }
 
 server {
@@ -7,7 +7,7 @@ server {
     server_name juicecoconut.com;
     
     # api 요청은 /api/v1/*로 백엔드에 전달
-    location ^~ /api/v1/ {
+    location ^~ /api/v1/ {a
         proxy_pass http://backend;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
