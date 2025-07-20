@@ -439,6 +439,13 @@ const TeacherClassPage: React.FC = () => {
   const handleSelectProblem = (problemId: number | null) => {
     console.log('[Teacher] handleSelectProblem 호출:', problemId);
     selectProblem(problemId);
+
+    // 문제가 변경되면 분석 패널 닫기
+    if (isAnalysisPanelOpen) {
+      setAnalysisPanelOpen(false);
+      closeAnalysis();
+    }
+
     if (collaborationId && problemId != null) {
       socket.emit('teacher:requestStudentCode', { collaborationId, problemId });
     }
