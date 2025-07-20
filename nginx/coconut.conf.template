@@ -2,9 +2,15 @@ upstream backend {
     server ${BACKEND_HOST}:${BACKEND_PORT};
 }
 
+# Cloudflare가 HTTPS를 처리하므로 HTTP만 사용
 server {
     listen 80;
-    server_name juicecoconut.com;
+    server_name juicecoconut.com www.juicecoconut.com;
+
+    # Cloudflare에서 오는 요청만 허용 (선택사항)
+    # set_real_ip_from 173.245.48.0/20;
+    # set_real_ip_from 103.21.244.0/22;
+    # real_ip_header CF-Connecting-IP;
 
     # API 요청은 백엔드로 프록시
     location ^~ /api/v1/ {
