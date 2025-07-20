@@ -4,6 +4,7 @@ import DonutChart from './DonutChart';
 export interface CategoryData {
   name: string;
   count: number; // 정답률 (successRate)
+  successRate?: number; // 정답률 (명시적)
   passedCount?: number; // 맞춘 개수
   totalCount?: number; // 총 제출 개수
   uniqueProblems?: number; // 고유 문제 수
@@ -58,13 +59,10 @@ const BoardReportBox: React.FC<BoardReportBoxProps> = ({
 }) => {
   const [activeChart, setActiveChart] = useState<'category' | 'problem'>('category');
 
-  // 실제 데이터가 있으면 사용하고, 없으면 기본값 사용
-  const actualCategoryData =
-    categoryData && categoryData.length > 0 ? categoryData : defaultCategoryData;
+  // 실제 데이터가 있으면 사용하고, 정말 없을 때만 기본값 사용
+  const actualCategoryData = categoryData && categoryData.length > 0 ? categoryData : undefined;
   const actualProblemAnalysisData =
-    problemAnalysisData && problemAnalysisData.length > 0
-      ? problemAnalysisData
-      : defaultProblemAnalysisData;
+    problemAnalysisData && problemAnalysisData.length > 0 ? problemAnalysisData : undefined;
 
   const handleCategoryClick = () => {
     setActiveChart('category');
@@ -79,18 +77,18 @@ const BoardReportBox: React.FC<BoardReportBoxProps> = ({
   // 차트 데이터 변환
   const chartData =
     activeChart === 'category'
-      ? actualCategoryData.map((item, index) => ({
+      ? (actualCategoryData || defaultCategoryData).map((item, index) => ({
           name: item.name,
           count: item.count,
           color: categoryColors[index % categoryColors.length],
         }))
-      : actualProblemAnalysisData.map((item, index) => ({
+      : (actualProblemAnalysisData || defaultProblemAnalysisData).map((item, index) => ({
           name: item.name,
           count: item.count,
           color: problemColors[index % problemColors.length],
         }));
 
-  const chartTitle = activeChart === 'category' ? '카테고리별 성과' : '학생별 정답률';
+  const chartTitle = activeChart === 'category' ? '카테고리별 성과' : '문제 분석';
 
   return (
     <div className={`w-full ${className}`}>
@@ -117,37 +115,43 @@ const BoardReportBox: React.FC<BoardReportBoxProps> = ({
 
             {/* Category list */}
             <div className="absolute left-6 top-[74px] space-y-5">
-              {actualCategoryData.map((category, index) => (
-                <div
-                  key={index}
-                  className="flex justify-between items-center w-[542px] max-w-[calc(100vw-120px)]"
-                >
-                  <span
-                    className="text-white text-base font-normal leading-6"
-                    style={{ fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif' }}
+              {actualCategoryData ? (
+                actualCategoryData.map((category, index) => (
+                  <div
+                    key={index}
+                    className="flex justify-between items-center w-[542px] max-w-[calc(100vw-120px)]"
                   >
-                    {category.name}
-                  </span>
-                  <div className="flex items-center space-x-2">
                     <span
-                      className="text-white text-base font-bold leading-6"
+                      className="text-white text-base font-normal leading-6"
                       style={{ fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif' }}
                     >
-                      {category.count}%
+                      {category.name}
                     </span>
-                    {category.passedCount !== undefined && category.totalCount !== undefined && (
+                    <div className="flex items-center space-x-2">
                       <span
-                        className="text-slate-300 text-sm font-medium"
+                        className="text-white text-base font-bold leading-6"
                         style={{
                           fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif',
                         }}
                       >
-                        ({category.passedCount}/{category.totalCount})
+                        {category.successRate !== undefined ? `${category.successRate}%` : '0%'}
                       </span>
-                    )}
+                      {category.passedCount !== undefined && category.totalCount !== undefined && (
+                        <span
+                          className="text-slate-300 text-sm font-medium"
+                          style={{
+                            fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif',
+                          }}
+                        >
+                          ({category.passedCount}/{category.totalCount})
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <div className="text-slate-400 text-base">카테고리 데이터가 없습니다</div>
+              )}
             </div>
           </div>
 
@@ -165,38 +169,46 @@ const BoardReportBox: React.FC<BoardReportBoxProps> = ({
               className="absolute left-6 top-6 text-white text-2xl font-bold leading-9"
               style={{ fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif' }}
             >
-              학생별 정답률
+              문제 분석
             </div>
 
             {/* Problem analysis list */}
             <div className="absolute left-6 top-[74px] space-y-5">
-              {actualProblemAnalysisData.map((problem, index) => (
-                <div
-                  key={index}
-                  className="flex justify-between items-center w-[542px] max-w-[calc(100vw-120px)]"
-                >
-                  <span
-                    className="text-white text-base font-normal leading-6"
-                    style={{ fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif' }}
+              {actualProblemAnalysisData ? (
+                actualProblemAnalysisData.map((problem, index) => (
+                  <div
+                    key={index}
+                    className="flex justify-between items-center w-[542px] max-w-[calc(100vw-120px)]"
                   >
-                    {problem.name}
-                  </span>
-                  <div className="flex items-center space-x-1">
                     <span
-                      className="text-white text-base font-bold leading-6"
+                      className="text-white text-base font-normal leading-6"
                       style={{ fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif' }}
                     >
-                      {problem.count}
+                      {problem.name}
                     </span>
-                    <span
-                      className="text-white text-base font-bold leading-6"
-                      style={{ fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif' }}
-                    >
-                      개
-                    </span>
+                    <div className="flex items-center space-x-1">
+                      <span
+                        className="text-white text-base font-bold leading-6"
+                        style={{
+                          fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif',
+                        }}
+                      >
+                        {problem.count}
+                      </span>
+                      <span
+                        className="text-white text-base font-bold leading-6"
+                        style={{
+                          fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif',
+                        }}
+                      >
+                        개
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <div className="text-slate-400 text-base">문제 분석 데이터가 없습니다</div>
+              )}
             </div>
           </div>
         </div>

@@ -71,6 +71,20 @@ const StudentReportView: React.FC<StudentReportViewProps> = ({
     }
   }, [isStudentView, currentStudentName, studentResults]);
 
+  // 간단한 제출 상태 분류
+  const getSubmissionStatus = (sub: any): 'passed' | 'runtime_error' | 'failed' => {
+    if (sub.is_passed) return 'passed';
+
+    // stdout에 'error'가 포함되어 있으면 runtime_error로 분류
+    const stdout = sub.stdout?.toLowerCase() || '';
+    if (stdout.includes('error') || stdout.includes('exception')) {
+      return 'runtime_error';
+    }
+
+    // 그 외는 모두 실패로 처리
+    return 'failed';
+  };
+
   // 현재 리포트 데이터에서 학생별 상세 데이터 생성
   const getStudentDetailData = (studentName: string): StudentDetailData | null => {
     if (!reportData) return null;
@@ -118,13 +132,14 @@ const StudentReportView: React.FC<StudentReportViewProps> = ({
             submissions: problemSubs.map((sub: any, index: number) => ({
               id: sub.submission_id,
               submissionNumber: index + 1,
-              status: sub.is_passed ? 'passed' : sub.status === 'FAIL' ? 'failed' : 'runtime_error',
+              status: getSubmissionStatus(sub),
               memory: `${Math.round(sub.memory_usage_kb || 0)}KB`,
               executionTime: `${sub.execution_time_ms || 0}ms`,
               code: sub.code || '',
               passedTestCount: sub.passed_tc_count || 0,
               totalTestCount: sub.total_tc_count || 0,
               createdAt: new Date(sub.created_at),
+              stdout: sub.stdout || '', // stdout도 포함
             })),
           };
         } else {
