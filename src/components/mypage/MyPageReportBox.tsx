@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import CreatedClassesView from './CreatedClassesView'; // 👈 뷰 import
 import JoinedClassesView from './JoinedClassesView'; // 👈 뷰 import
+import SavedReportsView from './SavedReportsView'; // 👈 저장된 리포트 뷰 import
 
 const mockCreatedClasses = [
   {
@@ -24,7 +25,7 @@ const mockJoinedClasses = [
 
 interface MyPageReportBoxProps {
   className?: string;
-  onTabChange?: (tab: 'create' | 'join') => void;
+  onTabChange?: (tab: 'create' | 'join' | 'saved') => void;
   onSortChange?: (sort: string) => void;
 }
 
@@ -33,11 +34,11 @@ const MyPageReportBox: React.FC<MyPageReportBoxProps> = ({
   onTabChange,
   onSortChange,
 }) => {
-  const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
+  const [activeTab, setActiveTab] = useState<'create' | 'join' | 'saved'>('saved');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedSort, setSelectedSort] = useState('최신순');
 
-  const handleTabClick = (tab: 'create' | 'join') => {
+  const handleTabClick = (tab: 'create' | 'join' | 'saved') => {
     setActiveTab(tab);
     onTabChange?.(tab);
   };
@@ -79,6 +80,16 @@ const MyPageReportBox: React.FC<MyPageReportBoxProps> = ({
           >
             수업 참여
           </button>
+          <button
+            onClick={() => handleTabClick('saved')}
+            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+              activeTab === 'saved'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+            }`}
+          >
+            저장된 리포트
+          </button>
         </div>
 
         <div className="relative">
@@ -119,6 +130,7 @@ const MyPageReportBox: React.FC<MyPageReportBoxProps> = ({
       <div className="flex-1 overflow-y-auto">
         {activeTab === 'create' && <CreatedClassesView classes={mockCreatedClasses} />}
         {activeTab === 'join' && <JoinedClassesView classes={mockJoinedClasses} />}
+        {activeTab === 'saved' && <SavedReportsView sortBy={selectedSort} />}
       </div>
     </div>
   );

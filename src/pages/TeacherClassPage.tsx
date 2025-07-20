@@ -113,31 +113,33 @@ const TeacherClassPage: React.FC = () => {
     socket.on('room:notfound', () => console.log('[Teacher] room:notfound'));
 
     socket.on('collab:started', ({ collaborationId, problemId }) => {
-      console.log('[Teacher] collab:started', collaborationId);
+      console.log('[Teacher] collab:started', collaborationId, 'problemId:', problemId);
       setCollaborationId(collaborationId);
       setIsConnectingToStudent(false); // 협업 시작 완료
       // 협업 시작 시에만 문제 자동 이동
       if (problemId) {
         selectProblem(problemId);
       }
+      // 협업이 시작되면 에디터 모드로 전환
+      setMode('editor');
     });
 
     socket.on('code:send', ({ collaborationId, problemId, code }) => {
       const parts = collaborationId.split('_');
       const studentId = Number(parts[parts.length - 1]);
       setCollaborationId(collaborationId);
+      console.log('[Teacher] code:send 수신', { collaborationId, problemId, code, studentId });
+
+      // 항상 학생을 선택된 상태로 설정
+      useTeacherStore.setState({
+        selectedStudentId: studentId,
+        selectedProblemId: problemId || null,
+      });
+
       if (problemId) {
-        useTeacherStore.setState({
-          selectedStudentId: studentId,
-          selectedProblemId: problemId,
-        });
         updateStudentCodeFromCollaborationId(collaborationId, problemId, code);
         setInfoMessage(null);
       } else {
-        useTeacherStore.setState({
-          selectedStudentId: studentId,
-          selectedProblemId: null,
-        });
         setInfoMessage('학생이 문제를 선택하면 코드 에디터가 열립니다.');
       }
     });
@@ -154,7 +156,7 @@ const TeacherClassPage: React.FC = () => {
     });
 
     socket.on('collab:ended', () => {
-      console.log('[Teacher] collab:ended');
+      console.log('[Teacher] collab:ended - 협업 세션 종료');
       setCollaborationId(null);
       setSelectedStudentId(null);
       setIsConnectingToStudent(false); // 협업 종료 시 연결 상태 초기화
@@ -164,6 +166,8 @@ const TeacherClassPage: React.FC = () => {
         setStudentSvgLines((prev) => new Map(prev.set(selectedStudentId, svgLines)));
         setSvgLines([]); // 현재 그림 초기화
       }
+      // 협업 종료 시 커서 상태도 초기화
+      setOtherCursor(null);
     });
 
     // SVG 관련 이벤트 리스너
@@ -485,8 +489,11 @@ const TeacherClassPage: React.FC = () => {
 
   // 학생 선택 핸들러: 학생 선택 시 에디터 모드로 전환 + 협업 시작
   const handleStudentSelect = (studentId: number | null) => {
+    console.log('[Teacher] handleStudentSelect 호출:', studentId);
+
     // 1) 이미 열려 있는 협업이 있으면 종료
     if (collaborationId) {
+      console.log('[Teacher] 기존 협업 세션 종료:', collaborationId);
       socket.emit('collab:end', { collaborationId });
       setCollaborationId(null);
     }
@@ -496,8 +503,8 @@ const TeacherClassPage: React.FC = () => {
 
     // 3) 새 학생 선택 및 협업 시작 요청
     if (studentId !== null && inviteCode) {
+      console.log('[Teacher] 새 학생 선택 및 협업 시작 요청:', { studentId, inviteCode });
       setSelectedStudentId(studentId); // 학생 ID만 설정
-      setMode('editor');
       setIsConnectingToStudent(true); // "연결 중..." 상태
       setInfoMessage(null); // 이전 안내 메시지 제거
 
@@ -506,6 +513,7 @@ const TeacherClassPage: React.FC = () => {
       if (socket.connected) {
         socket.emit('collab:start', { roomId, inviteCode, studentId });
       } else {
+        console.log('[Teacher] 소켓 연결 중, 연결 후 협업 시작 요청');
         socket.once('connect', () => {
           socket.emit('collab:start', { roomId, inviteCode, studentId });
         });
@@ -570,7 +578,7 @@ const TeacherClassPage: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-slate-900 text-white">
+    <div className="flex flex-col h-screen bg-slate-900 text-white min-h-[600px]">
       <TeacherHeader
         classCode={currentRoom?.inviteCode || '...'}
         mode={mode}
@@ -597,7 +605,7 @@ const TeacherClassPage: React.FC = () => {
         onParticipantVolumeChange={voiceChat.handleParticipantVolumeChange}
         userId={String(teacherId)}
       />
-      <main className="flex flex-grow overflow-hidden">
+      <main className="flex flex-grow overflow-hidden min-h-[500px]">
         <TeacherProblemPanel
           problems={currentRoom?.problems || []}
           userCode={code}
@@ -605,7 +613,7 @@ const TeacherClassPage: React.FC = () => {
           selectedProblemId={selectedProblemId}
           onSelectProblem={handleSelectProblem}
         />
-        <div className="flex flex-grow">
+        <div className="flex flex-grow min-w-0">
           {mode === 'grid' ? (
             <StudentGridView
               key={JSON.stringify(studentsWithoutTeacher.map((s: any) => s.userId))}
@@ -615,7 +623,7 @@ const TeacherClassPage: React.FC = () => {
             />
           ) : (
             <>
-              <div className="flex-grow">
+              <div className="flex-grow min-w-0 min-h-[400px]">
                 {selectedStudentId === null ? (
                   <TeacherEditorPanel
                     code={code}
@@ -634,6 +642,7 @@ const TeacherClassPage: React.FC = () => {
                     onClearSVGLines={handleClearSVGLines}
                     onSetSVGLines={handleSetSVGLines}
                     problemId={selectedProblemId} // ← 추가
+                    isAnalysisPanelOpen={isAnalysisPanelOpen} // 분석 패널 상태 전달
                   />
                 ) : isConnectingToStudent ? (
                   <div className="flex flex-col items-center justify-center h-full text-slate-400">
@@ -641,7 +650,7 @@ const TeacherClassPage: React.FC = () => {
                     <p className="text-sm">학생과 연결 중...</p>
                     <p className="text-xs text-slate-500 mt-1">잠시만 기다려주세요</p>
                   </div>
-                ) : selectedStudentId !== null && selectedProblemId !== null ? (
+                ) : selectedStudentId !== null ? (
                   <TeacherEditorPanel
                     code={code}
                     onCodeChange={handleCodeChange}
@@ -659,6 +668,7 @@ const TeacherClassPage: React.FC = () => {
                     onClearSVGLines={handleClearSVGLines}
                     onSetSVGLines={handleSetSVGLines}
                     problemId={selectedProblemId} // ← 추가
+                    isAnalysisPanelOpen={isAnalysisPanelOpen} // 분석 패널 상태 전달
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full bg-slate-900 bg-opacity-80">

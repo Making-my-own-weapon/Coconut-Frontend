@@ -196,9 +196,13 @@ const StudentClassPage: React.FC = () => {
         }
       });
       socket.on('collab:ended', () => {
+        console.log('[Student] collab:ended 수신 - 협업 세션 종료');
         setCollaborationId(null);
         collabIdRef.current = null;
         setOtherCursor(null);
+        setIsCollabLoading(false); // 협업 로딩 상태도 초기화
+        // 협업 종료 시 SVG 데이터도 초기화
+        setSvgLines([]);
       });
       socket.on('cursor:update', ({ lineNumber, column, problemId }) => {
         const currentProblemId = currentProblemIdRef.current;
