@@ -20,7 +20,7 @@ export const showToast = (type: 'success' | 'error' | 'warning' | 'info', messag
 
 // 성공 알림
 export const showSuccess = (title: string, message?: string) => {
-  Swal.fire({
+  return Swal.fire({
     icon: 'success',
     title,
     text: message,
@@ -57,7 +57,7 @@ export const showConfirm = (title: string, message: string): Promise<boolean> =>
     color: '#f1f5f9',
     confirmButtonColor: '#059669',
     cancelButtonColor: '#6b7280',
-  }).then((result) => {
+  }).then((result: any) => {
     return result.isConfirmed;
   });
 };
