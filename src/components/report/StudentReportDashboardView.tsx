@@ -75,7 +75,7 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
   };
 
   const handleLeaveClass = async () => {
-    if (!isReportSaved) {
+    if (!isSavedReport && !isReportSaved) {
       const confirmed = await showConfirm(
         '리포트 미저장',
         '리포트를 저장하지 않고 수업에서 나가시겠습니까?',

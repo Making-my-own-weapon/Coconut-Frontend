@@ -14,6 +14,7 @@ import socket from '../lib/socket';
 import { leaveRoomAPI } from '../api/userApi';
 import { getUserSavedReports } from '../api/reportApi';
 import { showConfirm } from '../utils/sweetAlert';
+import { showSuccess } from '../utils/sweetAlert';
 
 interface SVGLine {
   points: [number, number][];
@@ -200,8 +201,9 @@ const StudentClassPage: React.FC = () => {
       });
       // 👇 '수업 종료' 이벤트를 수신하는 리스너를 추가합니다.
       const handleClassEnded = () => {
-        alert('수업이 종료되었습니다. 리포트 페이지로 이동합니다.');
-        navigate(`/class/${roomId}/report`);
+        showSuccess('수업 종료', '수업이 종료되었습니다. 리포트 페이지로 이동합니다.').then(() => {
+          navigate(`/class/${roomId}/report`);
+        });
       };
       socket.on('class:ended', handleClassEnded);
       socket.on('code:update', ({ problemId, code }) => {
