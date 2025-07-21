@@ -1,5 +1,10 @@
-import React from 'react';
-import SavedReportsView from './SavedReportsView'; // 👈 필요한 뷰만 import
+
+import React, { useState, useEffect } from 'react';
+import SavedReportsView from './SavedReportsView';
+import { getUserSavedReports } from '../../api/reportApi';
+import type { SavedReportListItem } from '../../api/reportApi';
+import { showToast, showConfirm } from '../../utils/sweetAlert';
+import { deleteSavedReport } from '../../api/reportApi';
 
 // 👇 Props 인터페이스를 단순화합니다.
 interface MyPageReportBoxProps {
@@ -7,7 +12,46 @@ interface MyPageReportBoxProps {
 }
 
 const MyPageReportBox: React.FC<MyPageReportBoxProps> = ({ className = '' }) => {
-  // 👇 탭, 드롭다운 관련 useState와 핸들러를 모두 삭제합니다.
+
+  const [reports, setReports] = useState<SavedReportListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadReports = async () => {
+      setLoading(true);
+      try {
+        const response = await getUserSavedReports();
+        if (response.success) {
+          setReports(response.data);
+        }
+      } catch (e) {
+        // 에러 무시
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadReports();
+  }, []);
+
+  // 정렬 함수 및 관련 로직 제거, reports 그대로 사용
+  const allReports = reports;
+
+  // 삭제 핸들러
+  const handleDeleteReport = async (reportId: number) => {
+    const confirmed = await showConfirm('리포트 삭제', '리포트를 삭제하시겠습니까?');
+    if (!confirmed) return;
+    try {
+      const response = await deleteSavedReport(reportId);
+      if (response.success) {
+        setReports((prev) => prev.filter((report) => report.id !== reportId));
+        showToast('success', '리포트가 삭제되었습니다.');
+      } else {
+        showToast('error', response.message || '리포트 삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      showToast('error', '리포트 삭제 중 오류가 발생했습니다.');
+    }
+  };
 
   return (
     <div className={`w-full h-full flex flex-col ${className}`}>
@@ -17,14 +61,13 @@ const MyPageReportBox: React.FC<MyPageReportBoxProps> = ({ className = '' }) => 
         <span className="text-gray-500">저장된 수업 리포트를 확인할 수 있습니다.</span>
       </div>
 
-      {/* 👇 탭과 정렬 드롭다운을 묶던 컨트롤 바 div 전체를 삭제합니다. */}
-
-      {/* 컨텐츠 영역 */}
-      <div className="flex-1 overflow-y-auto mt-6">
-        {' '}
-        {/* mt-6 추가로 여백 확보 */}
-        {/* 👇 조건부 렌더링을 삭제하고 SavedReportsView만 남깁니다. */}
-        <SavedReportsView />
+      {/* 리포트 리스트만 표시 */}
+      <div className="flex-1 overflow-y-auto mt-8">
+        {loading ? (
+          <div className="flex items-center justify-center h-64 text-gray-400">로딩 중...</div>
+        ) : (
+          <SavedReportsView reports={allReports} loading={loading} onDelete={handleDeleteReport} />
+        )}
       </div>
     </div>
   );

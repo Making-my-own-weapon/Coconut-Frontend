@@ -9,12 +9,14 @@ import { LogOut, Save } from 'lucide-react';
 import { showToast } from '../utils/sweetAlert'; //showConfirm 안 써서 지웠다. 『안채호』
 import LoadingAnimation from '../components/common/LoadingAnimationCat'; //희희 고양이 『안채호』
 import { saveReport } from '../api/reportApi';
+import { showConfirm } from '../utils/sweetAlert';
 
 const ReportPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
 
   const [activeView, setActiveView] = useState<'overall' | 'student'>('overall');
+  const [isReportSaved, setIsReportSaved] = useState(false);
 
   const { deleteRoom, isLoading: isTeacherLoading } = useTeacherStore();
   const { reportData, fetchReport, isLoading: isReportLoading } = useReportStore(); //isLoading이 겹쳐서 별명을 만들어서 구분해주는 구조 분해 할당 문법을 사용했다. 『안채호』
@@ -24,6 +26,13 @@ const ReportPage: React.FC = () => {
   }, [roomId, fetchReport]);
 
   const handleLeaveRoom = async () => {
+    if (!isReportSaved) {
+      const confirmed = await showConfirm(
+        '리포트 미저장',
+        '리포트를 저장하지 않고 수업에서 나가시겠습니까?',
+      );
+      if (!confirmed) return;
+    }
     if (roomId) {
       try {
         await deleteRoom(roomId);
@@ -35,6 +44,11 @@ const ReportPage: React.FC = () => {
   };
 
   const handleSaveReport = async () => {
+    if (isReportSaved) {
+      showToast('info', '이미 저장된 리포트입니다.');
+      return;
+    }
+
     if (!roomId) {
       showToast('error', '방 정보를 찾을 수 없습니다.');
       return;
@@ -44,6 +58,7 @@ const ReportPage: React.FC = () => {
       const result = await saveReport(roomId);
       if (result.success) {
         showToast('success', '리포트가 성공적으로 저장되었습니다!');
+        setIsReportSaved(true);
       } else {
         showToast('error', result.message || '리포트 저장에 실패했습니다.');
       }
@@ -161,9 +176,14 @@ const ReportPage: React.FC = () => {
     <>
       <button
         onClick={handleSaveReport}
-        className="flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-md text-white font-medium hover:from-emerald-700 hover:to-emerald-800 transition-colors"
+        className={`flex items-center justify-center gap-2 px-5 py-3 rounded-md text-white font-medium transition-colors ${
+          isReportSaved
+            ? 'bg-gray-600 hover:bg-gray-700'
+            : 'bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800'
+        }`}
       >
-        <Save className="w-5 h-5" /> 리포트 저장
+        <Save className="w-5 h-5" />
+        {isReportSaved ? '이미 저장됨' : '리포트 저장'}
       </button>
       <button
         onClick={handleLeaveRoom}

@@ -4,6 +4,7 @@ export interface SavedReportListItem {
   id: number;
   room_title: string;
   saved_at: string;
+  report_type: 'teacher' | 'student';
 }
 
 export interface SavedReportDetail {
@@ -12,6 +13,7 @@ export interface SavedReportDetail {
   room_title: string;
   report_data: any;
   saved_at: string;
+  report_type: 'teacher' | 'student';
 }
 
 /**
@@ -83,6 +85,12 @@ export const deleteSavedReport = async (
 }> => {
   try {
     const response = await apiClient.delete(`/reports/saved/${reportId}`);
+
+    // 204 No Content 상태 코드인 경우 성공으로 처리
+    if (response.status === 204) {
+      return { success: true };
+    }
+
     return response.data;
   } catch (error) {
     console.error('저장된 리포트 삭제 실패:', error);
