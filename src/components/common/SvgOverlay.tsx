@@ -96,17 +96,23 @@ const SvgOverlay: React.FC<SVGOverlayProps> = ({
   };
 
   return (
-    <>
+    <div
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none', // 컨테이너 자체는 이벤트 없음
+        zIndex: 10,
+      }}
+    >
       <svg
         ref={svgRef}
         style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
           width: '100%',
           height: '100%',
-          pointerEvents: svgPointerEvents,
-          zIndex: 10,
+          pointerEvents: readOnly ? 'none' : 'auto',
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -136,11 +142,11 @@ const SvgOverlay: React.FC<SVGOverlayProps> = ({
         <div
           style={{
             position: 'absolute',
-            top: 16, // 에디터 헤더 바로 아래
-            right: 16, // 오른쪽에 붙임
+            top: 16,
+            right: 16,
             display: 'flex',
             gap: 8,
-            pointerEvents: 'auto',
+            pointerEvents: 'auto', // 버튼 영역만 이벤트 허용
             zIndex: 9999,
             backgroundColor: 'rgba(30, 30, 30, 0.9)',
             padding: '8px',
@@ -204,7 +210,7 @@ const SvgOverlay: React.FC<SVGOverlayProps> = ({
           </button>
         </div>
       )}
-    </>
+    </div>
   );
 };
 
