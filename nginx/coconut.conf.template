@@ -1,6 +1,6 @@
 upstream backend {
     server ${BACKEND_HOST}:${BACKEND_PORT};
-}
+} 
 
 # HTTP 서버 (Cloudflare가 HTTPS를 처리하므로 HTTP만 처리)
 server {
