@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import SavedReportsView from './SavedReportsView';
 import { getUserSavedReports } from '../../api/reportApi';
@@ -5,13 +6,13 @@ import type { SavedReportListItem } from '../../api/reportApi';
 import { showToast, showConfirm } from '../../utils/sweetAlert';
 import { deleteSavedReport } from '../../api/reportApi';
 
+// 👇 Props 인터페이스를 단순화합니다.
 interface MyPageReportBoxProps {
   className?: string;
-  onTabChange?: (tab: 'create' | 'join' | 'saved') => void;
-  onSortChange?: (sort: string) => void;
 }
 
 const MyPageReportBox: React.FC<MyPageReportBoxProps> = ({ className = '' }) => {
+
   const [reports, setReports] = useState<SavedReportListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -57,7 +58,7 @@ const MyPageReportBox: React.FC<MyPageReportBoxProps> = ({ className = '' }) => 
       {/* 제목 */}
       <div className="flex-shrink-0">
         <h1 className="text-black font-bold text-[32px] leading-[48px] mb-1">리포트</h1>
-        <span className="text-gray-500">내 리포트를 볼 수 있습니다.</span>
+        <span className="text-gray-500">저장된 수업 리포트를 확인할 수 있습니다.</span>
       </div>
 
       {/* 리포트 리스트만 표시 */}
