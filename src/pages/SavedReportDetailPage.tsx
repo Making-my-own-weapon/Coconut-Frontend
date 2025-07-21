@@ -162,20 +162,20 @@ const SavedReportDetailPage = () => {
     () => ({
       responsive: true,
       maintainAspectRatio: false,
-      indexAxis: 'y' as const,
       plugins: {
         legend: { display: false },
         title: { display: true, text: '문제별 정답률', color: 'white', font: { size: 20 } },
         tooltip: {
           callbacks: {
             label: function (context: any) {
-              return `정답률: ${context.parsed.x}%`;
+              return `정답률: ${context.parsed.y}%`;
             },
           },
         },
       },
       scales: {
-        x: {
+        x: { ticks: { color: 'white' } },
+        y: {
           ticks: {
             color: 'white',
             callback: function (value: any) {
@@ -185,7 +185,6 @@ const SavedReportDetailPage = () => {
           min: 0,
           max: 100,
         },
-        y: { ticks: { color: 'white' } },
       },
     }),
     [],

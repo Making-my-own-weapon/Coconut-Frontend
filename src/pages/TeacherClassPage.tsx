@@ -12,6 +12,7 @@ import StudentGridView from '../components/teacher-class/grid/StudentGridView';
 import VoiceChatModal from '../components/common/VoiceChatModal';
 import { useVoiceChat } from '../hooks/useVoiceChat';
 import { useAuthStore } from '../store/authStore';
+import { getUserSavedReports } from '../api/reportApi';
 // 안내 메시지 아이콘용 import 추가
 // import { FaQuestionCircle } from 'react-icons/fa'; // react-icons import 제거
 

@@ -9,6 +9,7 @@ import { LogOut, Save } from 'lucide-react';
 import { showToast } from '../utils/sweetAlert'; //showConfirm 안 써서 지웠다. 『안채호』
 import LoadingAnimation from '../components/common/LoadingAnimationCat'; //희희 고양이 『안채호』
 import { saveReport } from '../api/reportApi';
+import { showConfirm } from '../utils/sweetAlert';
 
 const ReportPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -25,6 +26,13 @@ const ReportPage: React.FC = () => {
   }, [roomId, fetchReport]);
 
   const handleLeaveRoom = async () => {
+    if (!isReportSaved) {
+      const confirmed = await showConfirm(
+        '리포트 미저장',
+        '리포트를 저장하지 않고 수업에서 나가시겠습니까?',
+      );
+      if (!confirmed) return;
+    }
     if (roomId) {
       try {
         await deleteRoom(roomId);
