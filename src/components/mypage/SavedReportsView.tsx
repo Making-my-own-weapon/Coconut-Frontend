@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, FileText, Trash2, Eye } from 'lucide-react';
 import { getUserSavedReports, deleteSavedReport } from '../../api/reportApi';
 import type { SavedReportListItem } from '../../api/reportApi';
-import { showToast } from '../../utils/sweetAlert';
+import { showToast, showConfirm } from '../../utils/sweetAlert';
 import { useNavigate } from 'react-router-dom';
 
 interface SavedReportsViewProps {
@@ -44,7 +44,8 @@ const SavedReportsView: React.FC<SavedReportsViewProps> = ({ sortBy = '최신순
   };
 
   const handleDeleteReport = async (reportId: number) => {
-    if (!window.confirm(`리포트를 삭제하시겠습니까?`)) {
+    const confirmed = await showConfirm('리포트 삭제', '리포트를 삭제하시겠습니까?');
+    if (!confirmed) {
       return;
     }
 
@@ -107,36 +108,36 @@ const SavedReportsView: React.FC<SavedReportsViewProps> = ({ sortBy = '최신순
           className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"
         >
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-white mb-1">{report.room_title}</h3>
+            <div className="flex items-center gap-3 flex-1">
+              <div>
+                <h3 className="text-lg font-semibold text-black mb-1">{report.room_title}</h3>
                 <p className="text-sm text-slate-400">
                   저장일: {new Date(report.saved_at).toLocaleDateString('ko-KR')}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    report.report_type === 'teacher'
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-green-100 text-green-800'
-                  }`}
-                >
-                  {report.report_type === 'teacher' ? '선생님 리포트' : '학생 리포트'}
-                </span>
-                <button
-                  onClick={() => navigate(`/saved-report/${report.id}`)}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
-                >
-                  상세보기
-                </button>
-                <button
-                  onClick={() => handleDeleteReport(report.id)}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors"
-                >
-                  삭제
-                </button>
-              </div>
+              <span
+                className={`px-2 py-1 text-xs font-medium rounded-full ${
+                  report.report_type === 'teacher'
+                    ? 'bg-blue-100 text-blue-800'
+                    : 'bg-green-100 text-green-800'
+                }`}
+              >
+                {report.report_type === 'teacher' ? '선생님 리포트' : '학생 리포트'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate(`/saved-report/${report.id}`)}
+                className="flex items-center gap-1 px-3 py-2 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                상세보기
+              </button>
+              <button
+                onClick={() => handleDeleteReport(report.id)}
+                className="flex items-center gap-1 px-3 py-2 text-sm text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+              >
+                삭제
+              </button>
             </div>
           </div>
         </div>

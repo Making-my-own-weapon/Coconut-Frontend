@@ -12,6 +12,8 @@ import VoiceChatModal from '../components/common/VoiceChatModal';
 import { useVoiceChat } from '../hooks/useVoiceChat';
 import socket from '../lib/socket';
 import { leaveRoomAPI } from '../api/userApi';
+import { getUserSavedReports } from '../api/reportApi';
+import { showConfirm } from '../utils/sweetAlert';
 
 interface SVGLine {
   points: [number, number][];
@@ -410,6 +412,26 @@ const StudentClassPage: React.FC = () => {
 
   // 1. 수업 나가기 핸들러 추가
   const handleLeaveClass = async () => {
+    // 리포트 저장 여부 확인
+    let hasSavedReport = false;
+    try {
+      const response = await getUserSavedReports();
+      if (response.success && response.data && Array.isArray(response.data)) {
+        // 현재 방의 리포트가 있는지 확인 (선생님/학생 모두)
+        hasSavedReport = response.data.some(
+          (r) => String(r.room_title) === String(currentRoom?.title),
+        );
+      }
+    } catch (e) {
+      // 조회 실패 시 무시하고 진행
+    }
+    if (!hasSavedReport) {
+      const confirmed = await showConfirm(
+        '리포트 미저장',
+        '리포트를 저장하지 않고 수업에서 나가시겠습니까?',
+      );
+      if (!confirmed) return;
+    }
     useStudentStore.getState().resetStore(); // 방 나갈 때 상태 초기화
     localStorage.removeItem('lastRoomId'); // 방 나갈 때 roomId도 삭제
     if (roomId && myId && inviteCode) {

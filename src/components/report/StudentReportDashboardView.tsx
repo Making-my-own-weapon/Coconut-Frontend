@@ -11,6 +11,7 @@ import type { CategoryData, ProblemAnalysisData } from './index';
 import StudentReportView from './StudentReportView';
 import { saveReport } from '../../api/reportApi';
 import { showToast } from '../../utils/sweetAlert';
+import { showConfirm } from '../../utils/sweetAlert';
 
 interface StudentReportDashboardViewProps {
   roomTitle?: string;
@@ -73,7 +74,14 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
     }
   };
 
-  const handleLeaveClass = () => {
+  const handleLeaveClass = async () => {
+    if (!isReportSaved) {
+      const confirmed = await showConfirm(
+        '리포트 미저장',
+        '리포트를 저장하지 않고 수업에서 나가시겠습니까?',
+      );
+      if (!confirmed) return;
+    }
     if (isSavedReport) {
       // 저장된 리포트에서는 MyPage로 이동
       navigate('/mypage');
