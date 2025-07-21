@@ -72,7 +72,7 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
         onClick={() => setActiveTab('dashboard')}
         className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
           activeTab === 'dashboard'
-            ? 'bg-blue-600 text-white'
+            ? 'bg-gradient-to-r from-blue-500 to-blue-700 text-white'
             : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
         }`}
       >
@@ -82,7 +82,7 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
         onClick={() => setActiveTab('detailed')}
         className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
           activeTab === 'detailed'
-            ? 'bg-blue-600 text-white'
+            ? 'bg-gradient-to-r from-blue-500 to-blue-700 text-white'
             : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
         }`}
       >
