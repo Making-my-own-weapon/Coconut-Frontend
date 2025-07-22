@@ -17,6 +17,7 @@
     "chart.js": "^4.5.0",
     "date-fns": "^4.1.0",
     "esbuild": "^0.25.6",
+    "framer-motion": "^12.23.6",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.525.0",
     "monaco-editor": "^0.43.0",

@@ -1,4 +1,7 @@
 import React from 'react';
+import Lottie from 'lottie-react'; // 👈 Lottie 라이브러리 import
+import animationData from '../../assets/animations/study.json';
+import { motion } from 'framer-motion';
 
 export interface CardReportStudentProps {
   studentName: string;
@@ -14,7 +17,10 @@ const CardReportStudent: React.FC<CardReportStudentProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`relative w-[330px] h-[556px] mb-[50px] mt-[50px] ${className}`}>
+    <motion.div
+      whileHover={{ scale: 1.05, y: -5 }} // 마우스를 올리면 1.05배 커지고 위로 5px 이동
+      className={`relative w-[330px] h-[556px] ${className}`}
+    >
       {/* Background card with exact styling */}
       <div
         className="absolute inset-0 bg-slate-800 border border-slate-600 rounded-2xl"
@@ -26,21 +32,12 @@ const CardReportStudent: React.FC<CardReportStudentProps> = ({
 
       {/* Profile circle */}
       <div className="absolute left-[71px] top-[117px]">
-        <svg
-          width="178"
-          height="178"
-          viewBox="0 0 178 178"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="w-[178px] h-[178px]"
-        >
-          <circle cx="89" cy="89" r="89" fill="#D9D9D9" />
-        </svg>
+        <Lottie animationData={animationData} loop={true} className="w-[178px] h-[178px]" />
       </div>
 
       {/* Student name */}
       <div
-        className="absolute left-[109px] top-[331px] w-[100px] h-[40px] text-white text-4xl font-extrabold leading-10"
+        className="absolute left-1/2 -translate-x-1/2 top-[331px] w-[100px] h-[40px] text-white text-4xl font-extrabold leading-10"
         style={{ fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif' }}
       >
         {studentName}
@@ -48,7 +45,7 @@ const CardReportStudent: React.FC<CardReportStudentProps> = ({
 
       {/* "정답:" label */}
       <div
-        className="absolute left-[104px] top-[407px] w-[77px] h-[40px] text-white text-4xl font-normal leading-10"
+        className="absolute left-[90px] top-[407px] w-[77px] h-[40px] text-white text-4xl font-normal leading-10"
         style={{ fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif' }}
       >
         정답:
@@ -56,12 +53,12 @@ const CardReportStudent: React.FC<CardReportStudentProps> = ({
 
       {/* Correct answers number */}
       <div
-        className="absolute left-[191px] top-[406px] w-[60px] h-[40px] text-white text-4xl font-normal leading-10"
+        className="absolute left-[180px] top-[406px] w-[60px] h-[40px] text-white text-4xl font-normal leading-10"
         style={{ fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif' }}
       >
         {correctAnswers}/{totalProblems}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
