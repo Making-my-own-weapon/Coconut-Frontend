@@ -12,6 +12,12 @@ interface ReportData {
   easiestProblem: { name: string; rate: number };
   problemAnalysis: { title: string; successRate: number }[];
   studentSubmissions: { name: string; successRate: number }[];
+  studentFirstPassedProblems?: {
+    userId: number;
+    name: string;
+    firstPassedProblems: number[];
+    count: number;
+  }[];
   submissions?: any[]; // 제출 데이터 추가
   classTime: string;
   classStatus: 'WAITING' | 'IN_PROGRESS' | 'FINISHED';
