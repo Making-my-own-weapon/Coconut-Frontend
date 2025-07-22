@@ -18,6 +18,16 @@ interface SavedReportDetail {
   report_type: 'teacher' | 'student';
 }
 
+// 타입 선언 추가
+interface Submission {
+  is_passed: boolean;
+  problem_id: string | number;
+  user_id: number;
+  created_at: string;
+  problem?: { problemId?: string | number };
+  // ... 필요한 필드 추가
+}
+
 const SavedReportDetailPage = () => {
   const { reportId } = useParams<{ reportId: string }>();
   const [savedReport, setSavedReport] = useState<SavedReportDetail | null>(null);
@@ -57,19 +67,23 @@ const SavedReportDetailPage = () => {
 
   // 전체 문제 목록 추출 (problems 필드 기반)
   const allProblems: any[] = (reportData as any)?.problems || [];
-  const allProblemIds = new Set((allProblems || []).map((p: any) => p.problemId || p.problem_id));
+  const allProblemIds = new Set<string | number>(
+    (allProblems || [])
+      .map((p: any) => p.problemId ?? p.problem_id)
+      .filter((v): v is string | number => v !== undefined),
+  );
   const totalProblems = allProblemIds.size;
 
   // 내 제출만 필터링 (user_id 우선)
-  const mySubmissions = (reportData?.submissions || []).filter(
-    (sub: any) => sub.user_id === user?.id,
+  const mySubmissions = ((reportData?.submissions || []) as Submission[]).filter(
+    (sub) => sub.user_id === user?.id,
   );
 
   // 문제별 첫 제출 map (problem_id 우선)
-  const firstSubmissionsMap = new Map<string, any>();
+  const firstSubmissionsMap = new Map<string | number, Submission>();
   mySubmissions
-    .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-    .forEach((sub: any) => {
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    .forEach((sub) => {
       const pid = sub.problem_id || sub.problem?.problemId;
       if (pid && !firstSubmissionsMap.has(pid)) {
         firstSubmissionsMap.set(pid, sub);
@@ -77,8 +91,8 @@ const SavedReportDetailPage = () => {
     });
 
   // 맞힌 문제 set (problem_id 우선)
-  const solvedSet = new Set<string>();
-  mySubmissions.forEach((sub: any) => {
+  const solvedSet = new Set<string | number>();
+  mySubmissions.forEach((sub) => {
     const pid = sub.problem_id || sub.problem?.problemId;
     if (sub.is_passed && pid) {
       solvedSet.add(pid);
@@ -90,18 +104,20 @@ const SavedReportDetailPage = () => {
 
   // 첫 제출에 통과한 문제 개수
   const firstPassedCount = Array.from(firstSubmissionsMap.values()).filter(
-    (sub: any) => sub.is_passed,
+    (sub) => sub.is_passed,
   ).length;
 
   // 문제 분석 데이터 (상세 분석 패널과 동일하게)
-  const submittedProblemIds = new Set(
-    mySubmissions.map((sub: any) => sub.problem_id || sub.problem?.problemId),
+  const submittedProblemIds = new Set<string | number>(
+    mySubmissions
+      .map((sub) => sub.problem_id ?? sub.problem?.problemId)
+      .filter((v): v is string | number => v !== undefined),
   );
   const unsubmittedProblems = Array.from(allProblemIds).filter(
     (pid) => !submittedProblemIds.has(pid),
   );
-  const passedCount = mySubmissions.filter((sub: any) => sub.is_passed).length;
-  const failedCount = mySubmissions.filter((sub: any) => !sub.is_passed).length;
+  const passedCount = mySubmissions.filter((sub) => sub.is_passed).length;
+  const failedCount = mySubmissions.filter((sub) => !sub.is_passed).length;
   const problemAnalysisData = [
     { name: '통과', count: passedCount },
     { name: '실패', count: failedCount },
