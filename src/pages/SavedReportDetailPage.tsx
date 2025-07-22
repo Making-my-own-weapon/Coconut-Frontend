@@ -123,6 +123,7 @@ const SavedReportDetailPage = () => {
     { name: '실패', count: failedCount },
     { name: '미제출', count: unsubmittedProblems.length },
   ];
+  console.log('problemAnalysisData:', problemAnalysisData);
 
   const studentMetrics = reportData
     ? [
