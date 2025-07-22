@@ -1,52 +1,56 @@
-import React, { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
-import CreatedClassesView from './CreatedClassesView'; // 👈 뷰 import
-import JoinedClassesView from './JoinedClassesView'; // 👈 뷰 import
-import SavedReportsView from './SavedReportsView'; // 👈 저장된 리포트 뷰 import
 
-const mockCreatedClasses = [
-  {
-    title: '자료구조 스터디',
-    date: '2025-07-15',
-    participantCount: 12,
-    successRate: 45,
-    categories: ['그리디', 'BF'],
-  },
-];
-const mockJoinedClasses = [
-  {
-    title: '알고리즘 특강',
-    date: '2025-07-12',
-    participantCount: 8,
-    successRate: 68,
-    categories: ['DP', '백트래킹'],
-  },
-];
+import React, { useState, useEffect } from 'react';
+import SavedReportsView from './SavedReportsView';
+import { getUserSavedReports } from '../../api/reportApi';
+import type { SavedReportListItem } from '../../api/reportApi';
+import { showToast, showConfirm } from '../../utils/sweetAlert';
+import { deleteSavedReport } from '../../api/reportApi';
 
+// 👇 Props 인터페이스를 단순화합니다.
 interface MyPageReportBoxProps {
   className?: string;
-  onTabChange?: (tab: 'create' | 'join' | 'saved') => void;
-  onSortChange?: (sort: string) => void;
 }
 
-const MyPageReportBox: React.FC<MyPageReportBoxProps> = ({
-  className = '',
-  onTabChange,
-  onSortChange,
-}) => {
-  const [activeTab, setActiveTab] = useState<'create' | 'join' | 'saved'>('saved');
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [selectedSort, setSelectedSort] = useState('최신순');
+const MyPageReportBox: React.FC<MyPageReportBoxProps> = ({ className = '' }) => {
 
-  const handleTabClick = (tab: 'create' | 'join' | 'saved') => {
-    setActiveTab(tab);
-    onTabChange?.(tab);
-  };
+  const [reports, setReports] = useState<SavedReportListItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleSortSelect = (sort: string) => {
-    setSelectedSort(sort);
-    setIsDropdownOpen(false);
-    onSortChange?.(sort);
+  useEffect(() => {
+    const loadReports = async () => {
+      setLoading(true);
+      try {
+        const response = await getUserSavedReports();
+        if (response.success) {
+          setReports(response.data);
+        }
+      } catch (e) {
+        // 에러 무시
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadReports();
+  }, []);
+
+  // 정렬 함수 및 관련 로직 제거, reports 그대로 사용
+  const allReports = reports;
+
+  // 삭제 핸들러
+  const handleDeleteReport = async (reportId: number) => {
+    const confirmed = await showConfirm('리포트 삭제', '리포트를 삭제하시겠습니까?');
+    if (!confirmed) return;
+    try {
+      const response = await deleteSavedReport(reportId);
+      if (response.success) {
+        setReports((prev) => prev.filter((report) => report.id !== reportId));
+        showToast('success', '리포트가 삭제되었습니다.');
+      } else {
+        showToast('error', response.message || '리포트 삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      showToast('error', '리포트 삭제 중 오류가 발생했습니다.');
+    }
   };
 
   return (
@@ -54,83 +58,16 @@ const MyPageReportBox: React.FC<MyPageReportBoxProps> = ({
       {/* 제목 */}
       <div className="flex-shrink-0">
         <h1 className="text-black font-bold text-[32px] leading-[48px] mb-1">리포트</h1>
-        <span className="text-gray-500">내 리포트를 볼 수 있습니다.</span>
+        <span className="text-gray-500">저장된 수업 리포트를 확인할 수 있습니다.</span>
       </div>
 
-      {/* 탭과 정렬 드롭다운을 묶는 컨트롤 바 */}
-      <div className="flex justify-between items-center my-6 flex-shrink-0">
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleTabClick('create')}
-            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-              activeTab === 'create'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-            }`}
-          >
-            수업 생성
-          </button>
-          <button
-            onClick={() => handleTabClick('join')}
-            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-              activeTab === 'join'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-            }`}
-          >
-            수업 참여
-          </button>
-          <button
-            onClick={() => handleTabClick('saved')}
-            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-              activeTab === 'saved'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-            }`}
-          >
-            저장된 리포트
-          </button>
-        </div>
-
-        <div className="relative">
-          <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="w-32 h-10 rounded-lg border border-gray-700 bg-white flex items-center justify-between px-3"
-          >
-            <span className="text-sm text-gray-600">{selectedSort}</span>
-            <ChevronDown
-              className={`w-5 h-5 text-gray-600 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
-            />
-          </button>
-          {isDropdownOpen && (
-            <div className="absolute top-full right-0 mt-1 w-32 bg-white border rounded-lg shadow-lg z-10">
-              <button
-                onClick={() => handleSortSelect('최신순')}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50"
-              >
-                최신순
-              </button>
-              <button
-                onClick={() => handleSortSelect('오래된순')}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50"
-              >
-                오래된순
-              </button>
-              <button
-                onClick={() => handleSortSelect('이름순')}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50"
-              >
-                이름순
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto">
-        {activeTab === 'create' && <CreatedClassesView classes={mockCreatedClasses} />}
-        {activeTab === 'join' && <JoinedClassesView classes={mockJoinedClasses} />}
-        {activeTab === 'saved' && <SavedReportsView sortBy={selectedSort} />}
+      {/* 리포트 리스트만 표시 */}
+      <div className="flex-1 overflow-y-auto mt-8">
+        {loading ? (
+          <div className="flex items-center justify-center h-64 text-gray-400">로딩 중...</div>
+        ) : (
+          <SavedReportsView reports={allReports} loading={loading} onDelete={handleDeleteReport} />
+        )}
       </div>
     </div>
   );

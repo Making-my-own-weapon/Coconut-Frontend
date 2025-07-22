@@ -5,6 +5,13 @@ import React, { useRef, useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import usersIcon from '../../../assets/usersIcon.svg';
 import SvgOverlay from '../../common/SvgOverlay';
+import * as monaco from 'monaco-editor';
+import {
+  diff_match_patch as DiffMatchPatch,
+  DIFF_DELETE,
+  DIFF_INSERT,
+  DIFF_EQUAL,
+} from 'diff-match-patch';
 
 interface SVGLine {
   points: [number, number][];
@@ -53,15 +60,23 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
 }) => {
   const editorRef = useRef<any>(null);
   const decorationIds = useRef<string[]>([]);
-  const monacoRef = useRef<any>(null);
   const [color, setColor] = useState('#ff0000');
   const [showOverlay, setShowOverlay] = useState(false);
   const [scrollTop, setScrollTop] = useState(0);
+  const isRemoteUpdating = useRef(false);
+  const normalizeEOL = (s: string = '') => s.replace(/\r\n?/g, '\n');
+  const cursorPositionRef = useRef<monaco.Position | null>(null);
 
   // Editor mount에서 그림판+커서 모두 처리
-  function handleEditorDidMount(editor: any, monaco: any) {
+  function handleEditorDidMount(editor: any) {
     editorRef.current = editor;
-    monacoRef.current = monaco;
+
+    // EOL 통일
+    const model = editor.getModel();
+    if (model) {
+      model.setEOL(monaco.editor.EndOfLineSequence.LF);
+    }
+
     setScrollTop(editor.getScrollTop());
     editor.onDidScrollChange(() => {
       setScrollTop(editor.getScrollTop());
@@ -69,24 +84,27 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
     // 커서 위치 변경 이벤트 리스너 추가
     if (onCursorChange) {
       editor.onDidChangeCursorPosition((e: any) => {
-        onCursorChange({
-          lineNumber: e.position.lineNumber,
-          column: e.position.column,
-          problemId, // ← 반드시 포함
-        });
+        // 네트워크로 인한 업데이트 중엔 무시
+        if (!isRemoteUpdating.current) {
+          onCursorChange({
+            lineNumber: e.position.lineNumber,
+            column: e.position.column,
+            problemId, // ← 반드시 포함
+          });
+        }
       });
     }
   }
 
   // 커서 동기화(Decoration, 라벨)
   useEffect(() => {
-    if (!editorRef.current || !monacoRef.current) return;
-    // 문제 ID가 다르면 커서 표시 X
-    if (!otherCursor || otherCursor.problemId !== problemId) return;
+    if (!editorRef.current) return;
+    // 문제 ID가 다르면 커서 표시 X (null 체크 포함)
+    if (!otherCursor || otherCursor.problemId !== problemId || problemId === null) return;
     try {
       decorationIds.current = editorRef.current.deltaDecorations(decorationIds.current, [
         {
-          range: new monacoRef.current.Range(
+          range: new monaco.Range(
             otherCursor.lineNumber,
             otherCursor.column,
             otherCursor.lineNumber,
@@ -113,14 +131,14 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
           lineNumber: otherCursor.lineNumber,
           column: otherCursor.column,
         },
-        preference: [monacoRef.current.editor.ContentWidgetPositionPreference.ABOVE],
+        preference: [monaco.editor.ContentWidgetPositionPreference.ABOVE],
       }),
     };
     editorRef.current.addContentWidget(widget);
     return () => {
       editorRef.current.removeContentWidget(widget);
     };
-  }, [otherCursor, monacoRef, studentName, problemId]);
+  }, [otherCursor, studentName, problemId]);
 
   // 그림판 핸들러
   const handleSetLines = (newLines: Array<{ points: [number, number][]; color: string }>) => {
@@ -129,6 +147,113 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   const handleClear = () => {
     onClearSVGLines();
   };
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+    const model = editorRef.current.getModel?.();
+    if (!model) return;
+
+    const newText = normalizeEOL(code || '');
+
+    // 커서/스크롤 백업
+    const prevSel = editorRef.current.getSelections();
+    const prevScroll = editorRef.current.getScrollTop();
+
+    isRemoteUpdating.current = true;
+    model.setValue(newText); // 전체 세팅
+    editorRef.current.setSelections(prevSel || []);
+    editorRef.current.setScrollTop(prevScroll);
+    isRemoteUpdating.current = false;
+  }, [problemId, code]);
+
+  // 네트워크로부터 내려온 code prop 변경 감지용
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const model = editor.getModel();
+    if (!model) return;
+
+    const newText = normalizeEOL(code || '');
+
+    const oldText = normalizeEOL(model.getValue());
+    if (oldText === newText) {
+      return;
+    }
+
+    // 1) diff 계산
+    const dmp = new DiffMatchPatch();
+    dmp.Diff_Timeout = 0;
+    const diffs = dmp.diff_main(oldText, newText);
+    dmp.diff_cleanupEfficiency(diffs);
+
+    // === (핵심) 오프셋 기반으로 변환 ===
+    let oldIdx = 0;
+    const edits: monaco.editor.IIdentifiedSingleEditOperation[] = [];
+
+    for (const [op, text] of diffs as [number, string][]) {
+      if (op === DIFF_EQUAL) {
+        oldIdx += text.length;
+        continue;
+      }
+
+      const startPos = model.getPositionAt(oldIdx);
+
+      if (op === DIFF_DELETE) {
+        const endPos = model.getPositionAt(oldIdx + text.length);
+        edits.push({
+          range: new monaco.Range(
+            startPos.lineNumber,
+            startPos.column,
+            endPos.lineNumber,
+            endPos.column,
+          ),
+          text: '',
+          forceMoveMarkers: true,
+        });
+        oldIdx += text.length;
+      } else if (op === DIFF_INSERT) {
+        // 삭제는 oldIdx 증가했지만, 삽입은 old 텍스트에서는 길이 0
+        edits.push({
+          range: new monaco.Range(
+            startPos.lineNumber,
+            startPos.column,
+            startPos.lineNumber,
+            startPos.column,
+          ),
+          text,
+          forceMoveMarkers: true,
+        });
+        // oldIdx 그대로
+      }
+    }
+
+    if (edits.length) {
+      // 3) 커서·스크롤 보존
+      const prevSelections = editor.getSelections();
+      const prevScroll = editor.getScrollTop();
+
+      isRemoteUpdating.current = true;
+      editor.pushUndoStop();
+      editor.executeEdits('remote', edits, prevSelections || []);
+      editor.pushUndoStop();
+      editor.setScrollTop(prevScroll);
+      isRemoteUpdating.current = false;
+    }
+  }, [code]);
+
+  useEffect(() => {
+    if (!editorRef.current || !cursorPositionRef.current) return;
+
+    try {
+      editorRef.current.setPosition(cursorPositionRef.current);
+      editorRef.current.revealPositionInCenter(cursorPositionRef.current);
+    } catch (e) {
+      console.warn('커서 복구 실패:', e);
+    }
+
+    // 한 번 사용 후 초기화
+    cursorPositionRef.current = null;
+  }, [code]);
 
   return (
     <div className="bg-[#1e1e1e] flex flex-col h-full">
@@ -155,8 +280,13 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
           height="100%"
           language="python"
           theme="vs-dark"
-          value={code}
-          onChange={onCodeChange}
+          defaultValue={code}
+          onChange={(value, _ev) => {
+            // 원격 업데이트 중일 땐 무시
+            if (!isRemoteUpdating.current) {
+              onCodeChange(normalizeEOL(value ?? ''));
+            }
+          }}
           onMount={handleEditorDidMount}
           loading={
             <div className="flex items-center justify-center h-full text-slate-400">

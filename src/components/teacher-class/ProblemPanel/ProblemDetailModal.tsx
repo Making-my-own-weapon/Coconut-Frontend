@@ -78,10 +78,10 @@ const ProblemDetailModal: React.FC<ProblemDetailModalProps> = ({ problem, onClos
           {isSummaryProblem(problem) && (
             <span
               className={`inline-block px-2 py-0.5 text-xs rounded ${
-                problem.source === 'My' ? 'bg-purple-500' : 'bg-yellow-500'
+                problem.source === 'My' ? 'bg-purple-500' : 'bg-green-500'
               }`}
             >
-              {problem.source === 'My' ? '내 문제' : '백준'}
+              {problem.source === 'My' ? '내 문제' : 'CSES'}
             </span>
           )}
         </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export interface SubmissionData {
   id: string | number;
@@ -24,6 +24,11 @@ const BoardReportStudentSubmission: React.FC<BoardReportStudentSubmissionProps> 
   className = '',
 }) => {
   const [selectedSubmission, setSelectedSubmission] = useState<SubmissionData | null>(null);
+
+  // submissions prop이 바뀔 때마다 코드 뷰를 닫는다
+  useEffect(() => {
+    setSelectedSubmission(null);
+  }, [submissions]);
 
   // 제출 결과의 간단한 표시 메시지
   const getSimpleStatusMessage = (submission: SubmissionData): string => {

@@ -248,7 +248,7 @@ const StudentReportView: React.FC<StudentReportViewProps> = ({
             <div
               key={student.studentName}
               onClick={() => handleStudentSelect(student.studentName)}
-              className="cursor-pointer"
+              className="cursor-pointer mt-[20px] mb-[80px]"
             >
               <CardReportStudent
                 studentName={student.studentName}

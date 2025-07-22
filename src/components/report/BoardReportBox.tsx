@@ -52,7 +52,6 @@ const problemColors = [
 const BoardReportBox: React.FC<BoardReportBoxProps> = ({
   categoryData,
   problemAnalysisData,
-
   onCategoryClick,
   onProblemClick,
   className = '',
@@ -74,21 +73,29 @@ const BoardReportBox: React.FC<BoardReportBoxProps> = ({
     onProblemClick?.();
   };
 
-  // 차트 데이터 변환
-  const chartData =
-    activeChart === 'category'
-      ? (actualCategoryData || defaultCategoryData).map((item, index) => ({
-          name: item.name,
-          count: item.count,
-          color: categoryColors[index % categoryColors.length],
-        }))
-      : (actualProblemAnalysisData || defaultProblemAnalysisData).map((item, index) => ({
-          name: item.name,
-          count: item.count,
-          color: problemColors[index % problemColors.length],
-        }));
+  // 카테고리별 문제 수 비율 차트 데이터 변환
+  const categoryProblemCountData = (actualCategoryData || defaultCategoryData).map(
+    (item, index) => ({
+      name: item.name,
+      count: item.uniqueProblems ?? (item.problemTitles ? item.problemTitles.length : 0),
+      color: categoryColors[index % categoryColors.length],
+    }),
+  );
 
-  const chartTitle = activeChart === 'category' ? '카테고리별 성과' : '문제 분석';
+  // 기존 문제 분석 차트 데이터
+  const problemAnalysisChartData = (actualProblemAnalysisData || defaultProblemAnalysisData).map(
+    (item, index) => ({
+      name: item.name,
+      count: item.count,
+      color: problemColors[index % problemColors.length],
+    }),
+  );
+
+  // 차트 데이터 및 타이틀
+  const chartData =
+    activeChart === 'category' ? categoryProblemCountData : problemAnalysisChartData;
+
+  const chartTitle = activeChart === 'category' ? '카테고리별 문제 수 비율' : '문제 분석';
 
   return (
     <div className={`w-full ${className}`}>
@@ -110,7 +117,7 @@ const BoardReportBox: React.FC<BoardReportBoxProps> = ({
               className="absolute left-6 top-6 text-white text-2xl font-bold leading-9"
               style={{ fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif' }}
             >
-              카테고리별 성과
+              카테고리 분류
             </div>
 
             {/* Category list */}
@@ -127,25 +134,24 @@ const BoardReportBox: React.FC<BoardReportBoxProps> = ({
                     >
                       {category.name}
                     </span>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1">
                       <span
                         className="text-white text-base font-bold leading-6"
                         style={{
                           fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif',
                         }}
                       >
-                        {category.successRate !== undefined ? `${category.successRate}%` : '0%'}
+                        {category.uniqueProblems ??
+                          (category.problemTitles ? category.problemTitles.length : 0)}
                       </span>
-                      {category.passedCount !== undefined && category.totalCount !== undefined && (
-                        <span
-                          className="text-slate-300 text-sm font-medium"
-                          style={{
-                            fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif',
-                          }}
-                        >
-                          ({category.passedCount}/{category.totalCount})
-                        </span>
-                      )}
+                      <span
+                        className="text-white text-base font-bold leading-6"
+                        style={{
+                          fontFamily: 'Inter, -apple-system, Roboto, Helvetica, sans-serif',
+                        }}
+                      >
+                        개
+                      </span>
                     </div>
                   </div>
                 ))

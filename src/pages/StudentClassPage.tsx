@@ -12,6 +12,11 @@ import VoiceChatModal from '../components/common/VoiceChatModal';
 import { useVoiceChat } from '../hooks/useVoiceChat';
 import socket from '../lib/socket';
 import { leaveRoomAPI } from '../api/userApi';
+import { getUserSavedReports } from '../api/reportApi';
+import { showConfirm } from '../utils/sweetAlert';
+import { showSuccess } from '../utils/sweetAlert';
+import throttle from 'lodash.throttle';
+import debounce from 'lodash.debounce';
 
 interface SVGLine {
   points: [number, number][];
@@ -63,11 +68,9 @@ const StudentClassPage: React.FC = () => {
   // 현재 보고 있는 문제 id를 항상 최신으로 유지
   const currentProblemIdRef = useRef<number | null>(selectedProblemId);
   useEffect(() => {
+    console.log('[Student] selectedProblemId 변경:', selectedProblemId);
     currentProblemIdRef.current = selectedProblemId;
-  }, [selectedProblemId]);
-
-  // 문제 전환 시 커서 상태 초기화
-  useEffect(() => {
+    // 문제가 변경되면 다른 사용자의 커서 초기화
     setOtherCursor(null);
   }, [selectedProblemId]);
 
@@ -118,6 +121,41 @@ const StudentClassPage: React.FC = () => {
     userName: user?.name || '',
     userRole: 'student',
   });
+
+  // === 커서 전송: 80ms 스로틀 ===
+  const emitCursorThrottled = React.useMemo(
+    () =>
+      throttle(
+        (payload: {
+          collaborationId: string;
+          lineNumber: number;
+          column: number;
+          problemId: number;
+        }) => socket.emit('cursor:update', payload),
+        80,
+        { leading: true, trailing: true },
+      ),
+    [],
+  );
+
+  // === 코드 전송: 100ms 디바운스 ===
+  const emitCodeDebounced = React.useMemo(
+    () =>
+      debounce(
+        (payload: { collaborationId: string; problemId: number; code: string }) =>
+          socket.emit('collab:edit', payload),
+        100,
+      ),
+    [],
+  );
+
+  // 컴포넌트 unmount 시 취소
+  useEffect(() => {
+    return () => {
+      emitCursorThrottled.cancel();
+      emitCodeDebounced.cancel();
+    };
+  }, [emitCursorThrottled, emitCodeDebounced]);
 
   useEffect(() => {
     if (roomId) {
@@ -181,11 +219,28 @@ const StudentClassPage: React.FC = () => {
           problemId: selectedProblemId,
           code: currentCode,
         });
+
+        // 협업 시작 시 현재 문제 정보도 함께 전송하여 그리드에 반영
+        if (roomId && myId && selectedProblemId && inviteCode) {
+          socket.emit('student:currentProblem', {
+            roomId,
+            inviteCode,
+            studentId: myId,
+            problemId: selectedProblemId,
+          });
+          console.log('[Student] 협업 시작 시 현재 문제 정보 전송:', {
+            roomId,
+            inviteCode,
+            studentId: myId,
+            problemId: selectedProblemId,
+          });
+        }
       });
       // 👇 '수업 종료' 이벤트를 수신하는 리스너를 추가합니다.
       const handleClassEnded = () => {
-        alert('수업이 종료되었습니다. 리포트 페이지로 이동합니다.');
-        navigate(`/class/${roomId}/report`);
+        showSuccess('수업 종료', '수업이 종료되었습니다. 리포트 페이지로 이동합니다.').then(() => {
+          navigate(`/class/${roomId}/report`);
+        });
       };
       socket.on('class:ended', handleClassEnded);
       socket.on('code:update', ({ problemId, code }) => {
@@ -211,10 +266,14 @@ const StudentClassPage: React.FC = () => {
           column,
           problemId,
           currentProblemId,
+          isMatch: problemId === currentProblemId,
         });
-        if (problemId === currentProblemId) {
+        // 현재 보고 있는 문제와 같을 때만 커서 표시
+        if (problemId && currentProblemId && problemId === currentProblemId) {
+          console.log('[Student] 커서 표시:', { lineNumber, column, problemId });
           setOtherCursor({ lineNumber, column, problemId });
         } else {
+          console.log('[Student] 다른 문제를 보고 있어서 커서 숨김');
           setOtherCursor(null);
         }
       });
@@ -276,12 +335,24 @@ const StudentClassPage: React.FC = () => {
   const handleSelectProblem = (problemId: number | null) => {
     selectProblem(problemId); // 로컬 상태 업데이트
 
+    // 문제가 변경되면 분석 패널 닫기
+    if (isAnalysisPanelOpen) {
+      setAnalysisPanelOpen(false);
+      closeAnalysis();
+    }
+
     // 항상 교사에게 현재 선택 문제를 브로드캐스트
     if (roomId && myId && problemId) {
       socket.emit('student:problem:selected', { roomId, studentId: myId, problemId });
       // 방 전체에 현재 문제 정보 브로드캐스트 (교사용 실시간 표시)
       if (inviteCode) {
         socket.emit('student:currentProblem', {
+          roomId,
+          inviteCode,
+          studentId: myId,
+          problemId,
+        });
+        console.log('[Student] emit student:currentProblem', {
           roomId,
           inviteCode,
           studentId: myId,
@@ -303,6 +374,22 @@ const StudentClassPage: React.FC = () => {
         code: newCode,
       });
       console.log('[Student] emit collab:edit on problem select');
+
+      // 3. 협업 중에도 그리드에 현재 문제 정보 즉시 반영
+      if (roomId && myId && inviteCode) {
+        socket.emit('student:currentProblem', {
+          roomId,
+          inviteCode,
+          studentId: myId,
+          problemId,
+        });
+        console.log('[Student] 협업 중 문제 변경 시 그리드 반영:', {
+          roomId,
+          inviteCode,
+          studentId: myId,
+          problemId,
+        });
+      }
     }
   };
 
@@ -322,33 +409,29 @@ const StudentClassPage: React.FC = () => {
     if (selectedProblemId) {
       updateCode({ problemId: selectedProblemId, code: newCode });
     }
-    if (collaborationId) {
-      console.log('[Student] emit collab:edit', {
+    if (collaborationId && selectedProblemId) {
+      emitCodeDebounced({
         collaborationId,
         problemId: selectedProblemId,
         code: newCode,
       });
-      socket.emit('collab:edit', { collaborationId, problemId: selectedProblemId, code: newCode });
     }
   };
 
   const handleCursorChange = (position: { lineNumber: number; column: number }) => {
-    console.log('[Student] handleCursorChange', { collabId: collabIdRef.current, position });
-    if (!collabIdRef.current) {
-      console.warn('[Student] collaborationId 가 없어 emit 스킵');
-      return;
-    }
-    console.log('[Student] cursor 위치 변경 → 서버로 emit', position);
-    socket.emit('cursor:update', {
+    if (!collabIdRef.current || !selectedProblemId) return;
+
+    emitCursorThrottled({
       collaborationId: collabIdRef.current,
       lineNumber: position.lineNumber,
       column: position.column,
-      problemId: selectedProblemId, // ← 반드시 포함
+      problemId: selectedProblemId,
     });
   };
 
   const handleSubmit = () => {
     if (!roomId || !selectedProblemId) return;
+    emitCodeDebounced.flush(); // 제출 시 디바운스 flush
     setAnalysisPanelOpen(true);
     submitCode(roomId, String(selectedProblemId), userCode);
   };
@@ -360,6 +443,26 @@ const StudentClassPage: React.FC = () => {
 
   // 1. 수업 나가기 핸들러 추가
   const handleLeaveClass = async () => {
+    // 리포트 저장 여부 확인
+    let hasSavedReport = false;
+    try {
+      const response = await getUserSavedReports();
+      if (response.success && response.data && Array.isArray(response.data)) {
+        // 현재 방의 리포트가 있는지 확인 (선생님/학생 모두)
+        hasSavedReport = response.data.some(
+          (r) => String(r.room_title) === String(currentRoom?.title),
+        );
+      }
+    } catch (e) {
+      // 조회 실패 시 무시하고 진행
+    }
+    if (!hasSavedReport) {
+      const confirmed = await showConfirm(
+        '리포트 미저장',
+        '리포트를 저장하지 않고 수업에서 나가시겠습니까?',
+      );
+      if (!confirmed) return;
+    }
     useStudentStore.getState().resetStore(); // 방 나갈 때 상태 초기화
     localStorage.removeItem('lastRoomId'); // 방 나갈 때 roomId도 삭제
     if (roomId && myId && inviteCode) {

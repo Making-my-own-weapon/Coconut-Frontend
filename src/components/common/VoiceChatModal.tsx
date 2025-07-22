@@ -192,7 +192,7 @@ const VoiceChatModal: React.FC<VoiceChatModalProps> = ({
 
       {/* 모달은 조건부 렌더링 */}
       {isOpen && (
-        <div className="fixed top-16 right-6 bg-slate-800 rounded-lg p-4 w-80 shadow-lg border border-slate-600 z-50">
+        <div className="fixed top-16 right-6 bg-slate-800 rounded-lg p-4 w-80 shadow-lg border border-slate-600 z-[99999]">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-white">음성채팅 설정</h3>
             <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">

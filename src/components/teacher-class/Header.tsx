@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import logo from '../../assets/coconutlogo.png';
 import microphoneIcon from '../../assets/microphone.svg';
-import { showConfirm } from '../../utils/sweetAlert';
+// import { showConfirm } from '../../utils/sweetAlert'; // 제거
 
 interface TeacherHeaderProps {
   classCode?: string;
@@ -33,19 +33,8 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   };
 
   const handleToggleClass = async () => {
-    if (isClassStarted) {
-      // 수업이 진행 중일 때 종료하려면 확인
-      const confirmed = await showConfirm(
-        '수업 종료',
-        '정말로 수업을 종료하고 리포트 페이지로 이동하시겠습니까?',
-      );
-      if (confirmed) {
-        onToggleClass(formatTime(timer));
-      }
-    } else {
-      // 수업 시작은 바로 실행
-      onToggleClass(formatTime(timer));
-    }
+    // 바로 실행 (확인창 없이)
+    onToggleClass(formatTime(timer));
   };
 
   // LocalStorage 기반 타이머 상태 및 관리

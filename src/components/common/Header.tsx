@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import Dropdown from './Dropdown';
-import IconUser from '../../assets/icons/IconUser';
+import { ChevronDown } from 'lucide-react';
 
 // 1. props 타입을 정의합니다.
 interface HeaderProps {
@@ -11,7 +11,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ hideButtons = false }) => {
   // 2. props를 받습니다.
-  const { isLoggedIn, logout } = useAuthStore();
+  const { isLoggedIn, logout, user } = useAuthStore();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -36,7 +36,14 @@ const Header: React.FC<HeaderProps> = ({ hideButtons = false }) => {
         {!hideButtons && (
           <div>
             {isLoggedIn ? (
-              <Dropdown trigger={<IconUser className="w-10 h-10" />}>
+              <Dropdown
+                trigger={
+                  <button className="flex items-center gap-2 font-semibold text-gray-700 hover:text-black">
+                    <span>{user?.name}님</span>
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                }
+              >
                 <Link
                   to="/mypage"
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

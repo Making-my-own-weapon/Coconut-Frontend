@@ -2,6 +2,13 @@ import React, { useRef, useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import usersIcon from '../../../assets/usersIcon.svg';
 import SvgOverlay from '../../common/SvgOverlay';
+import * as monaco from 'monaco-editor';
+import {
+  diff_match_patch as DiffMatchPatch,
+  DIFF_DELETE,
+  DIFF_INSERT,
+  DIFF_EQUAL,
+} from 'diff-match-patch';
 
 interface SVGLine {
   points: [number, number][];
@@ -15,7 +22,7 @@ interface TeacherEditorPanelProps {
   studentName?: string;
   onClickReturnToTeacher?: () => void;
   isConnecting?: boolean;
-  otherCursor?: { lineNumber: number; column: number } | null;
+  otherCursor?: { lineNumber: number; column: number; problemId: number | null } | null;
   onCursorChange?: (position: {
     lineNumber: number;
     column: number;
@@ -53,15 +60,23 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
 }) => {
   const editorRef = useRef<any>(null);
   const decorationIds = useRef<string[]>([]);
-  const monacoRef = useRef<any>(null);
   const [color, setColor] = useState('#ff0000');
   const [showOverlay, setShowOverlay] = useState(false);
   const [scrollTop, setScrollTop] = useState(0);
+  const isRemoteUpdating = useRef(false);
+  const normalizeEOL = (s: string = '') => s.replace(/\r\n?/g, '\n');
+  const initialCodeRef = useRef(code); // mount 시 고정
 
   // Editor mount에서 그림판+커서 모두 처리
-  function handleEditorDidMount(editor: any, monaco: any) {
+  function handleEditorDidMount(editor: any) {
     editorRef.current = editor;
-    monacoRef.current = monaco;
+
+    // EOL 통일
+    const model = editor.getModel();
+    if (model) {
+      model.setEOL(monaco.editor.EndOfLineSequence.LF);
+    }
+
     setScrollTop(editor.getScrollTop());
     editor.onDidScrollChange(() => {
       setScrollTop(editor.getScrollTop());
@@ -69,42 +84,41 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
     // 커서 위치 변경 이벤트 리스너 추가
     if (onCursorChange) {
       editor.onDidChangeCursorPosition((e: any) => {
-        onCursorChange({
-          lineNumber: e.position.lineNumber,
-          column: e.position.column,
-          problemId, // ← 반드시 포함
-        });
+        // 네트워크로 인한 업데이트 중엔 무시
+        if (!isRemoteUpdating.current) {
+          onCursorChange({
+            lineNumber: e.position.lineNumber,
+            column: e.position.column,
+            problemId,
+          });
+        }
       });
     }
   }
 
   // 커서 동기화(Decoration, 라벨)
   useEffect(() => {
-    if (!editorRef.current || !monacoRef.current) return;
+    if (!editorRef.current) return;
+    // 문제 ID가 다르면 커서 표시 X (null 체크 포함)
+    if (!otherCursor || otherCursor.problemId !== problemId || problemId === null) return;
     try {
-      decorationIds.current = editorRef.current.deltaDecorations(
-        decorationIds.current,
-        otherCursor
-          ? [
-              {
-                range: new monacoRef.current.Range(
-                  otherCursor.lineNumber,
-                  otherCursor.column,
-                  otherCursor.lineNumber,
-                  otherCursor.column + 1,
-                ),
-                options: {
-                  className: 'remote-cursor',
-                  stickiness: 1,
-                },
-              },
-            ]
-          : [],
-      );
+      decorationIds.current = editorRef.current.deltaDecorations(decorationIds.current, [
+        {
+          range: new monaco.Range(
+            otherCursor.lineNumber,
+            otherCursor.column,
+            otherCursor.lineNumber,
+            otherCursor.column + 1,
+          ),
+          options: {
+            className: 'remote-cursor',
+            stickiness: 1,
+          },
+        },
+      ]);
     } catch (e) {
       console.error(e);
     }
-    if (!otherCursor) return;
     const widgetId = 'remote-cursor-label-widget';
     const labelDom = document.createElement('div');
     labelDom.className = 'remote-cursor-label';
@@ -117,14 +131,14 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
           lineNumber: otherCursor.lineNumber,
           column: otherCursor.column,
         },
-        preference: [monacoRef.current.editor.ContentWidgetPositionPreference.ABOVE],
+        preference: [monaco.editor.ContentWidgetPositionPreference.ABOVE],
       }),
     };
     editorRef.current.addContentWidget(widget);
     return () => {
       editorRef.current.removeContentWidget(widget);
     };
-  }, [otherCursor, monacoRef, studentName]);
+  }, [otherCursor, studentName, problemId]);
 
   // 그림판 핸들러
   const handleSetLines = (newLines: Array<{ points: [number, number][]; color: string }>) => {
@@ -133,6 +147,83 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
   const handleClear = () => {
     onClearSVGLines();
   };
+
+  // 네트워크로부터 내려온 code prop 변경 감지용 (diff-match-patch)
+  useEffect(() => {
+    const editor = editorRef.current;
+    console.log('[PATCH] fired, editor?', !!editor, 'code len', code?.length);
+
+    if (!editor) return;
+    const model = editor.getModel();
+    if (!model) return;
+
+    const oldText = normalizeEOL(model.getValue());
+    const newText = normalizeEOL(code);
+    if (oldText === newText) return;
+    console.log('[PATCH] old===new?', oldText === newText, oldText.length, newText.length);
+
+    // 1) diff 계산
+    const dmp = new DiffMatchPatch();
+    dmp.Diff_Timeout = 0; // ← 타임아웃 방지
+    const diffs = dmp.diff_main(oldText, newText);
+    dmp.diff_cleanupEfficiency(diffs);
+    console.log('[PATCH] diffs', diffs);
+
+    // === (핵심) 오프셋 기반으로 변환 ===
+    let oldIdx = 0;
+    const edits: monaco.editor.IIdentifiedSingleEditOperation[] = [];
+
+    for (const [op, text] of diffs as [number, string][]) {
+      if (op === DIFF_EQUAL) {
+        oldIdx += text.length;
+        continue;
+      }
+
+      const startPos = model.getPositionAt(oldIdx);
+
+      if (op === DIFF_DELETE) {
+        const endPos = model.getPositionAt(oldIdx + text.length);
+        edits.push({
+          range: new monaco.Range(
+            startPos.lineNumber,
+            startPos.column,
+            endPos.lineNumber,
+            endPos.column,
+          ),
+          text: '',
+          forceMoveMarkers: true,
+        });
+        oldIdx += text.length;
+      } else if (op === DIFF_INSERT) {
+        // 삭제는 oldIdx 증가했지만, 삽입은 old 텍스트에서는 길이 0
+        edits.push({
+          range: new monaco.Range(
+            startPos.lineNumber,
+            startPos.column,
+            startPos.lineNumber,
+            startPos.column,
+          ),
+          text,
+          forceMoveMarkers: true,
+        });
+        // oldIdx 그대로
+      }
+    }
+    console.log('✂️ edits count:', edits.length, edits);
+
+    if (edits.length) {
+      // 3) 커서·스크롤 보존
+      const prevSelections = editor.getSelections();
+      const prevScroll = editor.getScrollTop();
+
+      isRemoteUpdating.current = true;
+      editor.pushUndoStop();
+      editor.executeEdits('remote', edits, prevSelections || []);
+      editor.pushUndoStop();
+      editor.setScrollTop(prevScroll);
+      isRemoteUpdating.current = false;
+    }
+  }, [code]);
 
   return (
     <div className="bg-[#1e1e1e] flex flex-col h-full min-w-[600px] min-h-[400px]">
@@ -167,51 +258,51 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
       </div>
       {/* Monaco Editor + SvgOverlay */}
       <div className="flex-grow relative min-h-[300px]">
-        {isConnecting ? (
-          <div className="flex items-center justify-center h-full text-slate-400">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mx-auto mb-3"></div>
-              <p className="text-sm">학생과 연결 중...</p>
-              <p className="text-xs text-slate-500 mt-1">잠시만 기다려주세요</p>
-            </div>
+        <Editor
+          height="100%"
+          language="python"
+          theme="vs-dark"
+          defaultValue={initialCodeRef.current}
+          onChange={(value, _ev) => {
+            // 원격 업데이트 중일 땐 무시
+            if (!isRemoteUpdating.current) {
+              onCodeChange(normalizeEOL(value ?? ''));
+            }
+          }}
+          onMount={handleEditorDidMount}
+          options={{
+            fontSize: 14,
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
+            padding: { top: 16 },
+            wordWrap: 'on',
+            lineNumbers: 'on',
+            renderWhitespace: 'selection',
+            folding: true,
+            foldingStrategy: 'indentation',
+            showFoldingControls: 'always',
+            automaticLayout: true,
+          }}
+        />
+        <SvgOverlay
+          lines={svgLines}
+          setLines={handleSetLines}
+          addLine={onAddSVGLine}
+          color={color}
+          setColor={setColor}
+          readOnly={!showOverlay ? true : false}
+          show={showOverlay}
+          onClear={handleClear}
+          editorRef={editorRef}
+          scrollTop={scrollTop}
+          isAnalysisPanelOpen={isAnalysisPanelOpen}
+        />
+        {/* 필요하면 오버레이 남겨두기. isConnecting 유지 */}
+        {isConnecting && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-slate-200 text-sm z-10 pointer-events-none">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mb-3" />
+            학생과 연결 중...
           </div>
-        ) : (
-          <>
-            <Editor
-              height="100%"
-              language="python"
-              theme="vs-dark"
-              value={code}
-              onChange={onCodeChange}
-              onMount={handleEditorDidMount}
-              options={{
-                fontSize: 14,
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                padding: { top: 16 },
-                wordWrap: 'on',
-                lineNumbers: 'on',
-                renderWhitespace: 'selection',
-                folding: true,
-                foldingStrategy: 'indentation',
-                showFoldingControls: 'always',
-                automaticLayout: true,
-              }}
-            />
-            <SvgOverlay
-              lines={svgLines}
-              setLines={handleSetLines}
-              addLine={onAddSVGLine}
-              color={color}
-              setColor={setColor}
-              readOnly={!showOverlay ? true : false}
-              show={showOverlay}
-              onClear={handleClear}
-              editorRef={editorRef}
-              scrollTop={scrollTop}
-              isAnalysisPanelOpen={isAnalysisPanelOpen}
-            />
-          </>
         )}
       </div>
     </div>

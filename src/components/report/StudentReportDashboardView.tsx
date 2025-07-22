@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTeacherStore } from '../../store/teacherStore';
+import { useAuthStore } from '../../store/authStore';
 import { Save, LogOut } from 'lucide-react';
 import ReportLayout from './ReportLayout';
 import { BoxReportStudent } from './index';
@@ -10,6 +11,8 @@ import type { CategoryData, ProblemAnalysisData } from './index';
 import StudentReportView from './StudentReportView';
 import { saveReport } from '../../api/reportApi';
 import { showToast } from '../../utils/sweetAlert';
+import { showConfirm } from '../../utils/sweetAlert';
+import DonutChart from './DonutChart';
 
 interface StudentReportDashboardViewProps {
   roomTitle?: string;
@@ -21,6 +24,7 @@ interface StudentReportDashboardViewProps {
   reportData?: any;
   currentStudentName?: string;
   roomId?: string; // 리포트 저장을 위한 roomId 추가
+  isSavedReport?: boolean; // 저장된 리포트인지 여부
 }
 
 const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
@@ -32,14 +36,26 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
   reportData,
   currentStudentName,
   roomId,
+  isSavedReport = false,
 }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const navigate = useNavigate();
 
   // Store에서 현재 수업 정보 가져오기
   const { currentRoom, createdRoomInfo } = useTeacherStore();
+  const { user } = useAuthStore();
+
+  const [isReportSaved, setIsReportSaved] = useState(false);
+
+  // 방 생성자인지 확인
+  const isRoomCreator = currentRoom?.participants?.[0]?.userId === user?.id;
 
   const handleSaveReport = async () => {
+    if (isReportSaved) {
+      showToast('info', '이미 저장된 리포트입니다.');
+      return;
+    }
+
     if (!roomId) {
       showToast('error', '방 정보를 찾을 수 없습니다.');
       return;
@@ -49,6 +65,7 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
       const result = await saveReport(roomId);
       if (result.success) {
         showToast('success', '리포트가 성공적으로 저장되었습니다!');
+        setIsReportSaved(true);
       } else {
         showToast('error', result.message || '리포트 저장에 실패했습니다.');
       }
@@ -58,8 +75,21 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
     }
   };
 
-  const handleLeaveClass = () => {
-    navigate('/');
+  const handleLeaveClass = async () => {
+    if (!isSavedReport && !isReportSaved) {
+      const confirmed = await showConfirm(
+        '리포트 미저장',
+        '리포트를 저장하지 않고 수업에서 나가시겠습니까?',
+      );
+      if (!confirmed) return;
+    }
+    if (isSavedReport) {
+      // 저장된 리포트에서는 MyPage로 이동
+      navigate('/mypage');
+    } else {
+      // 일반 리포트에서는 조인 페이지로 이동
+      navigate('/join');
+    }
   };
 
   // 수업 이름 결정
@@ -72,7 +102,7 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
         onClick={() => setActiveTab('dashboard')}
         className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
           activeTab === 'dashboard'
-            ? 'bg-blue-600 text-white'
+            ? 'bg-gradient-to-r from-blue-500 to-blue-700 text-white'
             : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
         }`}
       >
@@ -82,7 +112,7 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
         onClick={() => setActiveTab('detailed')}
         className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
           activeTab === 'detailed'
-            ? 'bg-blue-600 text-white'
+            ? 'bg-gradient-to-r from-blue-500 to-blue-700 text-white'
             : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
         }`}
       >
@@ -94,17 +124,24 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
   // 액션 버튼들 (학생용으로 수정)
   const actions = (
     <>
-      <button
-        onClick={handleSaveReport}
-        className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-md text-white font-medium hover:from-emerald-700 hover:to-emerald-800 transition-colors"
-      >
-        <Save className="w-5 h-5" /> 리포트 저장
-      </button>
+      {!isSavedReport && (
+        <button
+          onClick={handleSaveReport}
+          className={`flex items-center justify-center gap-2 px-6 py-3 rounded-md text-white font-medium transition-colors ${
+            isReportSaved
+              ? 'bg-gray-600 hover:bg-gray-700'
+              : 'bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800'
+          }`}
+        >
+          <Save className="w-5 h-5" />
+          {isReportSaved ? '이미 저장됨' : '리포트 저장'}
+        </button>
+      )}
       <button
         onClick={handleLeaveClass}
         className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 rounded-md text-white font-medium hover:from-red-700 hover:to-red-800 transition-colors"
       >
-        <LogOut className="w-5 h-5" /> 수업 나가기
+        <LogOut className="w-5 h-5" /> {isSavedReport ? 'MyPage로 돌아가기' : '수업 나가기'}
       </button>
     </>
   );
@@ -157,12 +194,8 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
               <BoxReportStudent metrics={studentMetrics} className="mb-8" />
             </section>
 
-            {/* 카테고리 및 문제 분석 보드 */}
+            {/* 카테고리 분류 보드 제거, BoardReportBox만 남김 */}
             <section>
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-white mb-2">상세 분석</h2>
-                <p className="text-slate-400">카테고리별 성과와 문제 해결 패턴을 분석합니다</p>
-              </div>
               <BoardReportBox
                 categoryData={categoryData}
                 problemAnalysisData={problemAnalysisData}

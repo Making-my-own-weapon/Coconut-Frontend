@@ -177,19 +177,19 @@ const analyzeFunctionComplexity = (
     timeComplexity = bestMatch.complexity;
   }
 
-  // 중첩 루프 검사 (패턴 매칭 후)
+  // 중첩 루프 검사
   const nestedLoops = countNestedLoops(functionCode);
+
+  // 중첩 루프가 더 높으면 항상 우선 적용
   if (nestedLoops >= 3) {
     timeComplexity = COMPLEXITY_PATTERNS.CUBIC;
     suggestions.push('중첩 루프가 3개 이상입니다. 알고리즘을 최적화하는 것을 고려해보세요.');
-  } else if (nestedLoops === 2 && timeComplexity === COMPLEXITY_PATTERNS.CONSTANT) {
-    // 패턴 매칭이 실패한 경우에만 중첩 루프로 복잡도 결정
+  } else if (nestedLoops === 2) {
     timeComplexity = COMPLEXITY_PATTERNS.QUADRATIC;
     suggestions.push(
       '중첩 루프가 2개입니다. 해시맵이나 다른 자료구조를 사용하여 O(n)으로 개선할 수 있습니다.',
     );
-  } else if (nestedLoops === 1 && timeComplexity === COMPLEXITY_PATTERNS.CONSTANT) {
-    // 단일 루프인 경우 O(n)으로 설정
+  } else if (nestedLoops === 1) {
     timeComplexity = COMPLEXITY_PATTERNS.LINEAR;
   }
 
@@ -223,13 +223,23 @@ const analyzeGlobalComplexity = (globalCode: string): GlobalAnalysis => {
   let spaceComplexity = COMPLEXITY_PATTERNS.CONSTANT_SPACE;
   const suggestions: string[] = [];
 
-  // 전역 코드에서 루프 검사
-  const loops = (globalCode.match(/for\s+|while\s+/g) || []).length;
-  if (loops > 0) {
+  // 전역 코드에서 중첩 루프 검사
+  const nestedLoops = countNestedLoops(globalCode);
+  if (nestedLoops >= 3) {
+    timeComplexity = COMPLEXITY_PATTERNS.CUBIC;
+    suggestions.push(
+      '전역 코드에 중첩 루프가 3개 이상입니다. 알고리즘을 최적화하는 것을 고려해보세요.',
+    );
+  } else if (nestedLoops === 2) {
+    timeComplexity = COMPLEXITY_PATTERNS.QUADRATIC;
+    suggestions.push(
+      '전역 코드에 중첩 루프가 2개입니다. 해시맵이나 다른 자료구조를 사용하여 O(n)으로 개선할 수 있습니다.',
+    );
+  } else if (nestedLoops === 1) {
     timeComplexity = COMPLEXITY_PATTERNS.LINEAR;
   }
 
-  // 자료구조 사용 검사
+  // 자료구조 사용 검사(기존 코드 유지)
   if (globalCode.includes('[]') || globalCode.includes('list(')) {
     spaceComplexity = COMPLEXITY_PATTERNS.LINEAR_SPACE;
   }
@@ -271,31 +281,26 @@ const calculateOverallComplexity = (
 const countNestedLoops = (code: string): number => {
   const lines = code.split('\n');
   let maxNesting = 0;
+  const indentStack: number[] = [];
   let currentNesting = 0;
-  let previousIndent = 0;
 
   for (const line of lines) {
     const trimmedLine = line.trim();
-    if (!trimmedLine || trimmedLine.startsWith('#')) {
-      continue;
-    }
+    if (!trimmedLine || trimmedLine.startsWith('#')) continue;
 
-    // 들여쓰기 레벨 계산
     const currentIndent = line.length - line.trimStart().length;
 
-    // 들여쓰기가 줄어들면 중첩 레벨도 줄어듦
-    if (currentIndent < previousIndent) {
-      const indentDiff = Math.floor((previousIndent - currentIndent) / 4);
-      currentNesting = Math.max(0, currentNesting - indentDiff);
+    // 스택에서 현재 들여쓰기보다 큰 값은 pop
+    while (indentStack.length > 0 && indentStack[indentStack.length - 1] >= currentIndent) {
+      indentStack.pop();
+      currentNesting--;
     }
 
-    // 루프 문법 감지
     if (trimmedLine.startsWith('for ') || trimmedLine.startsWith('while ')) {
+      indentStack.push(currentIndent);
       currentNesting++;
       maxNesting = Math.max(maxNesting, currentNesting);
     }
-
-    previousIndent = currentIndent;
   }
 
   return maxNesting;
