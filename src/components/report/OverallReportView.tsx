@@ -33,8 +33,12 @@ const OverallReportView: React.FC<OverallReportViewProps> = ({
             className="w-full h-24"
           />
           <MetricCard
-            title="평균 풀이 시간"
-            value={reportData?.averageSolveTime || '...'}
+            title="첫 제출에 통과한 문제"
+            value={
+              reportData?.averageSolveTime && !isNaN(Number(reportData.averageSolveTime))
+                ? `${reportData.averageSolveTime}개`
+                : '0개'
+            }
             bgGradient="bg-gradient-to-r from-emerald-700 to-emerald-500"
             icon={<Clock className="w-10 h-10 text-emerald-400" />}
             shadowColor="shadow-[0px_8px_30px_0px_rgba(16,185,129,0.20)]"
