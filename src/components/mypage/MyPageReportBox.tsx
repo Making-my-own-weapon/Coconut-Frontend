@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import SavedReportsView from './SavedReportsView';
 import { getUserSavedReports } from '../../api/reportApi';
@@ -12,7 +11,6 @@ interface MyPageReportBoxProps {
 }
 
 const MyPageReportBox: React.FC<MyPageReportBoxProps> = ({ className = '' }) => {
-
   const [reports, setReports] = useState<SavedReportListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,18 +36,18 @@ const MyPageReportBox: React.FC<MyPageReportBoxProps> = ({ className = '' }) => 
 
   // 삭제 핸들러
   const handleDeleteReport = async (reportId: number) => {
-    const confirmed = await showConfirm('리포트 삭제', '리포트를 삭제하시겠습니까?');
+    const confirmed = await showConfirm('리포트 삭제', '리포트를 삭제하시겠습니까?', 'light');
     if (!confirmed) return;
     try {
       const response = await deleteSavedReport(reportId);
       if (response.success) {
         setReports((prev) => prev.filter((report) => report.id !== reportId));
-        showToast('success', '리포트가 삭제되었습니다.');
+        showToast('success', '리포트가 삭제되었습니다.', 'light');
       } else {
-        showToast('error', response.message || '리포트 삭제에 실패했습니다.');
+        showToast('error', response.message || '리포트 삭제에 실패했습니다.', 'light');
       }
     } catch (error) {
-      showToast('error', '리포트 삭제 중 오류가 발생했습니다.');
+      showToast('error', '리포트 삭제 중 오류가 발생했습니다.', 'light');
     }
   };
 

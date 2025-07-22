@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import MyPageComponentProblem from './MyPageComponentProblem';
 import ProblemManagementComponent from './ProblemManagementComponent';
 import { useProblemStore } from '../../store/problemStore'; // 👈 problemStore import
+import { showConfirm, showToast } from '../../utils/sweetAlert';
 
 const ProblemManagementView: React.FC = () => {
   // 1. 스토어에서 상태와 액션을 가져옵니다.
@@ -14,12 +15,13 @@ const ProblemManagementView: React.FC = () => {
 
   // 3. 삭제 핸들러가 스토어의 deleteProblem 액션을 호출하도록 수정합니다.
   const handleDeleteProblem = async (problemId: number) => {
-    if (window.confirm(`${problemId}번 문제를 정말로 삭제하시겠습니까?`)) {
+    const confirmed = await showConfirm(`${problemId}번 문제`, '정말로 삭제하시겠습니까?', 'light');
+    if (confirmed) {
       try {
         await deleteProblem(problemId);
-        alert('문제가 삭제되었습니다.');
+        showToast('success', '문제가 삭제되었습니다.', 'light');
       } catch {
-        alert('문제 삭제에 실패했습니다.');
+        showToast('error', '문제 삭제에 실패했습니다.', 'light');
       }
     }
   };
