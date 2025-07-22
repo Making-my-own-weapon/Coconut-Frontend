@@ -96,6 +96,13 @@ const ReportPage: React.FC = () => {
         max: 100,
       },
     },
+    // 바 두께 옵션 추가
+    datasets: {
+      bar: {
+        barThickness: 80,
+        maxBarThickness: 84,
+      },
+    },
   };
 
   const problemChartData = useMemo(
@@ -139,6 +146,13 @@ const ReportPage: React.FC = () => {
         max: 100,
       },
       y: { ticks: { color: 'white' } },
+    },
+    // 바 두께 옵션 추가
+    datasets: {
+      bar: {
+        barThickness: 18,
+        maxBarThickness: 22,
+      },
     },
   };
 
