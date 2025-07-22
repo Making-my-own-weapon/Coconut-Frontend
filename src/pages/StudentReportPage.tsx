@@ -50,18 +50,21 @@ const StudentReportPage = () => {
   // 수업 제목 결정
   const roomTitle = roomInfo?.title || reportData?.roomTitle || `Room ${roomId} - 학습 리포트`;
 
-  // 학생 메트릭 데이터 생성
+  // 학생 메트릭 데이터 생성 (개인 기준)
+  const myStudent = reportData?.studentSubmissions?.find((s) => s.name === user?.name);
+  const myFirstPassed = reportData?.studentFirstPassedProblems?.find((s) => s.userId === user?.id);
+
   const studentMetrics = reportData
     ? [
         {
           type: 'accuracy' as const,
           title: '정답률',
-          value: `${reportData.averageSuccessRate}%`,
+          value: `${myStudent?.successRate ?? 0}%`,
         },
         {
           type: 'firstPass' as const,
           title: '첫 제출에 통과한 문제',
-          value: `${(reportData as any).firstSubmissionPassed || 0} 개`,
+          value: `${myFirstPassed?.count ?? 0} 개`,
         },
         {
           type: 'bestCategory' as const,
