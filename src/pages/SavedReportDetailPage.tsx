@@ -18,6 +18,16 @@ interface SavedReportDetail {
   report_type: 'teacher' | 'student';
 }
 
+// 타입 선언 추가
+interface Submission {
+  is_passed: boolean;
+  problem_id: string | number;
+  user_id: number;
+  created_at: string;
+  problem?: { problemId?: string | number };
+  // ... 필요한 필드 추가
+}
+
 const SavedReportDetailPage = () => {
   const { reportId } = useParams<{ reportId: string }>();
   const [savedReport, setSavedReport] = useState<SavedReportDetail | null>(null);
@@ -55,18 +65,77 @@ const SavedReportDetailPage = () => {
   // 저장된 리포트 데이터에서 필요한 정보 추출
   const reportData = savedReport?.report_data;
 
-  // 학생 메트릭 데이터 생성 (학생 리포트용)
+  // 전체 문제 목록 추출 (problems 필드 기반)
+  const allProblems: any[] = (reportData as any)?.problems || [];
+  const allProblemIds = new Set<string | number>(
+    (allProblems || [])
+      .map((p: any) => p.problemId ?? p.problem_id)
+      .filter((v): v is string | number => v !== undefined),
+  );
+  const totalProblems = allProblemIds.size;
+
+  // 내 제출만 필터링 (user_id 우선)
+  const mySubmissions = ((reportData?.submissions || []) as Submission[]).filter(
+    (sub) => sub.user_id === user?.id,
+  );
+
+  // 문제별 첫 제출 map (problem_id 우선)
+  const firstSubmissionsMap = new Map<string | number, Submission>();
+  mySubmissions
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    .forEach((sub) => {
+      const pid = sub.problem_id || sub.problem?.problemId;
+      if (pid && !firstSubmissionsMap.has(pid)) {
+        firstSubmissionsMap.set(pid, sub);
+      }
+    });
+
+  // 맞힌 문제 set (problem_id 우선)
+  const solvedSet = new Set<string | number>();
+  mySubmissions.forEach((sub) => {
+    const pid = sub.problem_id || sub.problem?.problemId;
+    if (sub.is_passed && pid) {
+      solvedSet.add(pid);
+    }
+  });
+
+  // 정답률
+  const accuracy = totalProblems > 0 ? Math.round((solvedSet.size / totalProblems) * 100) : 0;
+
+  // 첫 제출에 통과한 문제 개수
+  const firstPassedCount = Array.from(firstSubmissionsMap.values()).filter(
+    (sub) => sub.is_passed,
+  ).length;
+
+  // 문제 분석 데이터 (상세 분석 패널과 동일하게)
+  const submittedProblemIds = new Set<string | number>(
+    mySubmissions
+      .map((sub) => sub.problem_id ?? sub.problem?.problemId)
+      .filter((v): v is string | number => v !== undefined),
+  );
+  const unsubmittedProblems = Array.from(allProblemIds).filter(
+    (pid) => !submittedProblemIds.has(pid),
+  );
+  const passedCount = mySubmissions.filter((sub) => sub.is_passed).length;
+  const failedCount = mySubmissions.filter((sub) => !sub.is_passed).length;
+  const problemAnalysisData = [
+    { name: '통과', count: passedCount },
+    { name: '실패', count: failedCount },
+    { name: '미제출', count: unsubmittedProblems.length },
+  ];
+  console.log('problemAnalysisData:', problemAnalysisData);
+
   const studentMetrics = reportData
     ? [
         {
           type: 'accuracy' as const,
           title: '정답률',
-          value: `${reportData.averageSuccessRate}%`,
+          value: `${accuracy}%`,
         },
         {
           type: 'firstPass' as const,
           title: '첫 제출에 통과한 문제',
-          value: `${(reportData as any).firstSubmissionPassed || 0} 개`,
+          value: `${firstPassedCount} 개`,
         },
         {
           type: 'bestCategory' as const,
@@ -81,81 +150,39 @@ const SavedReportDetailPage = () => {
       ]
     : undefined;
 
-  // 문제 분석 데이터 (실제 submission 데이터에서 생성)
-  const problemAnalysisData = React.useMemo(() => {
-    if (!reportData || !user?.name) return undefined;
-
-    const allSubmissions = (reportData as any).submissions || [];
-    const userSubmissions = allSubmissions.filter(
-      (submission: any) => submission.user?.name === user.name,
-    );
-
-    // 통과/실패 분류
-    const passedCount = userSubmissions.filter((sub: any) => sub.is_passed).length;
-    const failedSubmissions = userSubmissions.filter((sub: any) => !sub.is_passed);
-
-    // 실패한 제출들의 stdout 값들을 수집하고 그룹핑
-    const stdoutGroups: { [key: string]: number } = {};
-
-    failedSubmissions.forEach((submission: any) => {
-      let stdout = submission.stdout || '알 수 없는 오류';
-
-      // stdout이 너무 길면 첫 줄만 사용 (에러의 핵심 부분)
-      const firstLine = stdout.split('\n')[0].trim();
-      if (firstLine.length > 0) {
-        stdout = firstLine;
+  // 카테고리별 문제 개수 집계 (모든 문제 기준)
+  const categoryData = React.useMemo(() => {
+    if (!allProblems || allProblems.length === 0) return [];
+    const categoryMap: { [category: string]: Set<number> } = {};
+    allProblems.forEach((problem: any) => {
+      if (problem.categories && Array.isArray(problem.categories)) {
+        problem.categories.forEach((cat: string) => {
+          if (!categoryMap[cat]) categoryMap[cat] = new Set();
+          categoryMap[cat].add(problem.problemId);
+        });
       }
-
-      // 너무 긴 메시지는 줄임 (50자 제한)
-      if (stdout.length > 50) {
-        stdout = stdout.substring(0, 50) + '...';
-      }
-
-      // 빈 stdout는 '실행 오류'로 처리
-      if (!stdout || stdout.trim() === '') {
-        stdout = '실행 오류';
-      }
-
-      stdoutGroups[stdout] = (stdoutGroups[stdout] || 0) + 1;
     });
+    return Object.entries(categoryMap).map(([name, problemSet]) => ({
+      name,
+      count: problemSet.size,
+      uniqueProblems: problemSet.size,
+      problemTitles: Array.from(problemSet).map(
+        (id) => allProblems.find((p: any) => p.problemId === id)?.title || '',
+      ),
+    }));
+  }, [allProblems]);
 
-    // 결과 배열 생성 (통과 + 실패 원인들)
-    const result = [];
-
-    // 통과한 경우 추가
-    if (passedCount > 0) {
-      result.push({
-        name: '통과',
-        count: passedCount,
-      });
-    }
-
-    // 실패 원인들을 개수 순으로 정렬해서 추가 (최대 5개)
-    const failedReasons = Object.entries(stdoutGroups)
-      .sort(([, countA], [, countB]) => countB - countA) // 개수가 많은 순으로 정렬
-      .slice(0, 5) // 최대 5개만
-      .map(([reason, count]) => ({
-        name: reason,
-        count: count,
-      }));
-
-    result.push(...failedReasons);
-
-    return result.length > 0 ? result : undefined;
-  }, [reportData, user?.name]);
-
-  // 카테고리 데이터
-  const categoryData = (reportData as any)?.categoryAnalysis?.map((category: any) => ({
-    name: category.name,
-    count: category.uniqueProblems || 0, // 카테고리별 문제 수
-    successRate: category.successRate, // 정답률은 별도 보관
-    passedCount: category.passedSubmissions, // 맞춘 개수
-    totalCount: category.totalSubmissions, // 총 제출 개수
-    uniqueProblems: category.uniqueProblems, // 고유 문제 수
-    problemTitles: category.problemTitles, // 포함된 문제들
-    participatingStudents: category.participatingStudents, // 참여 학생 수
-    firstSubmissionSuccessRate: category.firstSubmissionSuccessRate, // 첫 제출 성공률
-  }));
+  // 학생 리포트 - categoryData, problemAnalysisData를 submissions 기반으로 재구성
+  const allProblemsMap = React.useMemo(() => {
+    if (!reportData || !(reportData as any).submissions) return new Map();
+    const map = new Map();
+    (reportData as any).submissions.forEach((sub: any) => {
+      if (sub.problem) {
+        map.set(sub.problem.problemId, sub.problem);
+      }
+    });
+    return map;
+  }, [reportData]);
 
   // 선생님 리포트용 차트 데이터 생성
   const problemChartOptions = React.useMemo(
@@ -184,6 +211,13 @@ const SavedReportDetailPage = () => {
           },
           min: 0,
           max: 100,
+        },
+      },
+      // 바 두께 옵션 추가
+      datasets: {
+        bar: {
+          barThickness: 80,
+          maxBarThickness: 84,
         },
       },
     }),
@@ -233,6 +267,13 @@ const SavedReportDetailPage = () => {
         },
         y: { ticks: { color: 'white' } },
       },
+      // 바 두께 옵션 추가
+      datasets: {
+        bar: {
+          barThickness: 18,
+          maxBarThickness: 22,
+        },
+      },
     }),
     [],
   );
@@ -255,17 +296,41 @@ const SavedReportDetailPage = () => {
   const studentData = React.useMemo(() => {
     if (!reportData) return [];
 
-    const studentSubmissions = reportData.studentSubmissions || [];
-    const totalProblems = reportData.totalProblems || 1;
+    const allProblems = reportData.problems || [];
+    const totalProblems = allProblems.length || reportData.totalProblems || 1;
+    const allSubmissions = reportData.submissions || [];
 
-    // studentSubmissions에서 직접 학생 데이터 생성 (백엔드에서 이미 학생만 필터링됨)
-    return studentSubmissions.map((submission: any) => {
-      // 정답률을 정답 개수로 변환 (전체 문제 수 * 정답률 / 100)
-      const correctAnswers = Math.round((submission.successRate * totalProblems) / 100);
+    // 학생별로 한 번이라도 맞힌 문제의 고유 개수 계산
+    const studentMap = new Map();
+    allSubmissions.forEach((sub: any) => {
+      if (!sub.user?.name || !sub.is_passed) return;
+      if (!studentMap.has(sub.user.name)) studentMap.set(sub.user.name, new Set());
+      studentMap.get(sub.user.name).add(sub.problem?.problemId);
+    });
 
+    // 전체 학생 목록 추출 (studentSubmissions 기준)
+    const studentNames = (reportData.studentSubmissions || []).map((s: any) => s.name);
+
+    return studentNames.map((studentName: string) => {
+      const solvedSet = studentMap.get(studentName) || new Set();
+      const correctAnswers = solvedSet.size;
+      // 내가 하나라도 맞힌 문제의 id 집합
+      const mySubmissions = (reportData?.submissions || []).filter(
+        (sub: any) => sub.user?.id === user?.id,
+      );
+      const mySolvedSet = new Set<number>();
+      mySubmissions.forEach((sub: any) => {
+        if (sub.is_passed && sub.problem?.problemId) {
+          mySolvedSet.add(sub.problem.problemId);
+        }
+      });
+
+      // 정답률: (맞힌 문제 수 / 전체 문제 수) * 100 (미제출은 자동 오답)
+      const accuracy = totalProblems > 0 ? Math.round((mySolvedSet.size / totalProblems) * 100) : 0;
       return {
-        studentName: submission.name,
-        correctAnswers: correctAnswers,
+        studentName,
+        correctAnswers,
+        accuracy,
         submissions: [],
       };
     });
