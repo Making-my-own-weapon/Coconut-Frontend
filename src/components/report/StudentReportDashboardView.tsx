@@ -12,6 +12,7 @@ import StudentReportView from './StudentReportView';
 import { saveReport } from '../../api/reportApi';
 import { showToast } from '../../utils/sweetAlert';
 import { showConfirm } from '../../utils/sweetAlert';
+import DonutChart from './DonutChart';
 
 interface StudentReportDashboardViewProps {
   roomTitle?: string;
@@ -193,12 +194,8 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
               <BoxReportStudent metrics={studentMetrics} className="mb-8" />
             </section>
 
-            {/* 카테고리 및 문제 분석 보드 */}
+            {/* 카테고리 분류 보드 제거, BoardReportBox만 남김 */}
             <section>
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-white mb-2">상세 분석</h2>
-                <p className="text-slate-400">카테고리별 성과와 문제 해결 패턴을 분석합니다</p>
-              </div>
               <BoardReportBox
                 categoryData={categoryData}
                 problemAnalysisData={problemAnalysisData}
