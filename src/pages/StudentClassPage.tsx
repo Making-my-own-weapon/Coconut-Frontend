@@ -15,6 +15,8 @@ import { leaveRoomAPI } from '../api/userApi';
 import { getUserSavedReports } from '../api/reportApi';
 import { showConfirm } from '../utils/sweetAlert';
 import { showSuccess } from '../utils/sweetAlert';
+import throttle from 'lodash.throttle';
+import debounce from 'lodash.debounce';
 
 interface SVGLine {
   points: [number, number][];
@@ -119,6 +121,41 @@ const StudentClassPage: React.FC = () => {
     userName: user?.name || '',
     userRole: 'student',
   });
+
+  // === 커서 전송: 80ms 스로틀 ===
+  const emitCursorThrottled = React.useMemo(
+    () =>
+      throttle(
+        (payload: {
+          collaborationId: string;
+          lineNumber: number;
+          column: number;
+          problemId: number;
+        }) => socket.emit('cursor:update', payload),
+        80,
+        { leading: true, trailing: true },
+      ),
+    [],
+  );
+
+  // === 코드 전송: 100ms 디바운스 ===
+  const emitCodeDebounced = React.useMemo(
+    () =>
+      debounce(
+        (payload: { collaborationId: string; problemId: number; code: string }) =>
+          socket.emit('collab:edit', payload),
+        100,
+      ),
+    [],
+  );
+
+  // 컴포넌트 unmount 시 취소
+  useEffect(() => {
+    return () => {
+      emitCursorThrottled.cancel();
+      emitCodeDebounced.cancel();
+    };
+  }, [emitCursorThrottled, emitCodeDebounced]);
 
   useEffect(() => {
     if (roomId) {
@@ -372,34 +409,19 @@ const StudentClassPage: React.FC = () => {
     if (selectedProblemId) {
       updateCode({ problemId: selectedProblemId, code: newCode });
     }
-    if (collaborationId) {
-      console.log('[Student] emit collab:edit', {
+    if (collaborationId && selectedProblemId) {
+      emitCodeDebounced({
         collaborationId,
         problemId: selectedProblemId,
         code: newCode,
       });
-      socket.emit('collab:edit', { collaborationId, problemId: selectedProblemId, code: newCode });
     }
   };
 
   const handleCursorChange = (position: { lineNumber: number; column: number }) => {
-    console.log('[Student] handleCursorChange', { collabId: collabIdRef.current, position });
-    // 협업 세션이 있고, 문제를 선택했을 때만 커서 동기화
-    if (!collabIdRef.current || !selectedProblemId) {
-      console.warn(
-        '[Student] 커서 전송 스킵 - 협업세션:',
-        !!collabIdRef.current,
-        '문제선택:',
-        !!selectedProblemId,
-      );
-      return;
-    }
-    console.log('[Student] cursor 위치 변경 → 서버로 emit', {
-      position,
-      problemId: selectedProblemId,
-      collaborationId: collabIdRef.current,
-    });
-    socket.emit('cursor:update', {
+    if (!collabIdRef.current || !selectedProblemId) return;
+
+    emitCursorThrottled({
       collaborationId: collabIdRef.current,
       lineNumber: position.lineNumber,
       column: position.column,
@@ -409,6 +431,7 @@ const StudentClassPage: React.FC = () => {
 
   const handleSubmit = () => {
     if (!roomId || !selectedProblemId) return;
+    emitCodeDebounced.flush(); // 제출 시 디바운스 flush
     setAnalysisPanelOpen(true);
     submitCode(roomId, String(selectedProblemId), userCode);
   };
