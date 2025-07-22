@@ -76,81 +76,75 @@ const StudentReportPage = () => {
       ]
     : undefined;
 
-  // 문제 분석 데이터 (실제 submission 데이터에서 생성)
+  // 전체 문제 목록 추출 (problems 필드 기반)
+  const allProblems: any[] = (reportData as any)?.problems || [];
+
+  // 카테고리별 문제 개수 집계 (모든 문제 기준)
+  const categoryData = React.useMemo(() => {
+    if (!allProblems || allProblems.length === 0) {
+      console.log('allProblems is empty:', allProblems);
+      return [];
+    }
+    const categoryMap: { [category: string]: Set<number> } = {};
+    allProblems.forEach((problem: any) => {
+      if (problem.categories && Array.isArray(problem.categories)) {
+        problem.categories.forEach((cat: string) => {
+          if (!categoryMap[cat]) categoryMap[cat] = new Set();
+          categoryMap[cat].add(problem.problemId);
+        });
+      }
+    });
+    const result = Object.entries(categoryMap).map(([name, problemSet]) => ({
+      name,
+      count: problemSet.size,
+      uniqueProblems: problemSet.size,
+      problemTitles: Array.from(problemSet).map(
+        (id) => allProblems.find((p) => p.problemId === id)?.title || '',
+      ),
+    }));
+    console.log('categoryData:', result);
+    return result;
+  }, [allProblems]);
+
+  // 문제 분석 데이터 (미제출 포함, 모든 문제 기준)
   const problemAnalysisData = React.useMemo(() => {
     if (!reportData || !user?.name) return undefined;
-
     const allSubmissions = (reportData as any).submissions || [];
     const userSubmissions = allSubmissions.filter(
       (submission: any) => submission.user?.name === user.name,
     );
+    const submittedProblemIds = new Set(userSubmissions.map((sub: any) => sub.problem?.problemId));
+    const unsubmittedProblems = allProblems.filter(
+      (problem: any) => !submittedProblemIds.has(problem.problemId),
+    );
 
-    // 통과/실패 분류
+    // 기존 분석 로직
     const passedCount = userSubmissions.filter((sub: any) => sub.is_passed).length;
     const failedSubmissions = userSubmissions.filter((sub: any) => !sub.is_passed);
-
-    // 실패한 제출들의 stdout 값들을 수집하고 그룹핑
     const stdoutGroups: { [key: string]: number } = {};
-
     failedSubmissions.forEach((submission: any) => {
       let stdout = submission.stdout || '알 수 없는 오류';
-
-      // stdout이 너무 길면 첫 줄만 사용 (에러의 핵심 부분)
       const firstLine = stdout.split('\n')[0].trim();
-      if (firstLine.length > 0) {
-        stdout = firstLine;
-      }
-
-      // 너무 긴 메시지는 줄임 (50자 제한)
-      if (stdout.length > 50) {
-        stdout = stdout.substring(0, 50) + '...';
-      }
-
-      // 빈 stdout는 '실행 오류'로 처리
-      if (!stdout || stdout.trim() === '') {
-        stdout = '실행 오류';
-      }
-
+      if (firstLine.length > 0) stdout = firstLine;
+      if (stdout.length > 50) stdout = stdout.substring(0, 50) + '...';
+      if (!stdout || stdout.trim() === '') stdout = '실행 오류';
       stdoutGroups[stdout] = (stdoutGroups[stdout] || 0) + 1;
     });
-
-    // 결과 배열 생성 (통과 + 실패 원인들)
     const result = [];
-
-    // 통과한 경우 추가
     if (passedCount > 0) {
-      result.push({
-        name: '통과',
-        count: passedCount,
-      });
+      result.push({ name: '통과', count: passedCount });
     }
-
-    // 실패 원인들을 개수 순으로 정렬해서 추가 (최대 5개)
     const failedReasons = Object.entries(stdoutGroups)
-      .sort(([, countA], [, countB]) => countB - countA) // 개수가 많은 순으로 정렬
-      .slice(0, 5) // 최대 5개만
-      .map(([reason, count]) => ({
-        name: reason,
-        count: count,
-      }));
-
+      .sort(([, countA], [, countB]) => countB - countA)
+      .slice(0, 5)
+      .map(([reason, count]) => ({ name: reason, count }));
     result.push(...failedReasons);
-
+    // 미제출 문제 추가
+    if (unsubmittedProblems.length > 0) {
+      result.push({ name: '미제출', count: unsubmittedProblems.length });
+    }
     return result.length > 0 ? result : undefined;
-  }, [reportData, user?.name]);
-
-  // 카테고리 데이터
-  const categoryData = (reportData as any)?.categoryAnalysis?.map((category: any) => ({
-    name: category.name,
-    count: category.uniqueProblems || 0, // 카테고리별 문제 수
-    successRate: category.successRate, // 정답률은 별도 보관
-    passedCount: category.passedSubmissions, // 맞춘 개수
-    totalCount: category.totalSubmissions, // 총 제출 개수
-    uniqueProblems: category.uniqueProblems, // 고유 문제 수
-    problemTitles: category.problemTitles, // 포함된 문제들
-    participatingStudents: category.participatingStudents, // 참여 학생 수
-    firstSubmissionSuccessRate: category.firstSubmissionSuccessRate, // 첫 제출 성공률
-  }));
+  }, [reportData, user?.name, allProblems]);
 
   // 문제 분석 데이터 (학생별 정답률 데이터 활용) - 이전 코드 제거
 
