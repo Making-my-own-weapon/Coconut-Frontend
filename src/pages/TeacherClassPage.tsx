@@ -13,6 +13,9 @@ import VoiceChatModal from '../components/common/VoiceChatModal';
 import { useVoiceChat } from '../hooks/useVoiceChat';
 import { useAuthStore } from '../store/authStore';
 import { getUserSavedReports } from '../api/reportApi';
+import throttle from 'lodash.throttle';
+import debounce from 'lodash.debounce';
+
 // 안내 메시지 아이콘용 import 추가
 // import { FaQuestionCircle } from 'react-icons/fa'; // react-icons import 제거
 
@@ -109,6 +112,41 @@ const TeacherClassPage: React.FC = () => {
   const teacherId = teacher?.userId;
   const teacherName = teacher?.name;
   const inviteCode = currentRoom?.inviteCode;
+
+  // === 커서 전송: 80ms 스로틀 ===
+  const emitCursorThrottled = React.useMemo(
+    () =>
+      throttle(
+        (payload: {
+          collaborationId: string;
+          lineNumber: number;
+          column: number;
+          problemId: number;
+        }) => socket.emit('cursor:update', payload),
+        80,
+        { leading: true, trailing: true },
+      ),
+    [],
+  );
+
+  // === 코드 전송: 100ms 디바운스 ===
+  const emitCodeDebounced = React.useMemo(
+    () =>
+      debounce(
+        (payload: { code: string; problemId: number; collaborationId: string }) =>
+          socket.emit('collab:edit', payload),
+        100,
+      ),
+    [socket],
+  );
+
+  // 언마운트 시 취소
+  useEffect(() => {
+    return () => {
+      emitCursorThrottled.cancel();
+      emitCodeDebounced.cancel();
+    };
+  }, [emitCursorThrottled, emitCodeDebounced]);
 
   // 1) 소켓 연결 & 리스너 등록 (빈 배열 → 마운트/언마운트 때만)
   useEffect(() => {
@@ -462,43 +500,33 @@ const TeacherClassPage: React.FC = () => {
 
   // 코드 변경 핸들러
   const handleCodeChange = (code: string | undefined) => {
+    const next = code ?? '';
+
     if (selectedStudentId !== null && selectedProblemId !== null) {
-      updateStudentCode(selectedStudentId, selectedProblemId, code || '');
+      updateStudentCode(selectedStudentId, selectedProblemId, next);
+
       if (collaborationId) {
-        socket.emit('collab:edit', {
+        emitCodeDebounced({
           collaborationId,
           problemId: selectedProblemId,
-          code: code || '',
+          code: next,
         });
       }
     } else {
-      setTeacherCode(code || '');
+      setTeacherCode(next);
     }
   };
 
   // 커서 위치 변경 핸들러
   const handleCursorChange = (position: { lineNumber: number; column: number }) => {
-    // 협업 세션이 있고, 문제를 선택했을 때만 커서 동기화
-    if (collaborationId && selectedProblemId) {
-      console.log('[Teacher] cursor 위치 변경 → 서버로 emit', {
-        position,
-        problemId: selectedProblemId,
-        collaborationId,
-      });
-      socket.emit('cursor:update', {
-        collaborationId,
-        lineNumber: position.lineNumber,
-        column: position.column,
-        problemId: selectedProblemId,
-      });
-    } else {
-      console.log(
-        '[Teacher] 커서 전송 스킵 - 협업세션:',
-        !!collaborationId,
-        '문제선택:',
-        !!selectedProblemId,
-      );
-    }
+    if (!(collaborationId && selectedProblemId)) return;
+
+    emitCursorThrottled({
+      collaborationId,
+      lineNumber: position.lineNumber,
+      column: position.column,
+      problemId: selectedProblemId,
+    });
   };
 
   const handleSubmit = () => {
@@ -510,6 +538,7 @@ const TeacherClassPage: React.FC = () => {
       alert('코드를 입력한 후 제출해주세요.');
       return;
     }
+    emitCodeDebounced.flush(); // 제출 시 디바운스 flush
     setAnalysisPanelOpen(true);
     submitCode(roomId, String(selectedProblemId), code);
   };
