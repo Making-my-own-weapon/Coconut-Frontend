@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useTeacherStore, type Student } from '../store/teacherStore';
+import {
+  useTeacherStore,
+  type Student,
+  useSubmissionResultSocketListener,
+} from '../store/teacherStore';
 import { useSubmissionStore } from '../store/submissionStore';
 import { useWorkerStore } from '../store/workerStore'; // 1. workerStore import
 import socket from '../lib/socket';
@@ -100,6 +104,9 @@ const TeacherClassPage: React.FC = () => {
     userName: user?.name || '',
     userRole: 'teacher',
   });
+
+  // 채점 결과 소켓 리스너 등록 (협업 중에도 동작하도록 TeacherClassPage에서 관리)
+  useSubmissionResultSocketListener();
 
   // 즉시 반영되는 수업 상태 (UI용)
   const [localClassStarted, setLocalClassStarted] = useState(classStatus === 'IN_PROGRESS');
