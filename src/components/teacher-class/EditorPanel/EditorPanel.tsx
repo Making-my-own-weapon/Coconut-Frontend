@@ -275,7 +275,7 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
             minimap: { enabled: false },
             scrollBeyondLastLine: false,
             padding: { top: 16 },
-            wordWrap: 'on',
+            wordWrap: 'off',
             lineNumbers: 'on',
             renderWhitespace: 'selection',
             folding: true,
