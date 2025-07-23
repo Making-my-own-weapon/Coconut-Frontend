@@ -1,7 +1,12 @@
 import Swal from 'sweetalert2';
 
 // 토스트 알림 (우상단에 나타나는 작은 알림)
-export const showToast = (type: 'success' | 'error' | 'warning' | 'info', message: string) => {
+export const showToast = (
+  type: 'success' | 'error' | 'warning' | 'info',
+  message: string,
+  theme: 'light' | 'dark' = 'dark', // 기본값: 다크
+) => {
+  const isLight = theme === 'light';
   Swal.fire({
     position: 'top-end',
     icon: type,
@@ -10,8 +15,8 @@ export const showToast = (type: 'success' | 'error' | 'warning' | 'info', messag
     timer: 3000,
     timerProgressBar: true,
     toast: true,
-    background: '#1e293b', // slate-800
-    color: '#f1f5f9', // slate-100
+    background: isLight ? '#fff' : '#1e293b',
+    color: isLight ? '#222' : '#f1f5f9',
     customClass: {
       popup: 'swal2-toast-custom',
     },
@@ -45,7 +50,12 @@ export const showError = (title: string, message?: string) => {
 };
 
 // 확인 알림 (사용자 확인 필요)
-export const showConfirm = (title: string, message: string): Promise<boolean> => {
+export const showConfirm = (
+  title: string,
+  message: string,
+  theme: 'light' | 'dark' = 'dark', // 기본값: 다크
+): Promise<boolean> => {
+  const isLight = theme === 'light';
   return Swal.fire({
     icon: 'question',
     title,
@@ -53,8 +63,8 @@ export const showConfirm = (title: string, message: string): Promise<boolean> =>
     showCancelButton: true,
     confirmButtonText: '확인',
     cancelButtonText: '취소',
-    background: '#1e293b',
-    color: '#f1f5f9',
+    background: isLight ? '#fff' : '#1e293b',
+    color: isLight ? '#222' : '#f1f5f9',
     confirmButtonColor: '#059669',
     cancelButtonColor: '#6b7280',
   }).then((result: any) => {
