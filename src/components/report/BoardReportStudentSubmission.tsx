@@ -176,7 +176,7 @@ const BoardReportStudentSubmission: React.FC<BoardReportStudentSubmissionProps> 
           {/* 코드 영역 */}
           <div className="flex-1 flex flex-col">
             <h3 className="text-white text-lg font-semibold mb-2">코드</h3>
-            <div className="flex-1 bg-black p-4 rounded-md text-white font-mono text-sm overflow-auto">
+            <div className="flex-1 bg-black p-4 rounded-md text-white font-mono text-sm overflow-auto max-h-80">
               <pre className="whitespace-pre-wrap">
                 {selectedSubmission.code || '코드를 불러올 수 없습니다.'}
               </pre>

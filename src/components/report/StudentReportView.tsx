@@ -157,10 +157,10 @@ const StudentReportView: React.FC<StudentReportViewProps> = ({
           }
 
           return {
-            problemId: Math.random(), // 임시 ID
-            problemTitle: problemInfo.title,
+            problemId: problemInfo.name, // 문제 제목을 고유 ID로 사용
+            problemTitle: problemInfo.title || problemInfo.name, // title이 없으면 name 사용
             status,
-            submissionCount: successRate > 0 ? 1 : 0, // 추정값
+            submissionCount: 0, // 실제 제출 내역이 없으니 0
             lastSubmissionDate: new Date(0),
             submissions: [], // 상세 제출 정보 없음
           };
