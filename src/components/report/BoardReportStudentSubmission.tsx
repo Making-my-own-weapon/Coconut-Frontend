@@ -161,18 +161,6 @@ const BoardReportStudentSubmission: React.FC<BoardReportStudentSubmissionProps> 
             </div>
           </div>
 
-          {/* 에러 메시지 (실패한 경우에만) */}
-          {selectedSubmission.status !== 'passed' && selectedSubmission.stdout && (
-            <div className="mb-4">
-              <h3 className="text-white text-lg font-semibold mb-2">에러 메시지</h3>
-              <div className="bg-red-900/20 border border-red-600/30 p-3 rounded-md">
-                <pre className="text-red-300 text-sm whitespace-pre-wrap font-mono overflow-auto max-h-32">
-                  {selectedSubmission.stdout}
-                </pre>
-              </div>
-            </div>
-          )}
-
           {/* 코드 영역 */}
           <div className="flex-1 flex flex-col">
             <h3 className="text-white text-lg font-semibold mb-2">코드</h3>
