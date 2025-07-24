@@ -3,12 +3,24 @@ import Editor from '@monaco-editor/react';
 import usersIcon from '../../../assets/usersIcon.svg';
 import SvgOverlay from '../../common/SvgOverlay';
 import * as monaco from 'monaco-editor';
-import {
-  diff_match_patch as DiffMatchPatch,
-  DIFF_DELETE,
-  DIFF_INSERT,
-  DIFF_EQUAL,
-} from 'diff-match-patch';
+
+function mergeByLine(myCode: string, remoteCode: string, myLine: number | null): string {
+  const myLines = myCode.split('\n');
+  const remoteLines = remoteCode.split('\n');
+  // “라인 개수 다르면 remote 기준으로 덮어씀”
+  if (myLines.length !== remoteLines.length) {
+    return remoteCode; // 보수적 처리 (꼬일 바에야 remote로 맞춰버림)
+  }
+  const result: string[] = [];
+  for (let i = 0; i < myLines.length; ++i) {
+    if (myLine !== null && i === myLine - 1) {
+      result.push(myLines[i] ?? '');
+    } else {
+      result.push(remoteLines[i] ?? '');
+    }
+  }
+  return result.join('\n');
+}
 
 interface SVGLine {
   points: [number, number][];
@@ -148,81 +160,32 @@ const TeacherEditorPanel: React.FC<TeacherEditorPanelProps> = ({
     onClearSVGLines();
   };
 
-  // 네트워크로부터 내려온 code prop 변경 감지용 (diff-match-patch)
   useEffect(() => {
     const editor = editorRef.current;
-    console.log('[PATCH] fired, editor?', !!editor, 'code len', code?.length);
-
     if (!editor) return;
     const model = editor.getModel();
     if (!model) return;
 
-    const oldText = normalizeEOL(model.getValue());
-    const newText = normalizeEOL(code);
-    if (oldText === newText) return;
-    console.log('[PATCH] old===new?', oldText === newText, oldText.length, newText.length);
+    const remoteCode = normalizeEOL(code ?? '');
+    const myCode = normalizeEOL(model.getValue());
+    if (myCode === remoteCode) return;
 
-    // 1) diff 계산
-    const dmp = new DiffMatchPatch();
-    dmp.Diff_Timeout = 0; // ← 타임아웃 방지
-    const diffs = dmp.diff_main(oldText, newText);
-    dmp.diff_cleanupEfficiency(diffs);
-    console.log('[PATCH] diffs', diffs);
+    // === 커서 위치 백업 ===
+    const prevPosition = editor.getPosition();
 
-    // === (핵심) 오프셋 기반으로 변환 ===
-    let oldIdx = 0;
-    const edits: monaco.editor.IIdentifiedSingleEditOperation[] = [];
+    // 병합
+    const myLine = prevPosition ? prevPosition.lineNumber : null;
+    const merged = mergeByLine(myCode, remoteCode, myLine);
 
-    for (const [op, text] of diffs as [number, string][]) {
-      if (op === DIFF_EQUAL) {
-        oldIdx += text.length;
-        continue;
-      }
-
-      const startPos = model.getPositionAt(oldIdx);
-
-      if (op === DIFF_DELETE) {
-        const endPos = model.getPositionAt(oldIdx + text.length);
-        edits.push({
-          range: new monaco.Range(
-            startPos.lineNumber,
-            startPos.column,
-            endPos.lineNumber,
-            endPos.column,
-          ),
-          text: '',
-          forceMoveMarkers: true,
-        });
-        oldIdx += text.length;
-      } else if (op === DIFF_INSERT) {
-        // 삭제는 oldIdx 증가했지만, 삽입은 old 텍스트에서는 길이 0
-        edits.push({
-          range: new monaco.Range(
-            startPos.lineNumber,
-            startPos.column,
-            startPos.lineNumber,
-            startPos.column,
-          ),
-          text,
-          forceMoveMarkers: true,
-        });
-        // oldIdx 그대로
-      }
+    // 적용
+    isRemoteUpdating.current = true;
+    model.setValue(merged);
+    // === 복구 ===
+    if (prevPosition) {
+      editor.setPosition(prevPosition);
+      editor.revealPositionInCenter(prevPosition); // 선택
     }
-    console.log('✂️ edits count:', edits.length, edits);
-
-    if (edits.length) {
-      // 3) 커서·스크롤 보존
-      const prevSelections = editor.getSelections();
-      const prevScroll = editor.getScrollTop();
-
-      isRemoteUpdating.current = true;
-      editor.pushUndoStop();
-      editor.executeEdits('remote', edits, prevSelections || []);
-      editor.pushUndoStop();
-      editor.setScrollTop(prevScroll);
-      isRemoteUpdating.current = false;
-    }
+    isRemoteUpdating.current = false;
   }, [code]);
 
   return (
