@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTeacherStore } from '../../store/teacherStore';
 import { useAuthStore } from '../../store/authStore';
@@ -9,7 +9,7 @@ import type { StudentMetric } from './index';
 import { BoardReportBox } from './index';
 import type { CategoryData, ProblemAnalysisData } from './index';
 import StudentReportView from './StudentReportView';
-import { saveReport, deleteSavedReport, getUserSavedReports } from '../../api/reportApi';
+import { saveReport, deleteSavedReport } from '../../api/reportApi';
 import { showToast } from '../../utils/sweetAlert';
 import { showConfirm } from '../../utils/sweetAlert';
 import DonutChart from './DonutChart';
@@ -47,26 +47,16 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
 
   const [isReportSaved, setIsReportSaved] = useState(false);
   const [autoSavedReportId, setAutoSavedReportId] = useState<number | null>(null);
+  const isSavedRef = useRef(false);
 
-  // 수업 이름 결정
-  const roomTitle = propRoomTitle || currentRoom?.title || createdRoomInfo?.title || '수업 리포트';
-
-  React.useEffect(() => {
-    if (roomId && !isReportSaved && !autoSavedReportId) {
-      getUserSavedReports().then((res) => {
-        const already = res.data?.find(
-          (r) => r.room_title === roomTitle && r.report_type === 'student',
-        );
-        if (!already) {
-          saveReport(roomId).then((res) => {
-            if (res.success && res.data?.id) setAutoSavedReportId(res.data.id);
-          });
-        } else {
-          setAutoSavedReportId(already.id);
-        }
+  useEffect(() => {
+    if (roomId && !isSavedRef.current) {
+      isSavedRef.current = true; // 저장 시도 전에 true로!
+      saveReport(roomId).then((res) => {
+        if (res.success && res.data?.id) setAutoSavedReportId(res.data.id);
       });
     }
-  }, [roomId, isReportSaved, autoSavedReportId, roomTitle]);
+  }, [roomId]);
 
   // 방 생성자인지 확인
   const isRoomCreator = currentRoom?.participants?.[0]?.userId === user?.id;
@@ -86,6 +76,9 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
       navigate('/join');
     }
   };
+
+  // 수업 이름 결정
+  const roomTitle = propRoomTitle || currentRoom?.title || createdRoomInfo?.title || '수업 리포트';
 
   // 탭 컴포넌트
   const tabs = (
