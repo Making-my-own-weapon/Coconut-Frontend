@@ -321,44 +321,59 @@ const StudentProblemDetailView: React.FC<StudentProblemDetailViewProps> = ({
   const [activeTab, setActiveTab] = useState<'problem' | 'test'>('problem');
 
   // 받아온 문제의 exampleTc를 id/input/expectedOutput 형태로 변환합니다.
+  const problemWithExampleTc = problem as Problem & {
+    exampleTc?: { input: string; output: string }[] | string;
+    testCases?: { input: string; output?: string; expectedOutput?: string }[];
+  };
+  const exampleTc = problemWithExampleTc.exampleTc;
+  const testCases = problemWithExampleTc.testCases;
   const formatted = useMemo(() => {
     try {
-      const problemWithExampleTc = problem as Problem & {
-        exampleTc?: { input: string; output: string }[];
-        testCases?: { input: string; output?: string; expectedOutput?: string }[];
-      };
-      const exampleTcData = problemWithExampleTc.exampleTc;
-
-      if (!exampleTcData || !Array.isArray(exampleTcData)) {
-        // fallback: 기존 testCases 사용
-        return (
-          problemWithExampleTc.testCases?.map((tc, idx) => ({
+      let exampleTcData = null;
+      if (exampleTc) {
+        if (typeof exampleTc === 'string') {
+          try {
+            exampleTcData = JSON.parse(exampleTc);
+          } catch (parseError) {
+            console.error('Failed to parse exampleTc JSON:', parseError);
+          }
+        } else {
+          exampleTcData = exampleTc;
+        }
+      }
+      if (exampleTcData) {
+        if (!Array.isArray(exampleTcData)) {
+          exampleTcData = [exampleTcData];
+        }
+        return exampleTcData.map((tc: { input: string; output: string }, idx: number) => ({
+          id: idx + 1,
+          input: tc.input,
+          expectedOutput: tc.output,
+        }));
+      }
+      // fallback: 기존 testCases 사용
+      return (
+        testCases?.map(
+          (tc: { input: string; output?: string; expectedOutput?: string }, idx: number) => ({
             id: idx + 1,
             input: tc.input,
             expectedOutput: tc.output || tc.expectedOutput || '',
-          })) || []
-        );
-      }
-      return exampleTcData.map((tc, idx) => ({
-        id: idx + 1,
-        input: tc.input,
-        expectedOutput: tc.output,
-      }));
+          }),
+        ) || []
+      );
     } catch {
       // fallback: 기존 testCases 사용
       return (
-        (
-          problem as Problem & {
-            testCases?: { input: string; output?: string; expectedOutput?: string }[];
-          }
-        ).testCases?.map((tc, idx) => ({
-          id: idx + 1,
-          input: tc.input,
-          expectedOutput: tc.output || tc.expectedOutput || '',
-        })) || []
+        testCases?.map(
+          (tc: { input: string; output?: string; expectedOutput?: string }, idx: number) => ({
+            id: idx + 1,
+            input: tc.input,
+            expectedOutput: tc.output || tc.expectedOutput || '',
+          }),
+        ) || []
       );
     }
-  }, [problem]);
+  }, [exampleTc, testCases]);
 
   // 커스텀 테스트 케이스 상태 및 핸들러 추가
   const [customTestCases, setCustomTestCases] = useState<
