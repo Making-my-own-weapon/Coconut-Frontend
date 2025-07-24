@@ -58,8 +58,9 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
     }
   }, [roomId]);
 
-  // 방 생성자인지 확인
-  const isRoomCreator = currentRoom?.participants?.[0]?.userId === user?.id;
+
+  // 수업 이름 결정
+  const roomTitle = propRoomTitle || currentRoom?.title || createdRoomInfo?.title || '수업 리포트';
 
   const handleSaveReport = async () => {
     setIsReportSaved(true);
@@ -76,9 +77,6 @@ const StudentReportDashboardView: React.FC<StudentReportDashboardViewProps> = ({
       navigate('/join');
     }
   };
-
-  // 수업 이름 결정
-  const roomTitle = propRoomTitle || currentRoom?.title || createdRoomInfo?.title || '수업 리포트';
 
   // 탭 컴포넌트
   const tabs = (
