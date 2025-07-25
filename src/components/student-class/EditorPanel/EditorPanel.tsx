@@ -78,6 +78,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   const isRemoteUpdating = useRef(false);
   const normalizeEOL = (s: string = '') => s.replace(/\r\n?/g, '\n');
   const cursorPositionRef = useRef<monaco.Position | null>(null);
+  const [myCursorLine, setMyCursorLine] = useState<number | null>(null);
 
   // Editor mount에서 그림판+커서 모두 처리
   function handleEditorDidMount(editor: any) {
@@ -96,6 +97,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
     // 커서 위치 변경 이벤트 리스너 추가
     if (onCursorChange) {
       editor.onDidChangeCursorPosition((e: any) => {
+        setMyCursorLine(e.position.lineNumber); // 커서 이동시 업데이트!
         // 네트워크로 인한 업데이트 중엔 무시
         if (!isRemoteUpdating.current) {
           onCursorChange({
@@ -238,6 +240,12 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
       </div>
       {/* Monaco Editor + SvgOverlay */}
       <div className="flex-grow relative">
+        {otherCursor && myCursorLine !== null && otherCursor.lineNumber === myCursorLine && (
+          <div className="absolute top-2 right-4 bg-yellow-400/80 text-slate-900 px-3 py-1 rounded shadow text-xs font-bold z-30 animate-pulse">
+            동일 줄에 상대방 커서가 있습니다. 커서를 다른 곳으로 옮겨주세요. <br />
+            마지막으로 입력한 사람의 코드가 최종 반영됩니다.{' '}
+          </div>
+        )}
         <Editor
           height="100%"
           language="python"
