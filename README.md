@@ -1,6 +1,6 @@
 # 🥥 Coconut: 언제나 코딩 수업을 쉽게
 
-![코코넛 포스터](../Coconut-Frontend/src/assets/coconut_poster.png)
+![코코넛 포스터](src/assets/coconut_poster.png)
 <br/>
 
 ## 🎯 프로젝트 목표 (문제 정의)
