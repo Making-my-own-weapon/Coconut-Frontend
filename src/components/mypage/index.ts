@@ -1,0 +1,13 @@
+export { default as MyPageBackground } from './MyPageBackground';
+export { default as MyPageHeader } from './MyPageHeader';
+export { default as MyPageLeftSide } from './MyPageLeftSide';
+export { default as MyPageRightPanel } from './MyPageReportView';
+export { default as PersonalInfoCard } from './PersonalInfoCard';
+export { default as ReportsSection } from './ReportsSection';
+export { default as ActionBox } from './ActionBox';
+export { default as ReportChart } from './ReportChart';
+export { default as MyPageBoxClass } from './MyPageBoxClass';
+export { default as MyPageComponentReport } from './MyPageComponentReport';
+export { default as MyPageComponentProblem } from './MyPageComponentProblem';
+export { default as ProblemManagementComponent } from './ProblemManagementComponent';
+export { default as MyPageReportBox } from './MyPageReportBox';

@@ -1,0 +1,113 @@
+//src/store/auth/authStore.ts
+import { create } from 'zustand';
+import { apiClient } from '../api/client';
+import * as authApi from '../api/authApi';
+import * as userApi from '../api/userApi';
+
+// 스토어의 상태(state)와 액션(action)의 타입을 정의합니다.
+interface AuthState {
+  isLoggedIn: boolean;
+  accessToken: string | null;
+  user: {
+    id: number;
+    email: string;
+    name: string;
+    roomId: number | null;
+    updatedAt: string;
+  } | null;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  fetchUser: () => Promise<void>;
+  silentRefresh: () => Promise<void>;
+  setAccessToken: (token: string) => void;
+  deleteAccount: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
+  isLoggedIn: false,
+  accessToken: null,
+  user: null,
+
+  login: async (email, password) => {
+    const response = await authApi.loginAPI({ email, password });
+    const { accessToken } = response.data;
+    set({ accessToken, isLoggedIn: true });
+    if (apiClient.defaults.headers.common) {
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`; //axios클라이언트의 기본 헤더를 설정 1
+    }
+    await get().fetchUser();
+  },
+
+  signup: async (name, email, password) => {
+    await authApi.signupAPI({ name, email, password });
+  },
+
+  fetchUser: async () => {
+    try {
+      const response = await authApi.fetchUserAPI();
+      set({ user: response.data });
+    } catch {
+      // 에러 처리는 client.ts의 인터셉터가 담당
+    }
+  },
+
+  silentRefresh: async () => {
+    try {
+      const response = await authApi.refreshAPI();
+      const { accessToken } = response.data;
+      set({ accessToken, isLoggedIn: true });
+      if (apiClient.defaults.headers.common) {
+        apiClient.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`; //axios클라이언트의 기본 헤더를 설정 2
+      }
+      await get().fetchUser();
+    } catch {
+      console.log('Silent refresh failed, user is not logged in.');
+    }
+  },
+
+  setAccessToken: (token: string) => {
+    set({ accessToken: token, isLoggedIn: true });
+    if (apiClient.defaults.headers.common) {
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+  },
+
+  logout: async () => {
+    try {
+      await authApi.logoutAPI();
+    } catch (error) {
+      console.error('로그아웃 중 에러 발생:', error);
+    } finally {
+      set({ accessToken: null, isLoggedIn: false, user: null });
+      if (apiClient.defaults.headers.common) {
+        delete apiClient.defaults.headers.common['Authorization'];
+      }
+    }
+  },
+
+  deleteAccount: async () => {
+    try {
+      await userApi.deleteUserAPI(); // 1. 계정 삭제 API 호출
+      set({ accessToken: null, isLoggedIn: false, user: null });
+      if (apiClient.defaults.headers.common) {
+        delete apiClient.defaults.headers.common['Authorization'];
+      }
+    } catch (err) {
+      console.error('계정 삭제 실패:', err);
+      throw err; // 에러를 다시 던져서 컴포넌트에서 처리할 수 있도록 함
+    }
+  },
+
+  changePassword: async (currentPassword: string, newPassword: string) => {
+    try {
+      await userApi.changePasswordAPI(currentPassword, newPassword);
+      // 비밀번호 변경 후 사용자 정보 새로고침
+      await get().fetchUser();
+    } catch (err) {
+      console.error('비밀번호 변경 실패:', err);
+      throw err;
+    }
+  },
+}));
