@@ -37,5 +37,8 @@ echo "'dist' 폴더의 데이터가 '${S3_BUCKET_NAME}' 버킷에 업로드됨"
 aws cloudfront create-invalidation --distribution-id ${DISTRIBUTION_ID} --paths "/*" ${PROFILE_OPTION}
 echo "CloudFront 캐시 무효화 요청됨"
 
-echo " 배포가 성공적으로 완료되었습니다. "
-echo " http://${S3_BUCKET_NAME}.s3-website.${AWS_REGION}.amazonaws.com "
+# 4. CloudFront 배포 도메인 이름 조회
+CLOUDFRONT_DOMAIN_NAME=$(aws cloudfront get-distribution --id ${DISTRIBUTION_ID} --query "Distribution.DomainName" --output text ${PROFILE_OPTION})
+
+echo "배포가 성공적으로 완료되었습니다."
+echo "웹사이트 주소: https://${CLOUDFRONT_DOMAIN_NAME}"
