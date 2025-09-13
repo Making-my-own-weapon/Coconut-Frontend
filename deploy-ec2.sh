@@ -74,6 +74,7 @@ fi
 # 2. Docker 이미지 빌드
 echo "Docker 이미지 빌드"
 docker build \
+    --platform linux/amd64 \
     --build-arg VITE_API_BASE_URL=${VITE_API_BASE_URL} \
     -t ${ECR_REPOSITORY_NAME}:${IMAGE_TAG} \
     -f Dockerfile.prod .
@@ -84,10 +85,9 @@ docker tag ${ECR_REPOSITORY_NAME}:${IMAGE_TAG} ${IMAGE_URI}
 docker push ${IMAGE_URI}
 
 # 4. EC2에 배포
-echo "EC2 인스턴스(${EC2_HOST})에 연결하여 배포합니다..."
+echo "EC2 인스턴스(${EC2_HOST})에 배포 시작"
 ssh -i "${EC2_SSH_KEY}" -o StrictHostKeyChecking=no "${EC2_SSH_USER}@${EC2_HOST}" << EOF
     set -e
-    echo "EC2 인스턴스에서 배포 스크립트를 실행합니다."
 
     # ECR 로그인
     aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_URI}
@@ -115,4 +115,4 @@ ssh -i "${EC2_SSH_KEY}" -o StrictHostKeyChecking=no "${EC2_SSH_USER}@${EC2_HOST}
     echo "EC2 배포 완료"
 EOF
 
-echo " 웹사이트 주소: http://${EC2_HOST} "
+echo "웹사이트 주소: http://${EC2_HOST}"
