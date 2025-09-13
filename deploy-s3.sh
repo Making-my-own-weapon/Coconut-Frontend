@@ -30,7 +30,8 @@ echo "빌드 완료"
 
 # 2. 빌드된 파일을 S3 버킷에 업로드
 # --delete 옵션: S3 버킷에는 있지만 로컬 dist 폴더에는 없는 파일을 삭제
-aws s3 sync ./dist s3://${S3_BUCKET_NAME}/${S3_FOLDER_NAME} --region ${AWS_REGION} --delete ${PROFILE_OPTION}
+# --cache-control 옵션: 모든 파일에 max-age=86400 (24시간) 캐시 헤더를 설정
+aws s3 sync ./dist s3://${S3_BUCKET_NAME}/${S3_FOLDER_NAME} --region ${AWS_REGION} --delete --cache-control "max-age=86400" ${PROFILE_OPTION}
 echo "'dist' 폴더의 데이터가 '${S3_BUCKET_NAME}' 버킷에 업로드됨"
 
 # 3. CloudFront 캐시 무효화 
