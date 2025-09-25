@@ -10,6 +10,10 @@
     "preview": "vite preview",
     "prepare": "husky"
   },
+  "engines": {
+    "node": "20.x",
+    "npm": "10.x"
+  },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "@types/lodash.debounce": "^4.0.9",

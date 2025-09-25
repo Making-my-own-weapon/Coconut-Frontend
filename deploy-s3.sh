@@ -24,7 +24,7 @@ fi
 
 
 # 1. 프로젝트 빌드
-npm install
+npm ci
 npm run build
 echo "빌드 완료"
 
